@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pastewhat-ranker"
+version = "0.1.0"
+description = "Candidate-aware clipboard ranking distilled into Laya-multilingual"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.14.0",
+  "tokenizers==0.23.2",
+  "safetensors==0.8.0",
+  "numpy==2.5.3",
+  "huggingface-hub==1.32.0",
+  "PyYAML==6.0.3",
+  "httpx==0.28.1",
+  "mlx==0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[project.optional-dependencies]
+eval = ["scikit-learn==1.8.0"]
+
+[project.scripts]
+pastewhat-ranker-train = "pastewhat_ranker.train:main"
+pastewhat-ranker-export = "pastewhat_ranker.export:main"
+pastewhat-ranker-worker = "pastewhat_ranker.worker:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pastewhat_ranker"]
