@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import os
@@ -195,7 +196,12 @@ class TeacherClient:
                 delay = min(60.0, 2 ** (attempt + 1) + random.random())
                 retry_after = exc.headers.get("Retry-After")
                 if retry_after and retry_after.isdecimal():
-                    delay = min(120.0, max(delay, float(retry_after)))
+                    delay = max(delay, float(retry_after))
+                elif retry_after:
+                    try:
+                        delay = max(delay, parsedate_to_datetime(retry_after).timestamp() - time.time())
+                    except (ValueError, TypeError, OverflowError):
+                        pass
                 if not retryable or attempt + 1 == self.max_attempts:
                     atomic_json(path, {"status": "http_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi HTTP {exc.code}; audit {audit_id}; no response accepted") from None
