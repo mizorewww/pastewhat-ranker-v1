@@ -222,7 +222,7 @@ def main():
                     plan.verify_unchanged()
                     result = publish_pool(base, args.split, plan, started, target=target)
                     print(json.dumps(result, ensure_ascii=False), flush=True)
-                    if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else plan.document["pilot_episodes"]):
+                    if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else 1000):
                         rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
                         for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
                             print(json.dumps({"frozen": frozen}), flush=True)

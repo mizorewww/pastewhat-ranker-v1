@@ -1,0 +1,49 @@
+{
+  "actual_max_pair_tokens": 381,
+  "earlier_snapshot_rows_required_by_later_stages": true,
+  "family_action_allocations_monotone_for": [
+    1000,
+    5000,
+    10000,
+    20000
+  ],
+  "insufficient_pool_publishes_no_snapshot": true,
+  "real_candidate_counts": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "real_families_available": 28,
+  "real_rows_available": 217,
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "Offline guard check on actual accepted Train; no API, GPU, invented episodes or snapshot publication",
+  "source_sha256": {
+    "data_tools/freeze_v7.py": "2c6c80852fff9539df1f0dec7ea365c6c5412167b9e9f057c8b56dc1d2cfc0bd",
+    "data_tools/generate_v7.py": "b5810379fc21fc05a918fffac7724e3bb56a204fcbd37291a94291fdcaee01d4"
+  },
+  "static_review": [
+    "Late optional publication is skipped after an existing pilot.",
+    "Existing later snapshots must contain all previously frozen subset IDs."
+  ],
+  "validation_limit": "The 1000-row publication branch has not run because the required real data does not yet exist; normal pipeline will validate its manifest and coverage before any GPU measurement.",
+  "verification_scaffold": "Inline only; no retained test file",
+  "verified_at": "2026-09-21T05:41:31.478862+00:00"
+}

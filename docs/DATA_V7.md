@@ -95,6 +95,12 @@ budget idempotence and label mappings, binds source audit-file hashes, and write
 the manifest/fingerprint sidecars before atomically publishing JSONL as the GPU
 readiness signal. Dev is independently frozen at 2k. Freeze completion is
 distinct from a rolling accepted pool reaching an approximate count.
+An optional 1,000-episode `throughput-train.jsonl` may appear first, using the
+same exact family/action allocation. It must already cover every Train family,
+candidate counts 1–20 and an actual text pair of at least 512 tokens. The GPU
+pipeline otherwise waits for the 5k pilot. Once published, this early snapshot's
+unchanged rows are required members of the pilot, diagnostic and main snapshots;
+its purpose is the pipeline's single representative throughput measurement.
 
 The bounded six-request low/high measurement is recorded in
 `reports/data/v7-teacher-effort-low-high.json`. Both efforts matched the action
