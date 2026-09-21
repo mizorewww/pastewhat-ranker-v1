@@ -367,8 +367,30 @@
       "reason": "Visible guidance names a document topic/domain but no exact destination; positives include distinct query/fragment destinations and assume these have the requested contents. The Markdown family excludes fragment-anchor reasoning. Do not infer a precise URL from candidates or treat potentially different sections/OS pages as interchangeable without visible permission.",
       "reviewer": "data-agent independent semantic review; no student scores viewed",
       "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "e03f8fc1e8ac2677d72400c35c1d66feb727c010d7f41576905f34c081591f4d",
+      "family_id": "file_copy_destination",
+      "id": "train-main-v6-ranker-v1-local-20260921-file_copy_destination-00000",
+      "original_generation_audit_id": "41eaa769bf21ea6a753cd2296b8ced946b8fb788ab340602986ffec5afd0fb42",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c3",
+          "c5",
+          "c11",
+          "c12"
+        ],
+        "decision": "select"
+      },
+      "reason": "Independent root agent cp execution review: positives cp -r/-R reports /tmp/archive/reports create archive/reports/reports when the destination child already exists; visible input does not specify that state. Candidate usability therefore depends on unobserved filesystem state.",
+      "review_source": "reports/engineering/file-copy-destination-review.json",
+      "reviewer": "root-agent independent review and temporary filesystem execution",
+      "split": "train"
     }
   ],
   "reviewed_at": "2026-09-21T02:29:59.259728+00:00",
-  "updated_at": "2026-09-21T03:01:01.451304+00:00"
+  "updated_at": "2026-09-21T03:35:31.107126+00:00"
 }

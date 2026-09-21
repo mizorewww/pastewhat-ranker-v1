@@ -1,0 +1,28 @@
+{
+  "account_max_in_flight_unchanged": 6,
+  "completed_batches_replayed_without_HTTP": 3,
+  "dev_pid_preserved": 84820,
+  "handoff_at": "2026-09-21T03:34:37.448348+00:00",
+  "heldout_history_owner_aggregate": "One Cal prior attempt from03:20:57 has no observed completion/unknown usage; owner confirmed no live TCP and retained original audit; not created by this maintenance.",
+  "in_flight_http_killed": 0,
+  "new_train_pid": 91385,
+  "notes": "Only scheduling changed; no label, candidate, seed or run target edits. Prior unobserved provider usage is not assigned zero. Success caches use complete original request-body hashes.",
+  "old_train_pid": 84819,
+  "own_operator_pause_released": true,
+  "previously_dispatched_work_preserved_first": true,
+  "provider_http_counts_after": {
+    "400": 1,
+    "403": 1
+  },
+  "provider_http_counts_before": {
+    "400": 1,
+    "403": 1
+  },
+  "released_at": "2026-09-21T03:34:49.317059+00:00",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "started_at": "2026-09-21T03:34:37.339183+00:00",
+  "train_dev_open_tcp_connections_at_handoff": 0,
+  "train_dev_unfinished_audits_at_handoff": 0,
+  "unchanged_batch_contents": true
+}

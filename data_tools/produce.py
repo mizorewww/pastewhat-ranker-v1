@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import re
 import subprocess
 import sys
 import time
@@ -44,9 +45,12 @@ class Progress:
         self.run_plan = run_plan
         self.audit_cache = {}
         self.episodes = {}
+        self.worker_pid = None
+        self.observed_owned_audits = set()
 
     def read(self):
         episodes, rejections, batch_count = {}, 0, 0
+        owned_references = set()
         directory = ROOT / "local/generated" / self.split / ("main-" + CACHE_VERSION)
         if self.run_plan:
             directory /= self.run_plan.run_id
@@ -59,26 +63,45 @@ class Progress:
                 continue  # A completed batch atomically replaced its partial.
             batch_count += not path.name.endswith(".partial.json")
             rejections += len(value.get("rejected", []))
+            for key in value.get("usage", {}):
+                match = re.search(r"([0-9a-f]{64})$", key)
+                if match:
+                    owned_references.add(match.group(1))
             for episode in value.get("episodes", []):
                 episodes[episode["id"]] = episode
+                owned_references.update(value for key, value in episode.get("provenance", {}).items() if key.endswith("audit_id") and isinstance(value, str))
         teacher_passed = len(episodes)
         self.episodes = {identifier: episode for identifier, episode in episodes.items() if not placement_issue(episode)}
         local_rejections = teacher_passed - len(self.episodes)
         episodes = self.episodes
+        self.observed_owned_audits.update(owned_references)
         for path in (ROOT / "local/teacher" / self.split).rglob("*.json"):
             stamp = path.stat().st_mtime_ns
             if path in self.audit_cache and self.audit_cache[path][0] == stamp:
                 continue
             value = json.loads(path.read_text())
+            identifier = value.get("audit_id")
+            if self.run_plan:
+                bound = all(value.get(key) == expected for key, expected in self.run_plan.binding().items())
+                live_owner = value.get("status") == "request_started" and value.get("pid") == self.worker_pid and self.worker_pid is not None
+                try:
+                    request = json.loads(value["request"]["messages"][1]["content"])
+                    plans = request.get("plans", [])
+                    author_owned = bool(plans) and all("-" + self.run_plan.run_id + "-" in row.get("id", "") for row in plans)
+                except (KeyError, ValueError, TypeError):
+                    author_owned = False
+                if bound or live_owner or author_owned:
+                    self.observed_owned_audits.add(identifier)
             response = value.get("response", {})
-            self.audit_cache[path] = (stamp, {"status": value.get("status"), "usage": response.get("usage", {}), "phase": value.get("phase"), "attempts": len(value.get("attempts", []))})
-        usage = Counter()
-        statuses = Counter()
+            self.audit_cache[path] = (stamp, {"audit_id": identifier, "status": value.get("status"), "usage": response.get("usage", {}), "phase": value.get("phase"), "attempts": len(value.get("attempts", []))})
+        usage, statuses, historical_usage, historical_statuses = Counter(), Counter(), Counter(), Counter()
         for _, audit in self.audit_cache.values():
-            statuses[audit["status"]] += 1
-            usage.update({key: audit["usage"].get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
+            current = self.run_plan is None or audit["audit_id"] in self.observed_owned_audits
+            target_usage, target_status = (usage, statuses) if current else (historical_usage, historical_statuses)
+            target_status[audit["status"]] += 1
+            target_usage.update({key: audit["usage"].get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
         labels = Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in episodes.values())
-        return {"accepted_including_partial_batches": len(episodes), "teacher_passed_before_local_release_gate": teacher_passed, "local_release_rejections": local_rejections, "completed_batches": batch_count, "rejected_attempt_events": rejections, "labels": dict(labels), "families_with_accepted_data": len({episode["family_id"] for episode in episodes.values()}), "teacher_requests_including_unreleased_attempts": len(self.audit_cache), "teacher_request_statuses": dict(statuses), "teacher_usage_including_unreleased_attempts": dict(usage)}
+        return {"accepted_including_partial_batches": len(episodes), "teacher_passed_before_local_release_gate": teacher_passed, "local_release_rejections": local_rejections, "completed_batches": batch_count, "rejected_attempt_events": rejections, "labels": dict(labels), "families_with_accepted_data": len({episode["family_id"] for episode in episodes.values()}), "teacher_requests_current_run": sum(statuses.values()), "teacher_request_statuses": dict(statuses), "teacher_usage_current_run": dict(usage), "unattributed_or_other_run_history": {"request_statuses": dict(historical_statuses), "usage": dict(historical_usage)}, "cost_attribution": "Current-run cache usage/audit references, explicit binding, author slot namespace, or observed running generator PID. Unbound historical traffic is separate. In-flight usage is unknown until a response arrives."}
 
     def publish_pool(self):
         """Publish already-reviewed slots without waiting for their batch peers."""
@@ -94,6 +117,40 @@ class Progress:
         labels = Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in episodes)
         atomic_json(manifest_path, {**(self.run_plan.binding() if self.run_plan else {}), "split": self.split, "episodes": len(episodes), "sha256": digest, "prompt_version": PROMPT_VERSION, "labels": dict(labels), "families": dict(Counter(episode["family_id"] for episode in episodes)), "family_action_counts": {family: dict(Counter("select" if row["label"]["decision"] == "select" else "no_match" if row["label"]["abstain_reason"] == "no_match" else "missing_intent" for row in episodes if row["family_id"] == family)) for family in {row["family_id"] for row in episodes}}, "partial_batch_slots_included": True, "created_at": utc_now(), "human_validated": False})
         publish_bytes(output, payload)
+
+
+class AdoptedGenerator:
+    """Monitor an existing owned child without terminating its in-flight calls."""
+    def __init__(self, pid):
+        self.pid = pid
+
+    def poll(self):
+        try:
+            os.kill(self.pid, 0)
+        except ProcessLookupError:
+            return 0
+        return None
+
+    def terminate(self):
+        try:
+            os.kill(self.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+
+def adopt_generator(split, prior, run_dir, plan):
+    if not plan or any(prior.get(key) != value for key, value in plan.binding().items()):
+        return None
+    pid = prior.get("splits", {}).get(split, {}).get("child_pid")
+    if type(pid) is not int:
+        return None
+    result = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True)
+    command = result.stdout.strip()
+    if result.returncode or "-m data_tools.generate" not in command or f"--split {split}" not in command or f"--run-plan {plan.path}" not in command:
+        return None
+    output = (run_dir / f"{split}.log").open("a", buffering=1)
+    output.write(json.dumps({"event": "adopt_existing_generator", "pid": pid, "time": utc_now(), **plan.binding()}) + "\n")
+    return AdoptedGenerator(pid), output
 
 
 def launch(split, workers, run_dir, batch_size, run_plan=None):
@@ -147,6 +204,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--monitor-seconds", type=float, default=30)
     parser.add_argument("--run-plan")
+    parser.add_argument("--adopt-running", action="store_true", help="Reload supervision while preserving verified existing generator processes")
     args = parser.parse_args()
     run_plan = load_run_plan(args.run_plan) if args.run_plan else None
     if run_plan and run_plan.document["teacher_contract_version"] != PROMPT_VERSION:
@@ -163,13 +221,18 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         raise SystemExit("A Train/Dev production supervisor is already running")
+    previous_progress = json.loads((run_dir / "progress.json").read_text()) if args.adopt_running and (run_dir / "progress.json").is_file() else {}
     atomic_json(run_dir / "process.json", {**(run_plan.binding() if run_plan else {}), "pid": os.getpid(), "started_at": utc_now(), "prompt_version": PROMPT_VERSION, "train_workers": args.train_workers, "dev_workers": args.dev_workers, "batch_size": args.batch_size, "targets": targets})
     workers = {"train": args.train_workers, "dev": args.dev_workers}
     trackers = {split: Progress(split, run_plan) for split in workers}
     coordinator = AccountCoordinator()
     account_status = coordinator.status()
     gate = production_gate()
-    children = {split: launch(split, amount, run_dir, args.batch_size, run_plan) if not account_status["paused"] and gate["ready"] else (None, None) for split, amount in workers.items()}
+    children = {}
+    for split, amount in workers.items():
+        adopted = adopt_generator(split, previous_progress, run_dir, run_plan) if args.adopt_running else None
+        children[split] = adopted or (launch(split, amount, run_dir, args.batch_size, run_plan) if not account_status["paused"] and gate["ready"] else (None, None))
+        trackers[split].worker_pid = children[split][0].pid if children[split][0] is not None else None
     restarts = Counter()
     next_restart = {split: 0.0 for split in workers}
     started = time.monotonic()
@@ -193,6 +256,7 @@ def main():
         gate = production_gate()
         status = {**(run_plan.binding() if run_plan else {}), "updated_at": utc_now(), "prompt_version": PROMPT_VERSION, "elapsed_seconds": round(elapsed, 1), "account_rate_state": account_status, "production_gate": gate, "splits": {}}
         for split, tracker in trackers.items():
+            tracker.worker_pid = children[split][0].pid if children[split][0] is not None else None
             progress = tracker.read()
             tracker.publish_pool()
             gained = progress["accepted_including_partial_batches"] - initial_counts[split]

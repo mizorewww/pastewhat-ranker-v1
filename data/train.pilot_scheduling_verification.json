@@ -1,0 +1,9 @@
+{
+  "batch_content_hash_set_identical": true,
+  "created_at": "2026-09-21T03:21:38.531132+00:00",
+  "original_required_dispatched_slots": 885,
+  "priority_required_dispatched_slots": 600,
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "scope": "Offline schedule calculation only, assuming all planned slots pass. Existing in-flight requests and process queues not changed; next natural generator startup uses this permutation."
+}

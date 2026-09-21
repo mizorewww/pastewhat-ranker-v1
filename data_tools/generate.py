@@ -24,6 +24,7 @@ from run_contract import action_quotas, family_quotas, load_run_plan
 from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.authoring import AUTHORING_PROTOCOL, candidate_space, compile_compact_episode, owned_profile
 from data_tools.labeling import LABEL_PROTOCOL, VERDICT_LABEL_SYSTEM, derive_candidate_label
+from data_tools.scheduling import prioritize_pilot_batches
 from data_tools.deployment import authoring_requirement, placement_issue
 from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonical_bytes, sha256, utc_now
 
@@ -90,6 +91,7 @@ LABEL_SYSTEM = VERDICT_LABEL_SYSTEM
 AUTHOR_OPERATION_GUIDANCE = {
     "git_diff_selection": "When comparing commits, guidance must literally name the requested old/source and new/target revisions. Do not write only 'two commits', 'the specified revisions' or 'explicitly named' without their actual values. Candidate contents cannot supply missing user choices. Name-only diffs also need direction when renames can change the emitted names; do not assume reversing them is always equivalent. State patch/stat/name-only output when that distinction is required.",
     "markdown_link": "For a select or no_match syntax task, show the exact literal destination and exact requested visible link label in guidance or selected text. Vary only Markdown syntax, link label and inline/reference form. Do not require guessing a website's contents from a URL, or create different query/fragment destinations as interchangeable answers. Omit fragment anchors entirely from this operation's authoring. If one link only is required, state exactly one link and no other prose or links.",
+    "file_copy_destination": "When correctness depends on destination state, actual visible guidance must say whether the destination directory and its named child already exist and whether the request copies the directory itself or only its contents. Do not silently assume that child is absent: cp -R source dest/source nests another source directory if dest/source already exists. State required overwrite and metadata behavior if those distinguish candidates; otherwise do not reject harmless equivalent copy tools by preference. Never add these facts to an already labeled episode.",
 }
 
 
@@ -295,6 +297,35 @@ def blind_label_consensus(prepared, annotations, *, client, split, phase, reques
     return agreed, disagreements, result
 
 
+def recover_author_request(client, batch, pending, repair, default_user):
+    """Reuse a completed in-flight author response with its exact original body.
+
+    A scheduler drain may occur between author/label/audit phases. Before a new
+    attempt checkpoint existed, the sanitized request audit is the authoritative
+    record of its validation feedback and parameters. No generated input is edited.
+    """
+    request_id = f"{batch['batch_id']}-g{repair}"
+    wanted = {row['id'] for row in pending}
+    candidates = []
+    for path in client.audit_dir.glob('*.json'):
+        audit = json.loads(path.read_text())
+        if audit.get('request_id') != request_id or audit.get('status') != 'success':
+            continue
+        messages = audit.get('request', {}).get('messages', [])
+        if len(messages) != 2 or messages[0].get('content') != GENERATOR_SYSTEM:
+            continue
+        try:
+            user = json.loads(messages[1]['content'])
+        except (ValueError, KeyError):
+            continue
+        if {row.get('id') for row in user.get('plans', [])} == wanted and user.get('attempt') == repair:
+            candidates.append((audit.get('started_at', ''), messages[1]['content'], audit['audit_id']))
+    if candidates:
+        _, user, audit_id = max(candidates)
+        return user, audit_id
+    return default_user, None
+
+
 def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, registry=None, run_plan=None):
     from data_tools.audit import AUDIT_SYSTEM, review_group
 
@@ -341,6 +372,8 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             author_family = {"id": batch["family"]["id"], "operation": positive_operation}
             field_fixture = owned_profile(batch["family"]["id"])
             user = json.dumps({"operation_family": author_family, "field_fixture": field_fixture, "operation_requirements": AUTHOR_OPERATION_GUIDANCE.get(batch["family"]["id"], ""), "plans": pending, "attempt": repair, "previous_validation_findings": last_error, "instructions": "Each episode uses slot equal to its plan id. Exercise only this operation in the fixed field. Preserve scenario_type and exact candidate count. Return only compact episode fields."}, ensure_ascii=False)
+            user, recovered_audit_id = recover_author_request(client, batch, pending, repair, user)
+            atomic_json(partial_path, {"contract_sha256": contract_hash, "episodes": list(accepted.values()), "usage": usage, "rejected": rejected, "attempts_completed": repair, "pending_author_request": {"request_id": f"{batch['batch_id']}-g{repair}", "user": user, "recovered_success_audit_id": recovered_audit_id}})
             generation = client.complete_json(GENERATOR_SYSTEM, user, max_tokens=24576, response_format="json_object", temperature=1.0 if repair else 0.6, thinking=None if repair else "disabled", phase=f"{split}-{phase}-generate", request_id=f"{batch['batch_id']}-g{repair}")
             usage[f"generation-{generation.audit_id}"] = generation.usage
             raw = generation.parsed.get("episodes", [])
@@ -653,6 +686,24 @@ def main():
             if registry.claim(json.loads(line)):
                 raise ValueError("Frozen pilot reservation conflicts with existing content; preserve snapshot and investigate")
     reconcile_saved_batches(batch_dir, batches, registry)
+    if run_plan and args.split == "train" and args.phase == "main":
+        accepted = []
+        for path in batch_dir.glob("*.json"):
+            if path.name != "failures.json":
+                accepted.extend(row for row in json.loads(path.read_text()).get("episodes", []) if not placement_issue(row))
+        batches = prioritize_pilot_batches(batches, partition, run_plan, accepted)
+        # Finish previously dispatched author work first, using its exact body
+        # cache, before changing the order of yet-unstarted fixed batches.
+        initiated = {path.name.removesuffix('.partial.json').removesuffix('.json') for path in batch_dir.glob('*.json')}
+        for path in client.audit_dir.glob('*.json'):
+            audit = json.loads(path.read_text())
+            try:
+                plans = json.loads(audit['request']['messages'][1]['content']).get('plans', [])
+            except (KeyError, ValueError, IndexError):
+                continue
+            if plans and all('-' + run_plan.run_id + '-' in row.get('id', '') for row in plans):
+                initiated.add(audit.get('request_id', '').rsplit('-g', 1)[0])
+        batches = [batch for batch in batches if batch['batch_id'] in initiated] + [batch for batch in batches if batch['batch_id'] not in initiated]
     records = []
     started = time.monotonic()
     failures = []
