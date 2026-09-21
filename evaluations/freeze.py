@@ -7,7 +7,8 @@ import json
 from pathlib import Path
 import subprocess
 
-from evaluations.common import load_jsonl, sha256, validate_formal_heldout_allocation, write_json
+from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation, write_json
+from run_contract import load_run_plan
 
 
 def directory_hashes(root: Path) -> dict[str, str]:
@@ -23,6 +24,9 @@ def verify_freeze(path: Path, dataset: Path | None = None) -> dict:
     frozen = json.loads(path.read_text())
     if frozen.get("status") != "frozen_for_final_test":
         raise ValueError("Final Test requires an explicitly approved freeze")
+    plan = load_run_plan(frozen["inputs"]["run_plan"]["path"])
+    if any(frozen.get(key) != value for key, value in plan.binding().items()):
+        raise ValueError("Final freeze belongs to a different registered production plan")
     for section in ("deployment", "baseline", "baseline_model", "runtime_code", "evaluation_code", "context_projection"):
         root = Path(frozen[section]["root"])
         actual = directory_hashes(root)
@@ -36,11 +40,14 @@ def verify_freeze(path: Path, dataset: Path | None = None) -> dict:
             raise ValueError(f"Frozen {name} changed")
     if dataset and sha256(dataset) != frozen["inputs"]["test"]["sha256"]:
         raise ValueError("The requested dataset is not the frozen final Test")
+    if dataset:
+        require_plan_data_path(plan, "test", dataset)
     return frozen
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run-plan", type=Path, required=True)
     parser.add_argument("--deployment", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--baseline-model", type=Path, required=True)
@@ -50,32 +57,42 @@ def main():
     parser.add_argument("--test", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
     parser.add_argument("--calibrator", type=Path, required=True)
-    parser.add_argument("--calibration-audit", type=Path, default=Path("reports/data-calibration-audit.json"))
-    parser.add_argument("--test-audit", type=Path, default=Path("reports/data-test-audit.json"))
+    parser.add_argument("--calibration-audit", type=Path)
+    parser.add_argument("--test-audit", type=Path)
     parser.add_argument("--preprocess-source", type=Path, default=Path("src/pastewhat_ranker/preprocess.py"))
     parser.add_argument("--family-partition", type=Path, default=Path("data_tools/family_partition.json"))
     parser.add_argument("--authorization", required=True, help="Exact parent-agent freeze authorization reference, not a fabricated user approval")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan)
+    args.calibration_audit = args.calibration_audit or Path("reports/evaluation") / plan.run_id / "data-calibration-audit.json"
+    args.test_audit = args.test_audit or Path("reports/evaluation") / plan.run_id / "data-test-audit.json"
     calibrator = json.loads(args.calibrator.read_text())
     if calibrator.get("version") != "pastewhat-calibrator-v1":
         raise SystemExit("Expected the deployment-version correctness calibrator")
+    if any(calibrator.get("provenance", {}).get(key) != value for key, value in plan.binding().items()):
+        raise SystemExit("Calibrator belongs to a different registered production plan")
     allocation = {}
     partition = json.loads(args.family_partition.read_text())
     partition_hash = sha256(args.family_partition)
     for split, dataset, audit_path in (("calibration", args.calibration, args.calibration_audit),
                                        ("test", args.test, args.test_audit)):
-        allocation[split] = validate_formal_heldout_allocation(load_jsonl(dataset), split, partition)
+        require_plan_data_path(plan, split, dataset)
+        allocation[split] = validate_formal_heldout_allocation(load_jsonl(dataset), split, partition, plan)
         audit = json.loads(audit_path.read_text())
-        if (audit.get("passed") is not True or audit.get("split") != split or
+        if (audit.get("passed") is not True or audit.get("formal_run") is not True or audit.get("split") != split or
                 audit.get("episodes") != allocation[split]["episodes"] or
+                any(audit.get(key) != value for key, value in plan.binding().items()) or
                 audit.get("data_sha256") != sha256(dataset) or audit.get("partition_sha256") != partition_hash):
             raise SystemExit("Final freeze requires a passing audit bound to the complete " + split + " data")
     inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
         "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
+        "run_plan": args.run_plan, "run_contract_source": Path("run_contract.py"),
         "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
         "context_projection_adapter": Path("tools/project_context.py"),
         "candidate_projection_adapter": Path("tools/project_candidates.py"),
+        "compact_authoring_builder": Path("data_tools/authoring.py"),
+        "candidate_label_protocol": Path("data_tools/labeling.py"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
         "calibration_audit": args.calibration_audit, "test_audit": args.test_audit,
     }.items()}
@@ -92,6 +109,7 @@ def main():
         "context_projection": {"root": str(Path("tools/context_projection").resolve()), "files": directory_hashes(Path("tools/context_projection"))},
         "inputs": inputs, "calibration_status": calibrator["status"],
         "heldout_allocation": allocation,
+        **plan.binding(),
         "quality_target": {"answerable_top1_delta": 0.05, "key_group_maximum_decline": 0.05,
                            "key_group_minimum_answerable": 30, "recommendation_precision": 0.95},
     }

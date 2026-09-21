@@ -11,9 +11,11 @@ import random
 import re
 
 from data_tools.teacher import TeacherClient, canonical_bytes
-from evaluations.common import load_jsonl, sha256, validate_label, write_json
-from evaluations.generate import content_fingerprint, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM, same_label, reason_provenance
+from data_tools.labeling import derive_candidate_label
+from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation, validate_label, write_json
+from evaluations.generate import content_fingerprint, generation_specs, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM, same_label, reason_provenance
 from pastewhat_ranker.preprocess import Preprocessor
+from run_contract import RunPlan, action_quotas, family_quotas, load_run_plan
 
 
 def label_equal(left: dict, right: dict) -> bool:
@@ -27,7 +29,7 @@ def unique_records(items: list[dict], count: int) -> dict:
     return mapping
 
 
-def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path) -> dict:
+def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path, run_plan: RunPlan | None = None) -> dict:
     episodes = load_jsonl(data)
     split_values = {row.get("split") for row in episodes}
     if len(split_values) != 1 or not split_values <= {"calibration", "test"}:
@@ -36,6 +38,16 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     specification = json.loads(partition.read_text())
     families = {row["id"]: row for row in specification["families"][split]}
     partition_hash = sha256(partition)
+    allocation = None
+    planned_specs = {}
+    if run_plan:
+        require_plan_data_path(run_plan, split, data)
+        allocation = validate_formal_heldout_allocation(episodes, split, specification, run_plan)
+        counts = family_quotas(specification, split, run_plan.target(split))
+        actions = action_quotas(counts)
+        for index, family in enumerate(specification["families"][split]):
+            planned_specs[family["id"]] = generation_specs(index, 0, counts[family["id"]], counts[family["id"]],
+                family_id=family["id"], actions=actions[family["id"]], seed_namespace=run_plan.run_id)
     preprocessor = Preprocessor(tokenizer)
     audit_files = {}
 
@@ -83,17 +95,25 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         fingerprints.add(fingerprint)
         generator_request, generator_response = read_audit(episode["teacher"]["generation_audit_id"])
         slot = metadata["generator_spec"]["slot"]
+        if run_plan and metadata["generator_spec"] != planned_specs[episode["family_id"]][slot]:
+            raise ValueError("Generated slot differs from registered independent sampling plan")
+        requested_specs = [row for row in generator_request["specs"] if row["slot"] == slot]
+        if requested_specs != [metadata["generator_spec"]]:
+            raise ValueError("Authoring audit does not contain the exact saved sampling specification")
         originals = [row for row in generator_response["episodes"] if row["slot"] == slot]
         if len(originals) != 1:
             raise ValueError("Generated slot is missing or duplicated")
         recreated = normalize_generated(json.loads(json.dumps(originals[0])), metadata["generator_spec"], split,
-                                       families[episode["family_id"]], partition_hash, preprocessor)
+                                       families[episode["family_id"]], partition_hash, preprocessor,
+                                       run_plan.binding() if run_plan else None)
         if recreated["synthetic_metadata"]["raw_capture_sha256"] != metadata.get("raw_capture_sha256"):
             raise ValueError("Raw observable capture differs from its authoring audit")
         if recreated["synthetic_metadata"]["raw_candidate_payloads_sha256"] != metadata.get("raw_candidate_payloads_sha256"):
             raise ValueError("Native candidate payload fixtures differ from their authoring audit")
         if recreated["synthetic_metadata"]["candidate_projection_provenance_sha256"] != metadata.get("candidate_projection_provenance_sha256"):
             raise ValueError("Native candidate projection provenance changed")
+        if recreated["synthetic_metadata"]["raw_compact_authoring_sha256"] != metadata.get("raw_compact_authoring_sha256"):
+            raise ValueError("Compact literal authoring differs from its teacher generation audit")
         if recreated["preprocessing"]["visible_sha256"] != visible_hash:
             raise ValueError("Generation, native projection, and preprocessing do not reproduce labeled input")
         label_request, label_response = read_audit(episode["teacher"]["label_audit_id"], LABEL_SYSTEM)
@@ -105,7 +125,8 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         if not re.fullmatch(r"e[0-9]+", opaque_id):
             raise ValueError("A label request exposed a semantic episode identifier")
         labels = unique_records(label_response["labels"], len(label_request["episodes"]))
-        if set(labels) != {row["id"] for row in label_request["episodes"]} or not label_equal(labels[opaque_id]["label"], episode["label"]):
+        first_label = derive_candidate_label(labels[opaque_id], matches[0])
+        if set(labels) != {row["id"] for row in label_request["episodes"]} or not label_equal(first_label, episode["label"]):
             raise ValueError("Stored label differs from its independent teacher response")
         for row in label_request["episodes"]:
             if set(row) != {"id", "context", "entries"}:
@@ -119,11 +140,11 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         expected_blind = [{**row, "id": f"item_{index + 1}"} for index, row in enumerate(shuffled)]
         if blind_inputs[opaque_id]["entries"] != expected_blind or blind_inputs[opaque_id]["context"] != episode["context"]:
             raise ValueError("Second blind labeling did not use the same visible evidence with remapped IDs/order")
-        other = dict(blind_labels[opaque_id]["label"])
+        other = derive_candidate_label(blind_labels[opaque_id], blind_inputs[opaque_id])
         other["acceptable_ids"] = [ids[value] for value in other["acceptable_ids"]]
         if not label_equal(other, episode["label"]):
             raise ValueError("Blind teacher label passes disagree")
-        expected_reasons = reason_provenance(episode["label"], labels[opaque_id]["label"], other)
+        expected_reasons = reason_provenance(episode["label"], first_label, other)
         if any(episode["teacher"].get(key) != value for key, value in expected_reasons.items()):
             raise ValueError("Pooled abstention reason provenance differs from the teacher responses")
         if episode["teacher"].get("review_protocol") != "blind-family-and-deployment-v1":
@@ -147,12 +168,16 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
                 classification.get("input_realistic") is not True):
             raise ValueError("Blind observed-operation classification or deployment review failed")
         counts[episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"]] += 1
+    if run_plan:
+        run_plan.verify_unchanged()
     return {"passed": True, "split": split, "episodes": len(episodes), "data_sha256": sha256(data),
+            "formal_run": run_plan is not None, "registered_allocation": allocation,
+            **(run_plan.binding() if run_plan else {}),
             "partition_sha256": partition_hash, "label_counts": dict(counts),
             "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
             "teacher_audit_files": len(audit_files), "teacher_audit_bundle_sha256": hashlib.sha256(canonical_bytes(audit_files)).hexdigest(),
             "checks": ["exact production preprocessing", "native Swift UTF-16 selection/nearby projection replay", "native Swift candidate payload projection replay", "raw capture/payload hashes and authoring contracts", "token budget and full candidate preservation",
-                       "opaque label-request identifiers", "label-request metadata exclusion", "two blind labels with remapped IDs and order",
+                       "compact authoring/profile replay", "opaque label-request identifiers", "label-request metadata exclusion", "complete independent per-candidate verdicts and exact selected-text mapping", "two blind labels with remapped IDs and order",
                        "blind observed-operation classification and deployment review", "actual-label sampling quotas",
                        "within-split order/ID-independent duplicate detection"],
             "human_validated": False, "student_inference_used": False,
@@ -161,13 +186,17 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
 
 def main():
     parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--run-plan", type=Path)
+    mode.add_argument("--staging", action="store_true", help="Audit an unregistered non-scored authoring probe")
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--audit-root", type=Path, default=Path("local/teacher"))
     parser.add_argument("--tokenizer", type=Path, default=Path("../laya-mlx/models/laya-multilingual/tokenizer"))
     parser.add_argument("--partition", type=Path, default=Path("data_tools/family_partition.json"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    report = audit_dataset(args.data, args.audit_root, args.tokenizer, args.partition)
+    report = audit_dataset(args.data, args.audit_root, args.tokenizer, args.partition,
+                           load_run_plan(args.run_plan) if args.run_plan else None)
     write_json(args.output, report)
     print(json.dumps(report, ensure_ascii=False), flush=True)
 

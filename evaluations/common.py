@@ -9,6 +9,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from run_contract import RunPlan, action_quotas, family_quotas
+
 from pastewhat_ranker.calibration import (
     FEATURE_NAMES, apply_calibration as calibrated_decision,
     calibrated_probability, score_features,
@@ -40,7 +42,12 @@ def load_jsonl(path: str | Path) -> list[dict]:
     return rows
 
 
-def validate_formal_heldout_allocation(episodes: list[dict], split: str, partition: dict) -> dict:
+def require_plan_data_path(plan: RunPlan, split: str, path: Path) -> None:
+    if path.resolve() != plan.data_path(split).resolve():
+        raise ValueError("Formal heldout input path differs from its registered run")
+
+
+def validate_formal_heldout_allocation(episodes: list[dict], split: str, partition: dict, plan: RunPlan) -> dict:
     """Only complete preregistered heldout allocations qualify for formal scoring."""
     if split not in {"calibration", "test"}:
         raise ValueError("Formal heldout allocation is only Calibration or Test")
@@ -48,22 +55,46 @@ def validate_formal_heldout_allocation(episodes: list[dict], split: str, partiti
     expected_count = 8 if split == "calibration" else 12
     if len(families) != expected_count:
         raise ValueError("Conceptual family partition differs from preregistered allocation")
-    expected = {family["id"]: 125 if split == "calibration" else 167 if index < 8 else 166
-                for index, family in enumerate(families)}
+    plan.verify_unchanged()
+    expected = family_quotas(partition, split, plan.target(split))
     if any(episode.get("split") != split for episode in episodes):
         raise ValueError("Heldout rows contain a different split")
     observed = dict(Counter(episode["family_id"] for episode in episodes))
     if observed != expected or len({episode["id"] for episode in episodes}) != len(episodes):
         raise ValueError("Formal heldout data must contain the complete unique preregistered family allocation")
-    return {"split": split, "episodes": len(episodes), "families": observed}
+    buckets = {family: Counter() for family in expected}
+    for episode in episodes:
+        metadata = episode.get("synthetic_metadata", {})
+        if any(metadata.get(key) != value for key, value in plan.binding().items()):
+            raise ValueError("Heldout row belongs to a different or unregistered production plan")
+        if metadata.get("teacher_contract_version") != plan.document["teacher_contract_version"]:
+            raise ValueError("Heldout row uses a different registered teacher contract")
+        validate_label(episode)
+        label = episode["label"]
+        bucket = "select" if label["decision"] == "select" else "no_match" if label["abstain_reason"] == "no_match" else "missing_intent"
+        buckets[episode["family_id"]][bucket] += 1
+    observed_actions = {family: {name: counts[name] for name in ("select", "no_match", "missing_intent")}
+                        for family, counts in buckets.items()}
+    if observed_actions != action_quotas(expected):
+        raise ValueError("Formal heldout labels differ from registered global 70/20/10 action quotas")
+    return {**plan.binding(), "split": split, "episodes": len(episodes), "families": observed,
+            "action_quotas": observed_actions}
 
 
-def verify_score_run(path: Path, *, dataset: Path, split: str, protocol: str, freeze: Path | None = None) -> dict:
+def verify_score_run(path: Path, *, dataset: Path, split: str, protocol: str, freeze: Path | None = None,
+                     run_plan: RunPlan | None = None) -> dict:
     """Reject stale, partial, differently scoped, or unbound scoring artifacts."""
     manifest_path = path.parent / "run-manifest.json"
     completion_path = path.parent / "completion.json"
     manifest = json.loads(manifest_path.read_text())
     completion = json.loads(completion_path.read_text())
+    if split in {"calibration", "test"}:
+        if run_plan is None:
+            raise ValueError("Formal score verification requires its registered run plan")
+        run_plan.verify_unchanged()
+        require_plan_data_path(run_plan, split, dataset)
+        if any(manifest.get(key) != value or completion.get(key) != value for key, value in run_plan.binding().items()):
+            raise ValueError("Scoring run belongs to a different registered production plan")
     if (manifest.get("split") != split or manifest.get("protocol") != protocol or
             manifest.get("data_sha256") != sha256(dataset)):
         raise ValueError("Scoring run belongs to a different dataset, split, or model protocol")

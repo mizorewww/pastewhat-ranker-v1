@@ -22,10 +22,10 @@ import time
 from data_tools.teacher import atomic_json, utc_now
 from data_tools.rate_limit import AccountCoordinator
 from evaluations.generate import passed_current_gates
+from evaluations.common import sha256
+from run_contract import RunPlan, load_run_plan
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE = ROOT / "local/evaluator-generation-v5"
-HELDOUT = ROOT / "local/evaluator-heldout-v5"
 PRODUCTION_READY = ROOT / "local/kimi-account-rate/production-ready.json"
 
 
@@ -61,16 +61,14 @@ def production_readiness() -> dict:
             "marker_sha256": hashlib.sha256(raw).hexdigest()}
 
 
-def progress(split: str) -> dict:
+def progress(split: str, state_root: Path, plan: RunPlan) -> dict:
     episodes, rejected, unverified = {}, 0, 0
-    for path in (STATE / split).glob("*.json"):
-        # One-row pipeline probes are not part of the release allocation.
-        if path.name.endswith("-0000-1.json"):
-            continue
+    for path in (state_root / split).glob("*.json"):
         state = json.loads(path.read_text())
         rejected += len(state.get("rejected_attempts", []))
         for episode in state.get("episodes", []):
-            verified = passed_current_gates(episode)
+            verified = passed_current_gates(episode) and all(
+                episode.get("synthetic_metadata", {}).get(key) == value for key, value in plan.binding().items())
             if verified:
                 episodes[episode["id"]] = episode
             else:
@@ -81,37 +79,44 @@ def progress(split: str) -> dict:
             "rejected_attempt_events": rejected}
 
 
-def launch(split: str, workers: int, directory: Path):
+def launch(split: str, workers: int, directory: Path, plan: RunPlan):
     log = (directory / (split + ".log")).open("a", buffering=1)
     command = [sys.executable, "-m", "evaluations.generate", "--split", split,
-               "--batch-size", "6", "--workers", str(workers), "--output", str(HELDOUT / (split + ".jsonl"))]
+               "--run-plan", str(plan.path), "--batch-size", "6", "--workers", str(workers)]
     log.write(json.dumps({"event": "launch", "time": utc_now(), "command": command}) + "\n")
     return subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT), log
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run-plan", type=Path, required=True)
     parser.add_argument("--workers-per-split", type=int, default=2)
     parser.add_argument("--monitor-seconds", type=float, default=30)
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan)
     if not 1 <= args.workers_per_split <= 2:
         raise SystemExit("Evaluator HTTP worker allocation must not exceed the coordinated two per split")
-    directory = ROOT / "local/evaluator-production-v5"
+    directory = ROOT / "local/evaluator-production" / plan.run_id
+    state_root = ROOT / "local/evaluator-generation" / plan.run_id
     directory.mkdir(parents=True, exist_ok=True)
     lock = (directory / ".supervisor.lock").open("a")
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         raise SystemExit("An evaluator production supervisor is already running")
-    splits = {"calibration": 1000, "test": 2000}
+    splits = {split: plan.target(split) for split in ("calibration", "test")}
+    binding_path = directory / "run-binding.json"
+    if binding_path.exists() and json.loads(binding_path.read_text()) != plan.binding():
+        raise SystemExit("Evaluator supervisor directory belongs to a different registered plan")
+    atomic_json(binding_path, plan.binding())
     atomic_json(directory / "process.json", {"pid": os.getpid(), "started_at": utc_now(),
                 "workers_per_split": args.workers_per_split, "targets": splits,
-                "student_test_inference_allowed": False})
+                "student_test_inference_allowed": False, **plan.binding()})
     coordinator = AccountCoordinator()
     children = {}
     restarts, next_restart, audits = Counter(), {split: 0.0 for split in splits}, {}
     started = time.monotonic()
-    initial = {split: progress(split)["accepted_with_all_current_gates"] for split in splits}
+    initial = {split: progress(split, state_root, plan)["accepted_with_all_current_gates"] for split in splits}
     stopping = False
 
     def stop(signum, frame):
@@ -124,30 +129,35 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     while not stopping:
+        plan.verify_unchanged()
         elapsed = max(1.0, time.monotonic() - started)
         account = coordinator.status()
         readiness = production_readiness()
         status = {"updated_at": utc_now(), "elapsed_seconds": round(elapsed, 1), "splits": {},
                   "student_test_inference_allowed": False, "provider_account": account,
-                  "provider_validation": readiness}
+                  "provider_validation": readiness, **plan.binding()}
         for split, target in splits.items():
-            current = progress(split)
+            current = progress(split, state_root, plan)
             child, log = children.get(split, (None, None))
             exit_code = child.poll() if child else None
             gained = current["accepted_with_all_current_gates"] - initial[split]
             rate = gained / elapsed if gained > 0 else 0.0
-            data = HELDOUT / (split + ".jsonl")
+            data = ROOT / plan.data_path(split)
             current.update(target=target, child_pid=child.pid if child else None, child_exit_code=exit_code,
                            supervisor_restarts=restarts[split], accepted_per_hour=round(rate * 3600, 2),
                            estimated_remaining_seconds=round((target - current["accepted_with_all_current_gates"]) / rate) if rate else None)
             if data.is_file():
-                report = ROOT / "reports" / ("data-" + split + "-audit.json")
+                report = ROOT / "reports/evaluation" / plan.run_id / ("data-" + split + "-audit.json")
                 if split not in audits:
                     if report.is_file():
-                        audits[split] = {"status": "passed" if json.loads(report.read_text()).get("passed") else "failed", "report": str(report.relative_to(ROOT))}
+                        previous = json.loads(report.read_text())
+                        verified = (previous.get("passed") is True and previous.get("formal_run") is True and
+                                    previous.get("data_sha256") == sha256(data) and
+                                    all(previous.get(key) == value for key, value in plan.binding().items()))
+                        audits[split] = {"status": "passed" if verified else "failed", "report": str(report.relative_to(ROOT))}
                     else:
                         result = subprocess.run([sys.executable, "-m", "evaluations.audit_data", "--data", str(data),
-                                                 "--output", str(report)], cwd=ROOT, capture_output=True, text=True)
+                                                 "--run-plan", str(plan.path), "--output", str(report)], cwd=ROOT, capture_output=True, text=True)
                         with (directory / "audit.log").open("a") as handle:
                             handle.write(json.dumps({"split": split, "time": utc_now(), "exit_code": result.returncode,
                                                      "stdout": result.stdout, "stderr": result.stderr}, ensure_ascii=False) + "\n")
@@ -166,7 +176,7 @@ def main():
                         log.close()
                         restarts[split] += 1
                     next_restart[split] = time.monotonic() + min(900, 30 * 2 ** min(restarts[split], 5))
-                    children[split] = launch(split, args.workers_per_split, directory)
+                    children[split] = launch(split, args.workers_per_split, directory, plan)
                     current["data_status"] = "resuming_unfilled_slots"
             else:
                 current["data_status"] = "generating_or_waiting_for_shared_provider_cooldown"
@@ -178,7 +188,7 @@ def main():
                           "audits": audits}, ensure_ascii=False), flush=True)
         if len(audits) == 2 and all(value["status"] == "passed" for value in audits.values()):
             atomic_json(directory / "complete.json", {"completed_at": utc_now(), "targets": splits,
-                        "audits": audits, "student_test_inference_run": False})
+                        "audits": audits, "student_test_inference_run": False, **plan.binding()})
             break
         time.sleep(min(60, max(5, args.monitor_seconds)))
     for child, log in children.values():

@@ -12,6 +12,7 @@ from evaluations.common import (
 )
 from evaluations.freeze import verify_freeze
 from pastewhat_ranker.calibration import load_calibrator
+from run_contract import load_run_plan
 
 
 def slices(episodes: list[dict], predictions: list[dict]) -> dict:
@@ -63,6 +64,7 @@ def key_group_verdict(groups: dict) -> dict:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run-plan", type=Path, required=True)
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--ranker-scores", type=Path, required=True)
@@ -73,11 +75,14 @@ def main():
     parser.add_argument("--freeze", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan)
     if args.output.exists():
         raise SystemExit("Refusing to overwrite frozen Test results")
     frozen = verify_freeze(args.freeze, args.data)
-    verify_score_run(args.baseline, dataset=args.data, split="test", protocol="baseline", freeze=args.freeze)
-    score_run = verify_score_run(args.ranker_scores, dataset=args.data, split="test", protocol="ranker", freeze=args.freeze)
+    if any(frozen.get(key) != value for key, value in plan.binding().items()):
+        raise SystemExit("Final report belongs to a different registered production run")
+    verify_score_run(args.baseline, dataset=args.data, split="test", protocol="baseline", freeze=args.freeze, run_plan=plan)
+    score_run = verify_score_run(args.ranker_scores, dataset=args.data, split="test", protocol="ranker", freeze=args.freeze, run_plan=plan)
     if (score_run.get("artifacts", {}).get("weights_sha256") != sha256(args.weights) or
             score_run.get("artifacts", {}).get("preprocess_sha256") != sha256(args.preprocess)):
         raise SystemExit("Reported ranker artifacts differ from the frozen scoring run")
@@ -117,12 +122,13 @@ def main():
         "acceptance": {"passed": all(criteria.values()), "criteria": criteria},
         "provenance": {"freeze_sha256": sha256(args.freeze), "data_sha256": sha256(args.data),
                        "baseline_scores_sha256": sha256(args.baseline), "ranker_scores_sha256": sha256(args.ranker_scores),
-                       "calibrator_sha256": sha256(args.calibrator), "report_code_sha256": sha256(__file__)},
+                       "calibrator_sha256": sha256(args.calibrator), "report_code_sha256": sha256(__file__), **plan.binding()},
+        **plan.binding(),
     }
     if args.jev:
         if "jev" not in frozen:
             raise SystemExit("An additional Jev baseline must have its client frozen before Test")
-        verify_score_run(args.jev, dataset=args.data, split="test", protocol="jev", freeze=args.freeze)
+        verify_score_run(args.jev, dataset=args.data, split="test", protocol="jev", freeze=args.freeze, run_plan=plan)
         remote = load_jsonl(args.jev)
         metrics["additional_jev_baseline"] = {
             "summary": summarize(episodes, remote), "slices": slices(episodes, remote),
@@ -131,6 +137,7 @@ def main():
             "scores_sha256": sha256(args.jev),
             "limitations": "The client and its uncalibrated confidence gate were frozen; jev-latest remote weights are rolling. Not the primary acceptance comparator.",
         }
+    plan.verify_unchanged()
     write_json(args.output / "metrics.json", metrics)
     write_jsonl(args.output / "ranker-decisions.jsonl", decisions)
     verify_freeze(args.freeze, args.data)

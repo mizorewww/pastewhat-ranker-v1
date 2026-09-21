@@ -1,0 +1,21 @@
+{
+  "scope": "engineering checks of evaluator contracts; no registered production run or student scoring",
+  "status": "passed",
+  "checked_allocation_combinations": 10,
+  "binding_mismatches_rejected": 10,
+  "candidate_space_independent_of_labels": true,
+  "empty_or_insufficient_critical_groups": "inconclusive",
+  "compact_native_preprocess_and_complete_label_parser": "passed",
+  "temporary_probes_removed": true,
+  "teacher_requests_for_engineering_checks": 0,
+  "student_inference_used": false,
+  "sources": {
+    "run_contract.py": "bbf33c2e8784e4a6385ff1ccc57c22656650dae87de1165380ef4f2537a9098e",
+    "evaluations/common.py": "24cecb674990137d5c0987d110133a7206bdecd8bfdd550be2cbbac2fb4ea524",
+    "evaluations/generate.py": "18d57a1e2b0d3776e819596bbac65caaf71cb90d12aa22be25d3642520ec8a2d",
+    "evaluations/authoring.py": "78052a826b18234e0dcddc97494098d54043d9bdb3261e5e17d933259f4ec84a",
+    "evaluations/audit_data.py": "f298e7f19b915f6dd183acdfcd3df3c199a97042cf2b8cef09b0e6dd19cf754e",
+    "evaluations/freeze.py": "b8edde3e2dbce4f7062b64f6ac12b3074e0f433498e32b48e19d0d6439b2971a",
+    "evaluations/report.py": "a764dbd6eb4b372b518b3ac7d665e8d33f644f8b54a6311913190376a42689bc"
+  }
+}

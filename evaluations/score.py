@@ -11,7 +11,8 @@ import selectors
 import subprocess
 import time
 
-from evaluations.common import inference_request, load_jsonl, score_features, sha256, validate_formal_heldout_allocation, write_json
+from evaluations.common import inference_request, load_jsonl, require_plan_data_path, score_features, sha256, validate_formal_heldout_allocation, write_json
+from run_contract import load_run_plan
 from evaluations.freeze import directory_hashes, verify_freeze
 
 
@@ -141,6 +142,7 @@ def command_artifacts(command: list[str], protocol: str, frozen: dict | None) ->
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run-plan", type=Path, help="Required for formal Calibration or Test")
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--split", choices=("calibration", "test", "regression"), required=True)
     parser.add_argument("--command-json", required=True, help="JSON array of command arguments; no shell expansion")
@@ -149,6 +151,9 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=180)
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan) if args.run_plan else None
+    if args.split != "regression" and plan is None:
+        parser.error("Formal Calibration/Test scoring requires --run-plan")
     if args.output.exists():
         raise SystemExit("Refusing to overwrite an inference run")
     frozen = None
@@ -156,12 +161,15 @@ def main():
         if args.freeze is None:
             raise SystemExit("Final Test requires the parent-approved freeze manifest")
         frozen = verify_freeze(args.freeze, args.data)
+        if any(frozen.get(key) != value for key, value in plan.binding().items()):
+            raise SystemExit("Final Test freeze belongs to a different registered run")
     episodes = load_jsonl(args.data)
     if args.split != "regression" and any(row.get("split") != args.split for row in episodes):
         raise SystemExit("Dataset split disagrees with requested inference phase")
     if args.split != "regression":
         partition = Path(frozen["inputs"]["family_partition"]["path"]) if frozen else Path("data_tools/family_partition.json")
-        validate_formal_heldout_allocation(episodes, args.split, json.loads(partition.read_text()))
+        require_plan_data_path(plan, args.split, args.data)
+        validate_formal_heldout_allocation(episodes, args.split, json.loads(partition.read_text()), plan)
     command = json.loads(args.command_json)
     if not isinstance(command, list) or not command or any(not isinstance(item, str) for item in command):
         raise SystemExit("Expected a JSON array of command arguments")
@@ -171,7 +179,8 @@ def main():
                 "command": command, "protocol": args.protocol, "artifacts": artifacts, "platform": platform.platform(),
                 "started_at": datetime.now(timezone.utc).isoformat(), "score_code_sha256": sha256(__file__),
                 "freeze_sha256": sha256(args.freeze) if args.freeze else None,
-                "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()}
+                "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                **(plan.binding() if plan else {})}
     write_json(args.output / "run-manifest.json", manifest)
     start = time.perf_counter()
     worker = Worker(command, args.output / "worker.stderr.log", args.timeout)
@@ -203,8 +212,11 @@ def main():
         verify_freeze(args.freeze, args.data)
     if sha256(args.data) != manifest["data_sha256"] or command_artifacts(command, args.protocol, frozen) != artifacts:
         raise RuntimeError("Dataset, model files or runtime changed during scoring; no completed run can be used")
+    if plan:
+        plan.verify_unchanged()
     write_json(args.output / "completion.json", {"completed_at": datetime.now(timezone.utc).isoformat(),
-               "episodes": len(episodes), "failures": failures, "scores_sha256": sha256(args.output / "scores.jsonl")})
+               "episodes": len(episodes), "failures": failures, "scores_sha256": sha256(args.output / "scores.jsonl"),
+               **(plan.binding() if plan else {})})
 
 
 if __name__ == "__main__":

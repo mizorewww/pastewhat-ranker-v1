@@ -12,6 +12,7 @@ from evaluations.common import (
     score_features, sha256, summarize, validate_label, verify_score_run, wilson_interval, write_json,
 )
 from evaluations.score import command_artifacts
+from run_contract import load_run_plan
 
 
 def partition_families(episodes: list[dict]) -> dict:
@@ -114,6 +115,7 @@ def fit_calibrator(episodes: list[dict], predictions: list[dict], *, minimum_rec
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run-plan", type=Path, required=True)
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--scores", type=Path, required=True)
     parser.add_argument("--deployment-manifest", type=Path, required=True)
@@ -122,9 +124,10 @@ def main():
     parser.add_argument("--partition", type=Path, default=Path(__file__).with_name("calibration-family-partition.json"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan)
     if args.output.exists():
         raise SystemExit("Refusing to overwrite a calibration run")
-    score_run = verify_score_run(args.scores, dataset=args.data, split="calibration", protocol="ranker")
+    score_run = verify_score_run(args.scores, dataset=args.data, split="calibration", protocol="ranker", run_plan=plan)
     if (score_run.get("artifacts", {}).get("weights_sha256") != sha256(args.weights) or
             score_run.get("artifacts", {}).get("preprocess_sha256") != sha256(args.preprocess)):
         raise SystemExit("Calibration score run differs from the requested deployment weights or preprocessing")
@@ -136,12 +139,16 @@ def main():
         raise SystemExit("Calibration families differ from their pre-scoring allocation")
     if any(row.get("split") != "calibration" for row in episodes):
         raise SystemExit("Only Calibration may fit the final calibrator")
-    calibrator, report = fit_calibrator(episodes, predictions)
+    calibrator, report = fit_calibrator(episodes, predictions,
+        minimum_recommendations=plan.document["quality_gates"]["minimum_calibration_recommendations"])
+    plan.verify_unchanged()
     calibrator["weightsSHA"] = sha256(args.weights)
     calibrator["preprocessSHA"] = sha256(args.preprocess)
     provenance = {"dataset_sha256": sha256(args.data), "scores_sha256": sha256(args.scores),
                   "calibration_partition_sha256": sha256(args.partition),
-                  "deployment_manifest_sha256": sha256(args.deployment_manifest)}
+                  "deployment_manifest_sha256": sha256(args.deployment_manifest), **plan.binding()}
+    calibrator.update(plan.binding())
+    report.update(plan.binding())
     calibrator["provenance"] = provenance
     report["provenance"] = provenance
     write_json(args.output / "calibrator.json", calibrator)

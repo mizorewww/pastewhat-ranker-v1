@@ -16,13 +16,21 @@ permutations. Task domains and representation kinds may recur across splits;
 the decision operation must not. Mixed-operation examples crossing partitions
 are rejected. A hash and Git commit of the partition precede generation.
 
-The intended counts are 20,000 Train, 1,000 Dev, 1,000 Calibration, and 2,000
-Test. Calibration has eight operations with 125 episodes each. Test has twelve
-operations: the first eight in the fixed manifest have 167 episodes and the
-remaining four have 166. Candidate counts cover 1–20. The intended distribution
-is approximately 70% selectable, 20% no match, and 10% insufficient information
-or ambiguous. At least half of selectable episodes contain a negative candidate
-of the same content kind. These are targets, not achieved facts.
+The original suggested counts are 20,000 Train, 1,000 Dev, 1,000 Calibration,
+and 2,000 Test. Actual production sizes must be registered separately under
+`RUN_PLAN_FORMAT.md` before formal training, calibration, or scoring. No size is
+selected implicitly by importing code. Every formal evaluator command requires
+`--run-plan`; the unchanged conceptual partition still covers eight Calibration
+operations and twelve Test operations. `run_contract.family_quotas` balances the
+registered total in fixed family order, and `action_quotas` apportions global
+70/20/10 selectable/no-match/missing-intent counts, including whole-episode
+rounding. Missing intent pools ambiguity and insufficient information. Formal
+replay verifies every original sampling slot and actual accepted label bucket.
+Manifests, calibration, scores and the final freeze bind the same `run_id` and
+`run_plan_sha256`; changed plans cannot resume existing caches. Private formal
+data lives only at the plan's `local/evaluator-heldout/<run_id>/` paths. Explicit
+`--staging` authoring probes are not registered production data and cannot be
+scored as formal Calibration or Test. These are planned counts, not achieved facts.
 
 Only synthetic content is used. The vendored native Swift context projection
 first derives input surface from actual AX metadata; generated surface guesses
@@ -34,8 +42,16 @@ has no free-form `surroundingText`. Shared production Swift converts this eviden
 to `pastewhat-focus-v1` before student preprocessing. Raw capture remains only in
 generation provenance; it cannot give the teacher extra information. Unversioned
 earlier free-form drafts remain outside the formal data state.
-Formal v5 authoring supplies candidate payload fixtures, not declared candidate
-types: a literal text body, synthetic file basenames, or blank PNG dimensions.
+Formal v6 uses `teacher-episodes-v6-compact-verdicts`. Its compact author supplies
+only slot, zero to two short displayed guidance strings, the selected complete
+old field value (or empty), and whole candidate payloads. Twenty evaluator-owned
+field profiles are fixed in `evaluations/authoring-profiles.json` before generation.
+The shared `compact-literal-fixture-v1` builder constructs the full observable
+context and capture without inspecting a label or inferred intent. An empty
+selection means an empty field with a known insertion point. Whole-field
+replacement has empty before/after boundaries. Candidates supply payload
+fixtures instead of declared types: a literal text body, synthetic file
+basenames, or blank PNG dimensions.
 The same production Swift codec derives each candidate's text, kind and
 capabilities before any tokenizer budget or teacher label. Coarse native kinds
 are preserved even when a code/color string is classified as text. File/image
@@ -43,7 +59,7 @@ summaries do not imply visible contents or a textual clipboard representation.
 Raw fixture hashes and shared native-source provenance accompany each episode;
 the independent audit replays both context and candidate projection exactly.
 Earlier rows with declared candidate metadata remain isolated with their original
-teacher audits and labels; none are moved into v5 without new generation/labels.
+teacher audits and labels; none are silently moved into a registered v6 run.
 The synthetic authoring domain excludes the exact pattern in which a nonempty
 selected value is duplicated as the entire unselected prefix with an empty suffix,
 or as the entire suffix with an empty prefix. Authors can mistakenly represent a
@@ -72,7 +88,19 @@ it must never be described as human validation. The report records rejected,
 disputed, repaired, and accepted episode counts and the responding teacher
 model, rather than assuming an API alias identifies fixed weights.
 
-Within each fixed family allocation, candidate counts (all integers 1–20),
+Both blind labels use `independent-candidate-verdicts-v1`: every candidate gets
+an independent usable boolean and short audit evidence. The standard acceptable
+ID set is derived from all true verdicts. A complete positive ID/text quotation
+set must match the actual input, and identical plaintext cannot receive
+contradictory usability. Canonical wording, ordering or brevity is not an implicit
+preference. Evidence remains outside student inputs. Native file/image summaries
+are never treated as textual clipboard contents without text capability. The
+provider's `response_format=json_object` constrains JSON syntax; it does not prove
+semantic correctness. Agreement between two teacher passes remains a fallible
+quality filter and is followed by independent evaluator review.
+
+Within each fixed family allocation, candidate counts (integers 1–20, except
+the predeclared finite RSVP status operation with 1–4 candidates),
 languages, and requested label buckets are shuffled with separate fixed seed
 streams. Sharing a modulo schedule among these fields would create a label
 shortcut. A one-candidate ambiguity request becomes insufficient information in
@@ -106,8 +134,9 @@ scoring, based on annotation semantics rather than student performance.
 Only the final intended deployment weights and precision are calibrated.
 Calibration's eight conceptual families are deterministically sorted by
 `sha256("pastewhat-calibration-v1:" + family_id)`; the first four are fit
-families and the other four threshold-selection families. Thus 500/500 examples
-are allocated without correlated family variants straddling the two roles.
+families and the other four threshold-selection families. Registered family
+quotas determine the two role counts (500/500 under the original suggestion),
+without correlated family variants straddling the two roles.
 The allocation and hashes are published before model scoring.
 
 A `StandardScaler` and L2-regularized `LogisticRegression(C=1, solver="lbfgs",
@@ -130,8 +159,8 @@ is not a successful calibration.
 Candidates only qualify for recommendation when their top score is strictly
 greater than the abstain score. The threshold-selection half chooses the
 threshold with maximum coverage among thresholds yielding at least 95%
-observed recommendation precision and at least 25 recommendations (5% of the
-intended threshold split). Equal coverage is broken by higher precision, then
+observed recommendation precision and at least 25 recommendations. This absolute
+evidence requirement stays unchanged if a smaller run is registered. Equal coverage is broken by higher precision, then
 the higher threshold. If no threshold meets those requirements, report target
 failure and retain the best-precision threshold with at least 25 recommendations
 as a diagnostic candidate, not an accepted release. If fewer than 25 examples
@@ -150,7 +179,8 @@ and code revision are retained. Calibration does not choose model checkpoints.
 The evaluator runs final Test only after the parent explicitly freezes model
 weights, tokenizer, production preprocessing, deployment precision, calibration
 parameters/threshold, and baseline implementation. The freeze manifest records
-file hashes and the Test hash. The runner refuses to proceed if any frozen
+file hashes, the Test hash, the registered plan itself and `run_contract.py`.
+The runner refuses to proceed if any frozen
 artifact has changed. No test-derived error analysis, label correction,
 threshold change, or checkpoint selection may feed this version's release.
 Corrections require a versioned explanation and a new, independently held-out
