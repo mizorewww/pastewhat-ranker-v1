@@ -9,10 +9,10 @@ import argparse
 from collections import Counter, defaultdict, deque
 import hashlib
 import json
-import math
 from pathlib import Path
 import time
 
+from pastewhat_ranker.calibration import score_features
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.worker import RankerScorer
 from pastewhat_ranker.train import read_allowed_data
@@ -29,18 +29,9 @@ def content_hash(episode: dict) -> str:
 
 
 def inspect_score(episode: dict, response: dict) -> dict:
-    if response.get("error"):
-        raise ValueError("Inference failure cannot become a mined semantic error")
+    features, top_id, beats_abstain = score_features(episode, response)
     entries = {entry["id"]: entry for entry in episode["entries"]}
-    scores = response.get("candidateScores", [])
-    if len(scores) != len(entries) or {item["id"] for item in scores} != set(entries):
-        raise ValueError("Scored candidates do not exactly cover the complete group")
-    ordered = sorted(scores, key=lambda item: (-item["score"], item["id"]))
-    abstain = response["abstainScore"]
-    if not all(math.isfinite(value) for value in [abstain, *(item["score"] for item in scores)]):
-        raise ValueError("Nonfinite inference scores")
-    top, second = ordered[0], ordered[1]["score"] if len(ordered) > 1 else abstain
-    prediction = top["id"] if top["score"] > abstain else None
+    prediction = top_id if beats_abstain else None
     label = episode["label"]
     positive = set(label["acceptable_ids"])
     correct = prediction in positive if label["decision"] == "select" else prediction is None
@@ -55,9 +46,9 @@ def inspect_score(episode: dict, response: dict) -> dict:
     else:
         category = "different_kind_choice_disagreement"
     # Distance to the runner-up action, not a correctness probability.
-    margin = min(top["score"] - second, top["score"] - abstain) if prediction else abstain - top["score"]
+    margin = min(features[0], features[1]) if beats_abstain else -features[0]
     return {"id": episode["id"], "family_id": episode["family_id"], "category": category,
-            "raw_recommended_id": prediction, "raw_top_id": top["id"],
+            "raw_recommended_id": prediction, "raw_top_id": top_id,
             "agrees_with_existing_teacher_label": correct,
             "action_margin": margin, "candidate_count": len(entries),
             "same_kind_negative_present": any(entry["kind"] in {entries[key]["kind"] for key in positive}
