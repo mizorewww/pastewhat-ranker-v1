@@ -170,6 +170,8 @@ class Generator:
                     max_tokens=24576, temperature=0.6, thinking="disabled",
                     phase="independent-generation", request_id=key + f"-generation-{attempt}",
                 )
+                if not isinstance(generated.parsed, dict):
+                    raise ValueError("Generation response must be a JSON object")
                 values = generated.parsed.get("episodes", [])
                 by_slot = {row["slot"]: row for row in values}
                 if len(values) != len(pending_specs) or set(by_slot) != {spec["slot"] for spec in pending_specs}:
@@ -181,6 +183,10 @@ class Generator:
                     LABEL_SYSTEM, json.dumps({"episodes": [{**inference_request(row), "id": f"e{index + 1}"} for index, row in enumerate(episodes)]}, ensure_ascii=False),
                     max_tokens=16384, phase="post-truncation-label", request_id=key + f"-label-{attempt}",
                 )
+                if not isinstance(labeled.parsed, dict):
+                    raise ValueError("Label response must be a JSON object")
+                if len(labeled.parsed.get("labels", [])) != len(episodes):
+                    raise ValueError("Label response count does not match episodes")
                 labels = {label_ids[row["id"]]: row for row in labeled.parsed.get("labels", [])}
                 if set(labels) != {row["id"] for row in episodes}:
                     raise ValueError("labeling did not cover every episode")
@@ -206,6 +212,8 @@ class Generator:
                     LABEL_SYSTEM, json.dumps({"episodes": blind_inputs}, ensure_ascii=False),
                     max_tokens=16384, phase="blind-permuted-post-truncation-label", request_id=key + f"-blind-label-{attempt}",
                 )
+                if not isinstance(second.parsed, dict) or len(second.parsed.get("labels", [])) != len(episodes):
+                    raise ValueError("Blind label response count does not match episodes")
                 blind_labels = {}
                 for value in second.parsed.get("labels", []):
                     label = dict(value["label"])
@@ -219,6 +227,8 @@ class Generator:
                                 "episodes": [{**inference_request(row), "proposed_label": row["label"]} for row in episodes]}, ensure_ascii=False),
                     max_tokens=16384, phase="independent-label-audit", request_id=key + f"-audit-{attempt}",
                 )
+                if not isinstance(reviewed.parsed, dict) or len(reviewed.parsed.get("reviews", [])) != len(episodes):
+                    raise ValueError("Review response count does not match episodes")
                 reviews = {row["id"]: row for row in reviewed.parsed.get("reviews", [])}
                 if set(reviews) != {row["id"] for row in episodes}:
                     raise ValueError("review did not cover every episode")
@@ -263,7 +273,7 @@ class Generator:
                          "family_partition_sha256": self.partition_hash}
                 atomic_json(path, state)
                 return state
-            except (TeacherError, ValueError, TypeError, KeyError) as error:
+            except (TeacherError, ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
                 failure_reasons.append({"attempt": attempt, "kind": type(error).__name__, "message": str(error)[:300]})
                 atomic_json(path, {"status": "retrying", "key": key, "episodes": list(accepted_by_slot.values()), "rejected_attempts": failure_reasons})
         state = {"status": "failed", "key": key, "family": family["id"], "rejected_attempts": failure_reasons,
