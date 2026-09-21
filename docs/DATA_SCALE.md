@@ -7,6 +7,14 @@ Test 3,000. That is **32,000 distinct release-data episodes**. The 5k pilot and
 reused during hardening are not additional data. Hard-pool proposals that are not
 accepted for training are counted separately.
 
+The teacher workload is larger than that final 32k count. The registered route
+authors 27k base Train/Dev/Calibration/Test episodes and a separate 10k hard
+pool: **at least 37k distinct proposed episodes**. It then blindly confirms up
+to 6k mined nominations to obtain 5k accepted new hard examples. Those
+confirmations, sampled reviews, failed requests and repairs are extra work;
+they are not extra distinct release examples. A cost estimate must include
+them rather than multiplying only the final 32k by a successful-call average.
+
 These are registered targets, not completed production counts or a measured
 optimum. The user clarified that 100k was illustrative rather than a minimum.
 The machine-readable calculation and immutable run binding are in
