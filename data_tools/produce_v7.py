@@ -25,6 +25,20 @@ def alive(pid):
         return False
 
 
+def exhausted_source_record(base, name):
+    """Return the durable finite-budget stop record, including a hard-pool stop."""
+    completions = [base / f"{name}.run-completion.json"]
+    if name == "hardening":
+        completions.append(base / "hard-pool/train.run-completion.json")
+    for path in completions:
+        if path.exists() and json.loads(path.read_text()).get("status") == "finite_backfill_exhausted":
+            return path
+    insufficient = base / "hardening/insufficient-confirmed-new.json"
+    if name == "hardening" and insufficient.exists():
+        return insufficient
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-plan", required=True)
@@ -63,11 +77,9 @@ def main():
             if alive(process.get("pid")):
                 states[name] = {"state": "running", "pid": process["pid"]}
                 continue
-            completion_path = base / f"{name}.run-completion.json"
-            completion = json.loads(completion_path.read_text()) if completion_path.exists() else {}
-            hard_insufficient = base / "hardening/insufficient-confirmed-new.json"
-            if completion.get("status") == "finite_backfill_exhausted" or name == "hardening" and hard_insufficient.exists():
-                states[name] = {"state": "finite_source_budget_exhausted", "note": "Keep actual deficits visible; no label rewriting or repeated preferred-answer search"}
+            exhaustion = exhausted_source_record(base, name)
+            if exhaustion is not None:
+                states[name] = {"state": "finite_source_budget_exhausted", "record_path": str(exhaustion.relative_to(ROOT)), "note": "Keep actual deficits visible; no label rewriting or repeated preferred-answer search"}
                 continue
             if account["paused"]:
                 states[name] = {"state": "waiting_for_account", "reason": account["reason"]}
