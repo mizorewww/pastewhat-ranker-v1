@@ -12,7 +12,7 @@ import math
 from pathlib import Path
 
 FEATURE_NAMES = ["top_minus_abstain", "top_minus_second", "candidate_count", "missing_context"]
-VERSION = "pastewhat-calibrator-v1"
+VERSION = "pastewhat-calibrator-v2"
 
 
 def file_sha256(path: str | Path) -> str:
@@ -50,6 +50,35 @@ def load_calibrator(path: str | Path, *, weights_path: str | Path,
     return value
 
 
+def has_semantic_context(context: dict) -> bool:
+    """Inspect actual text inside a valid native focus envelope, not its keys.
+
+    Plain text and malformed/truncated envelopes retain their literal meaning.
+    The native all-empty capture already renders an empty string; this also
+    handles valid external protocol inputs and captures containing whitespace.
+    """
+    if any(isinstance(context.get(key), str) and context[key].strip() for key in ("fieldLabel", "selectedText")):
+        return True
+    surrounding = context.get("surroundingText", "")
+    if not isinstance(surrounding, str) or not surrounding.strip():
+        return False
+    try:
+        focus = json.loads(surrounding)
+    except (ValueError, TypeError):
+        return True
+    if not isinstance(focus, dict) or focus.get("format") != "pastewhat-focus-v1":
+        return True
+    if type(focus.get("selectionKnown")) is not bool:
+        return True
+    text_keys = ("beforeSelection", "afterSelection") if focus["selectionKnown"] else ("textWindow",)
+    if (set(focus) != {"format", "selectionKnown", "nearbyText", *text_keys}
+            or any(not isinstance(focus.get(key), str) for key in text_keys)
+            or not isinstance(focus.get("nearbyText"), list)
+            or any(not isinstance(value, str) for value in focus["nearbyText"])):
+        return True
+    return any(value.strip() for value in [*(focus[key] for key in text_keys), *focus["nearbyText"]])
+
+
 def score_features(episode: dict, prediction: dict) -> tuple[list[float], str, bool]:
     """Features, raw top candidate ID, and whether it strictly beats abstention."""
     if prediction.get("error"):
@@ -68,8 +97,7 @@ def score_features(episode: dict, prediction: dict) -> tuple[list[float], str, b
     top_id = ordered[0]["id"]
     top = score_map[top_id]
     second = score_map[ordered[1]["id"]] if len(ordered) > 1 else abstain
-    context = episode["context"]
-    missing = not any(str(context.get(key, "")).strip() for key in ("fieldLabel", "selectedText", "surroundingText"))
+    missing = not has_semantic_context(episode["context"])
     return [top - abstain, top - second, float(len(entries)), float(missing)], top_id, top > abstain
 
 
