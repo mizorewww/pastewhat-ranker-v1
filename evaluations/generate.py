@@ -372,9 +372,15 @@ class Generator:
                 planned.append((family_index, family, specs[start:start + self.args.batch_size]))
         completed, accepted = [], 0
         with ThreadPoolExecutor(max_workers=self.args.workers) as executor:
-            futures = [executor.submit(self.run_batch, *batch) for batch in planned]
+            futures = {executor.submit(self.run_batch, *batch): f"{batch[1]['id']}-{batch[2][0]['slot']:04d}-{len(batch[2])}" for batch in planned}
             for future in as_completed(futures):
-                result = future.result()
+                try:
+                    result = future.result()
+                except (TeacherError, ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
+                    # Legacy re-audits may fail before a new generation attempt.
+                    # Keep their on-disk state and mark this release incomplete.
+                    result = {"status": "failed", "key": futures[future], "episodes": [],
+                              "rejected_attempts": [{"kind": type(error).__name__, "message": str(error)[:300]}]}
                 completed.append(result)
                 accepted += len(result.get("episodes", []))
                 print(json.dumps({"split": self.args.split, "completed_batches": len(completed),
