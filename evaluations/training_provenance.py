@@ -43,15 +43,11 @@ def training_handoff_inputs(plan: RunPlan, deployment: Path) -> dict[str, Path]:
     stages = completion["stages"]
     if set(stages) != {"pilot", "hardening", *(f"main_seed_{seed}" for seed in seeds)}:
         raise ValueError("Training handoff is missing a required completed stage")
-    for name, stage in stages.items():
-        role = "main" if name.startswith("main_seed_") else name
-        seed = int(name.removeprefix("main_seed_")) if role == "main" else 42 if role == "pilot" else handoff["selected_seed"]
-        stage_root = plan.checkpoint_directory / (f"main-seed-{seed}" if role == "main" else name)
+    def verify_stage(name, stage, *, role, seed, count, stage_root):
         summary = bound_artifact(f"training_stage_{name}_summary", stage["summary"], stage_root / "training_summary.json")
         manifest = bound_artifact(f"training_stage_{name}_run_manifest", stage["run_manifest"], stage_root / "run_manifest.json")
         bound_artifact(f"training_stage_{name}_train_config", stage["train_config"], stage_root / "train_config.yaml", read_json=False)
         config = manifest["config"]
-        count = counts["train" if role == "main" else role]
         effective, epochs = document["effective_batch_episodes"], document["epochs"][role]
         warmup = 0 if role == "hardening" else document["head_warmup_steps"]
         per_epoch = math.ceil(count / effective)
@@ -70,6 +66,15 @@ def training_handoff_inputs(plan: RunPlan, deployment: Path) -> dict[str, Path]:
                 any(summary.get(key) != stage.get(key) for key in
                     ("global_steps", "seen_episodes_including_head_warmup", "best_dev_key", "best_weight_sha256"))):
             raise ValueError("Training stage does not prove its complete registered workload: " + name)
+        return config
+
+    stage_configs = {}
+    for name, stage in stages.items():
+        role = "main" if name.startswith("main_seed_") else name
+        seed = int(name.removeprefix("main_seed_")) if role == "main" else 42 if role == "pilot" else handoff["selected_seed"]
+        stage_root = plan.checkpoint_directory / (f"main-seed-{seed}" if role == "main" else name)
+        stage_configs[name] = verify_stage(name, stage, role=role, seed=seed,
+            count=counts["train" if role == "main" else role], stage_root=stage_root)
 
     local = plan.pipeline_directory
     expected_evidence = {
@@ -80,6 +85,8 @@ def training_handoff_inputs(plan: RunPlan, deployment: Path) -> dict[str, Path]:
         "hardening_mix": local / "hardening-data-mixture.json", "hardening_selection": local / "hardening-selection.json",
         "run_plan_binding": local / "run-plan-binding.json", "conversion": deployment / "conversion.json",
     }
+    if document.get("diagnostic_episodes"):
+        expected_evidence["learning_curve"] = plan.report_directory / "learning-curve.json"
     if set(completion["evidence"]) != set(expected_evidence):
         raise ValueError("Training handoff does not bind every required aggregate evidence file")
     evidence = {name: bound_artifact("training_evidence_" + name, completion["evidence"][name], expected)
@@ -107,6 +114,43 @@ def training_handoff_inputs(plan: RunPlan, deployment: Path) -> dict[str, Path]:
                 stages[f"main_seed_{seed}"]["initial_weight_sha256"] != initial[seed]["model_sha256"] for seed in seeds) or
             stages["pilot"]["initial_weight_sha256"] != initial[42]["model_sha256"]):
         raise ValueError("Formal training did not restart from its frozen original-encoder initializations")
+    if "learning_curve" in evidence:
+        curve = evidence["learning_curve"]
+        points = curve.get("points", [])
+        if (curve.get("version") != "pastewhat-learning-curve-v1" or curve.get("status") != "complete" or
+                curve.get("seed") != 42 or curve.get("selected_by") != "Dev only" or
+                curve.get("same_original_initialization_and_hyperparameters") is not True or
+                [point.get("stage") for point in points] != ["pilot", "diagnostic", "main-seed-42"]):
+            raise ValueError("The registered Dev learning curve is incomplete or changes its experiment conditions")
+        for point, stage_name in ((points[0], "pilot"), (points[2], "main_seed_42")):
+            if (any(point.get(key) != value for key, value in stages[stage_name].items()) or
+                    not isinstance(point.get("dev"), dict) or "records" in point["dev"]):
+                raise ValueError("Learning-curve endpoint differs from its bound completed training stage")
+        diagnostic = points[1]
+        diagnostic_config = verify_stage("diagnostic", diagnostic, role="pilot", seed=42,
+            count=document["diagnostic_episodes"], stage_root=plan.checkpoint_directory / "diagnostic")
+        if (diagnostic.get("initial_weight_sha256") != initial[42]["model_sha256"] or
+                not isinstance(diagnostic.get("dev"), dict) or "records" in diagnostic["dev"]):
+            raise ValueError("The diagnostic did not use the same initialization and aggregate-only Dev evidence")
+        configs = [stage_configs["pilot"], diagnostic_config, stage_configs["main_seed_42"]]
+        comparable = [{key: value for key, value in config.items() if key not in {"train_data", "train_limit"}} for config in configs]
+        if not comparable[0] == comparable[1] == comparable[2]:
+            raise ValueError("Learning-curve points changed hyperparameters beyond the Train sample count")
+        subset_evidence = subset.get("learning_curve_subsets", {})
+        links = [("pilot_to_diagnostic", counts["pilot"], document["diagnostic_episodes"]),
+                 ("diagnostic_to_main", document["diagnostic_episodes"], counts["train"])]
+        if set(subset_evidence) != {name for name, _, _ in links}:
+            raise ValueError("The learning curve is missing unchanged nested Train subset evidence")
+        for name, small, large in links:
+            proof = subset_evidence[name]
+            if (proof.get("is_unchanged_subset") is not True or proof.get("subset_episodes") != small or
+                    proof.get("superset_episodes") != large or
+                    any(proof.get(key) != value for key, value in plan.binding().items())):
+                raise ValueError("The learning-curve sample sizes are not bound unchanged subsets")
+        if (subset_evidence["pilot_to_diagnostic"]["subset_sha256"] != subset["pilot_sha256"] or
+                subset_evidence["diagnostic_to_main"]["superset_sha256"] != subset["main_sha256"] or
+                subset_evidence["pilot_to_diagnostic"]["superset_sha256"] != subset_evidence["diagnostic_to_main"]["subset_sha256"]):
+            raise ValueError("Learning-curve subset hashes do not join to the frozen pilot and main data")
     reference_sha, deployment_sha = sha256(reference / "model.safetensors"), sha256(deployment / "model.safetensors")
     expected_sha = stages["hardening"]["best_weight_sha256"] if handoff["hardening_accepted"] else selected["best_weight_sha256"]
     conversion = evidence["conversion"]
