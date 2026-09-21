@@ -129,6 +129,18 @@ that low counts establish parity. Also report:
 - PyTorch/MLX FP16 score differences and decision agreement, plus permutation,
   padding, and save/reload invariants established before final Test.
 
+The separate, unlabeled numerical regression input file has 16 fixed cases:
+1, 5, 10, and 20 candidates at four text-length profiles, with multilingual
+content and intentionally identical interchangeable entries. Its predeclared
+maximum absolute PyTorch/MLX score difference is 0.05 and mean difference 0.01.
+Within-backend permutation, text-padding, and mixed-candidate-batch differences
+must be at most 0.02 for MLX FP16 and 0.001 for PyTorch FP32. Reloading the same
+saved artifact must reproduce scores exactly. Padded candidate scores must be
+negative infinity. Raw actions must agree except for records with identical
+payload and metadata; the same check is repeated using the final calibrator.
+These checks establish numerical behavior, not semantic accuracy. The report
+retains failures and actual errors instead of silently loosening tolerances.
+
 Failing any quality gate is reported plainly. Synthetic-only measurements make
 claims only about the generated and audited synthetic distribution; no real
 clipboard or user acceptance rate can be inferred from them.
