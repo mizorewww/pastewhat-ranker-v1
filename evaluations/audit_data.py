@@ -14,6 +14,7 @@ from data_tools.teacher import TeacherClient, canonical_bytes
 from data_tools.labeling import derive_candidate_label
 from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation, validate_label, write_json
 from evaluations.generate import content_fingerprint, generation_specs, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM, same_label, reason_provenance
+from evaluations.observations import assigned_specs, load_assignment, validate_allocation as validate_observation_allocation
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import RunPlan, action_quotas, family_quotas, load_run_plan
 
@@ -40,14 +41,17 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     partition_hash = sha256(partition)
     allocation = None
     planned_specs = {}
+    observation_allocation = None
     if run_plan:
         require_plan_data_path(run_plan, split, data)
         allocation = validate_formal_heldout_allocation(episodes, split, specification, run_plan)
         counts = family_quotas(specification, split, run_plan.target(split))
         actions = action_quotas(counts)
+        observation_assignment = load_assignment(run_plan.binding(), split)
+        observation_allocation = validate_observation_allocation(episodes, run_plan.binding(), split)
         for index, family in enumerate(specification["families"][split]):
-            planned_specs[family["id"]] = generation_specs(index, 0, counts[family["id"]], counts[family["id"]],
-                family_id=family["id"], actions=actions[family["id"]], seed_namespace=run_plan.run_id)
+            planned_specs[family["id"]] = assigned_specs(generation_specs(index, 0, counts[family["id"]], counts[family["id"]],
+                family_id=family["id"], actions=actions[family["id"]], seed_namespace=run_plan.run_id), family["id"], observation_assignment)
     preprocessor = Preprocessor(tokenizer)
     audit_files = {}
 
@@ -124,6 +128,9 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
             raise ValueError("Native candidate projection provenance changed")
         if recreated["synthetic_metadata"]["raw_compact_authoring_sha256"] != metadata.get("raw_compact_authoring_sha256"):
             raise ValueError("Compact literal authoring differs from its teacher generation audit")
+        for key in ("observation_variant", "observation_protocol", "supplement_sha256", "assignment_sha256", "observation_adapter_sha256"):
+            if recreated["synthetic_metadata"].get(key) != metadata.get(key):
+                raise ValueError("Registered observation-view provenance cannot be replayed")
         if recreated["preprocessing"]["visible_sha256"] != visible_hash:
             raise ValueError("Generation, native projection, and preprocessing do not reproduce labeled input")
         label_request, label_response = read_audit(episode["teacher"]["label_audit_id"], LABEL_SYSTEM)
@@ -182,6 +189,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         run_plan.verify_unchanged()
     return {"passed": True, "split": split, "episodes": len(episodes), "data_sha256": sha256(data),
             "formal_run": run_plan is not None, "registered_allocation": allocation,
+            "observation_supplement": observation_allocation,
             **(run_plan.binding() if run_plan else {}),
             "partition_sha256": partition_hash, "label_counts": dict(counts),
             "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
@@ -189,7 +197,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
             "checks": ["exact production preprocessing", "native Swift UTF-16 selection/nearby projection replay", "native Swift candidate payload projection replay", "raw capture/payload hashes and authoring contracts", "token budget and full candidate preservation",
                        "compact authoring/profile replay", "opaque label-request identifiers", "label-request metadata exclusion", "complete independent per-candidate verdicts and exact selected-text mapping", "two blind labels with remapped IDs and order",
                        "blind observed-operation classification and deployment review", "actual-label sampling quotas",
-                       "within-split order/ID-independent duplicate detection"],
+                       "within-split order/ID-independent duplicate detection", "registered pre-label observation variants and raw author replay"],
             "human_validated": False, "student_inference_used": False,
             "limitations": "Structural and teacher-consistency checks do not prove every semantic label is correct."}
 

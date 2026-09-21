@@ -11,6 +11,7 @@ from evaluations.common import load_jsonl, require_plan_data_path, sha256, valid
 from run_contract import load_run_plan
 from pastewhat_ranker.calibration import VERSION as CALIBRATOR_VERSION
 from evaluations.training_provenance import training_handoff_inputs
+from evaluations.observations import SUPPLEMENT_PATH, ADAPTER_PATH, assignment_path, validate_allocation as validate_observation_allocation
 
 
 def directory_hashes(root: Path) -> dict[str, str]:
@@ -82,10 +83,12 @@ def main():
                                        ("test", args.test, args.test_audit)):
         require_plan_data_path(plan, split, dataset)
         allocation[split] = validate_formal_heldout_allocation(load_jsonl(dataset), split, partition, plan)
+        observation_allocation = validate_observation_allocation(load_jsonl(dataset), plan.binding(), split)
         audit = json.loads(audit_path.read_text())
         if (audit.get("passed") is not True or audit.get("formal_run") is not True or audit.get("split") != split or
                 audit.get("episodes") != allocation[split]["episodes"] or
                 any(audit.get(key) != value for key, value in plan.binding().items()) or
+                audit.get("observation_supplement") != observation_allocation or
                 audit.get("data_sha256") != sha256(dataset) or audit.get("partition_sha256") != partition_hash):
             raise SystemExit("Final freeze requires a passing audit bound to the complete " + split + " data")
     inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
@@ -96,6 +99,9 @@ def main():
         "candidate_projection_adapter": Path("tools/project_candidates.py"),
         "compact_authoring_builder": Path("data_tools/authoring.py"),
         "candidate_label_protocol": Path("data_tools/labeling.py"),
+        "observation_supplement": SUPPLEMENT_PATH, "observation_adapter": ADAPTER_PATH,
+        "calibration_observation_assignment": assignment_path(plan.binding(), "calibration"),
+        "test_observation_assignment": assignment_path(plan.binding(), "test"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
         "calibration_audit": args.calibration_audit, "test_audit": args.test_audit,
         **training_inputs,

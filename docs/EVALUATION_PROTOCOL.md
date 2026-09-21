@@ -284,3 +284,33 @@ describes probability reliability and calibration curves. [Guo et al.
 (2017)](https://proceedings.mlr.press/v70/guo17a.html) motivates checking
 calibration empirically; it does not establish that this four-feature custom
 calibrator will work for clipboard decisions.
+# Registered missing-observation supplement
+
+Before any student Calibration/Test score, the immutable
+`configs/observation_supplement.json` adds realistic observation loss within
+already planned missing-intent slots. Calibration assigns 16 no-accessibility
+and 8 generic-field episodes; Test assigns 24 and 12. Each heldout family receives
+two no-accessibility and one generic-field slot. Total size, language, candidate
+count, family, action allocation and all quality gates remain registered as before.
+
+The evaluator freezes its private assignment only from slots with no prior author
+request, including failed or unfinished requests in the exclusion check. Existing
+observations and labels are immutable. The shared `data_tools/observations.py`
+adapter runs after literal-fixture compilation and before native projection and
+student token budgeting. Both independent candidate verdict passes and the blind
+family/deployment audit receive only the resulting visible view. Unknown families
+remain rejected; no hidden full context is given to a reviewer.
+
+The original profiles all have nonempty field labels, so their missing-context
+feature is structurally zero. The new no-accessibility view supplies missing=1;
+the generic-field view removes task details and explicit uncertainty language but
+still has missing=0 under the unchanged deployed feature definition. This covers
+some synthetic observation loss, not every real-user failure of Accessibility.
+Observed variant counts and calibration feature support must be reported.
+
+Per-variant provenance binds the public supplement, the owning private assignment
+and the shared observation adapter. Replay reconstructs the original author output
+before applying its registered view. Complete heldout audits check exact variant
+counts, and final freeze hashes both private assignments alongside the public
+policy and adapter. Private assignments are not exposed to training or root before
+frozen Test acceptance; only aggregate counts and hashes are shared.

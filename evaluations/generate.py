@@ -19,6 +19,7 @@ from data_tools.teacher import TeacherClient, TeacherError, atomic_json, utc_now
 from data_tools.labeling import LABEL_PROTOCOL, VERDICT_LABEL_SYSTEM, derive_candidate_label
 from evaluations.authoring import AUTHORING_PROTOCOL, BUILDER_PATH, PROFILE_PATH, candidate_space, compile_episode, profile_for_spec
 from evaluations.common import inference_request, require_plan_data_path, sha256, validate_formal_heldout_allocation, validate_label, write_json, write_jsonl
+from evaluations.observations import assigned_specs, current_observation, load_assignment, project_raw, validate_allocation as validate_observation_allocation
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import ORIGINAL_SUGGESTED_TARGETS, action_quotas, family_quotas, load_run_plan
 from tools.project_context import project_context
@@ -182,6 +183,7 @@ def passed_current_gates(episode: dict) -> bool:
             episode.get("synthetic_metadata", {}).get("compact_authoring_protocol") == AUTHORING_PROTOCOL and
             episode.get("synthetic_metadata", {}).get("compact_profiles_sha256") == sha256(PROFILE_PATH) and
             episode.get("synthetic_metadata", {}).get("compact_builder_sha256") == sha256(BUILDER_PATH) and
+            current_observation(episode) and
             not duplicated_selection_boundary(episode["context"]) and
             matches_label_quota(episode))
 
@@ -221,6 +223,7 @@ def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partiti
     prefix = run_binding["run_id"] if run_binding else "pw-v1"
     row_id = f"{prefix}-{split}-{family['id']}-{spec['slot']:04d}"
     raw = compile_episode(raw, episode_id=row_id, family_id=family["id"], spec=spec)
+    raw, observation_metadata = project_raw(raw, spec, family["id"], split, run_binding)
     authored_entries = raw.get("entries", [])
     if len(authored_entries) != spec["candidate_count"]:
         raise ValueError("teacher did not supply requested candidate count")
@@ -254,6 +257,7 @@ def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partiti
                                        "family_partition_sha256": partition_hash})
     if run_binding:
         episode["synthetic_metadata"].update(run_binding)
+    episode["synthetic_metadata"].update(observation_metadata)
     episode["synthetic_metadata"]["teacher_contract_version"] = TEACHER_CONTRACT_VERSION
     return episode
 
@@ -262,6 +266,7 @@ class Generator:
     def __init__(self, args):
         self.args = args
         self.plan = load_run_plan(args.run_plan) if getattr(args, "run_plan", None) else None
+        self.observation_assignment = load_assignment(self.plan.binding(), args.split) if self.plan else None
         self.partition = json.loads(args.partition.read_text())
         self.partition_hash = sha256(args.partition)
         self.preprocessor = Preprocessor(args.tokenizer)
@@ -623,6 +628,8 @@ class Generator:
             specs = generation_specs(family_index, 0, total, allocation, family_id=family["id"],
                                      actions=actions[family["id"]],
                                      seed_namespace=self.plan.run_id if self.plan else "unregistered-v6-staging")
+            if self.observation_assignment:
+                specs = assigned_specs(specs, family["id"], self.observation_assignment)
             for start in range(0, total, self.args.batch_size):
                 planned.append((family_index, family, specs[start:start + self.args.batch_size]))
         # Surface every reserved operation early without changing any split,
@@ -686,8 +693,10 @@ class Generator:
                                                                          "provider_paused": provider_paused,
                                                                          "target": sum(len(batch[2]) for batch in planned)}, overwrite=True)
             raise SystemExit("Some generation batches failed; resumable state retained, frozen dataset not published")
+        observation_allocation = None
         if self.plan:
             validate_formal_heldout_allocation(episodes, self.args.split, self.partition, self.plan)
+            observation_allocation = validate_observation_allocation(episodes, self.plan.binding(), self.args.split)
         write_jsonl(self.args.output, episodes)
         histogram = Counter(row["label"]["decision"] if row["label"]["decision"] == "select" else row["label"]["abstain_reason"] for row in episodes)
         manifest = {"split": self.args.split, "episodes": len(episodes), "sha256": sha256(self.args.output),
@@ -709,6 +718,7 @@ class Generator:
                     "compact_builder_sha256": sha256(BUILDER_PATH), "candidate_label_protocol": LABEL_PROTOCOL,
                     "teacher_contract_version": TEACHER_CONTRACT_VERSION,
                     "formal_run": self.plan is not None,
+                    "observation_supplement": observation_allocation,
                     "frozen_at": utc_now(), "human_validated": False, "student_results_seen": False,
                     **(self.plan.binding() if self.plan else {})}
         write_json(self.args.output.with_suffix(".manifest.json"), manifest)
