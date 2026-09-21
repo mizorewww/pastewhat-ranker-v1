@@ -56,6 +56,7 @@ def teacher_transition_inputs(plan):
             resources.get("cache_identity_effect") != "none"):
         raise ValueError("Pi scheduling provenance differs from the registered run and teacher")
     inputs["pi_resource_supplement"] = RESOURCE_SUPPLEMENT
+    inputs["pi_resource_control_source"] = Path("data_tools/resources.py")
     for index, record in enumerate(resources["evidence"]):
         path = Path(record["path"])
         if sha256(path) != record["sha256"]:
