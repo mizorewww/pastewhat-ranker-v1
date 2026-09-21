@@ -1,0 +1,44 @@
+{
+  "version": "pastewhat-teacher-runtime-correction-v1",
+  "correction_id": "pi-swe2-exact-uid-v2",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "registered_at": "2026-09-21T08:17:13.872091+00:00",
+  "parent_transition": {
+    "path": "configs/teacher_transition_swe2.json",
+    "sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
+  },
+  "authorization": "Enforce the user-requested Pi SWE-2 teacher identity before dispatch; preserve all unaffected accepted data and successful response caches.",
+  "runtime": {
+    "pi_version": "0.85.1",
+    "pi_executable_sha256": "7c3529014c51e2d7d860cdcda564d33e28d394e858bfb81a3b7ed9611ea80b9d",
+    "provider_extension_sha256": "d2d511272f65752d2989241bcfc3f3bab3789cda32a20d3a8a85883862ffb42d",
+    "teacher_extension_path": "tools/pi_teacher_extension_v2.ts",
+    "teacher_extension_sha256": "7656f327ec22602941bca72165be53afb63c142c8ccab13c6aa4e723389561b7",
+    "pins_path": "provenance/pi-swe2-runtime-v2.json",
+    "pins_sha256": "ea34fb4f7b0b38c5f67a662f4362a0a186509eb8a1e7aa298a3ac78aff2f9328"
+  },
+  "expected_model_mapping": {
+    "medium": "swe-2-medium",
+    "high": "swe-2-high",
+    "max": "swe-2-max"
+  },
+  "receipt_version": "pastewhat-pi-teacher-receipt-v1",
+  "exact_uid_guard": "swe-2-family-and-thinking-v1",
+  "cache_policy": "Reuse only exact visible requests with replay-validated actual UID matching the requested effort; preserve original audit bytes and per-role provenance.",
+  "rejected_prior_source": {
+    "audit_id": "534bb5436f48ef35e9e15527fb2f3de7f9f2da03812eac947c8d95a6f5392863",
+    "reported_actual_uid": "claude-opus-5-medium",
+    "receipt_sha256": "00eab97b20574270f3b0a2ff28270934cf48636631d2ad32aee6cab85934be17",
+    "events_sha256": "e4e8673495dd73d1e41110b11078ec9010d3fd12ccb6733e3f4172046354e638",
+    "known_tokens": 5818,
+    "data_action": "Preserve the historical evidence and usage, exclude its contributed accepted Train rows; do not manually relabel them."
+  },
+  "preserved": [
+    "original transition, runtime pins and v1 bridge bytes",
+    "all valid previous Kimi and exact-UID SWE-2 sources",
+    "sampling and family allocation, native projection, token budgets and label contract",
+    "12-slot scheduling supplement and existing provider limits",
+    "training, calibration and final Test requirements"
+  ]
+}

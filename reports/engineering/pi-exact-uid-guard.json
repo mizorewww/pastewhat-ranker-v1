@@ -1,0 +1,44 @@
+{
+  "version": "pastewhat-pi-exact-uid-verification-v1",
+  "status": "passed",
+  "completed_at": "2026-09-21T08:20:33.557Z",
+  "node_version": "v26.8.2",
+  "real_teacher_calls": 0,
+  "provider_stub_only": true,
+  "actual_resolver_source_sha256": "d9b1e087574bb1e1b359545ba6dbb04d30e7ae5b1d6e6fcc6d1d6dc0f4b2565f",
+  "old_bridge_sha256": "19628f4a992f702079e3a84e1a473431ab2372e723ba212a6b6fb112041f693a",
+  "new_bridge_sha256": "7656f327ec22602941bca72165be53afb63c142c8ccab13c6aa4e723389561b7",
+  "cases": [
+    {
+      "case": "observed_foreign_catalog_mapping_v1_reproduced",
+      "delegate_calls": 1,
+      "actual_uid": "claude-opus-5-medium"
+    },
+    {
+      "case": "foreign_catalog_mapping_v2_rejected_before_delegate",
+      "delegate_calls": 0
+    },
+    {
+      "case": "unexpected_resolved_uid_rejected",
+      "delegate_calls": 0
+    },
+    {
+      "case": "exact_medium_isolated_single_call_and_copied_mapping",
+      "delegate_calls": 1
+    },
+    {
+      "case": "exact_high_isolated_single_call_and_copied_mapping",
+      "delegate_calls": 1
+    },
+    {
+      "case": "exact_max_isolated_single_call_and_copied_mapping",
+      "delegate_calls": 1
+    }
+  ],
+  "temporary_scaffolding_removed": true,
+  "limitations": [
+    "Actual wrapper functions and resolver were type-stripped and executed with isolated filesystem inputs and a stub stream provider; imports were dependency-injected.",
+    "This verifies call-time routing and isolation, not the identity of rolling server weights or model quality.",
+    "The next productive request must validate the real CLI path and response receipt."
+  ]
+}
