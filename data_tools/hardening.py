@@ -146,6 +146,33 @@ def run_command(command, log, plan):
         raise RuntimeError(f'Hardening phase failed with status {result.returncode}; see {log.relative_to(ROOT)}')
 
 
+def verify_post_mining_review(episode, record, replay):
+    """Replay both new blind request views before publishing cached approval."""
+    if record['original_label'] != episode['label'] or record['content_sha256'] != content_fingerprint(episode) or len(set(record['audit_ids'])) != 2:
+        raise ValueError('Post-mining approval is not bound to this unchanged episode')
+    for pass_index, audit_id in enumerate(record['audit_ids']):
+        audit, response = replay.audit(audit_id, 'hardcase')
+        request = audit['request']
+        if request['messages'][0]['content'] != VERDICT_LABEL_SYSTEM or audit['phase'] != f'train-post-mining-blind-{pass_index}':
+            raise ValueError('Post-mining label protocol or independent pass differs')
+        user = json.loads(request['messages'][1]['content'])
+        if set(user) - {'episodes', 'format_retry', 'format_requirement'} or any(set(row) != {'id', 'context', 'entries'} for row in user['episodes']):
+            raise ValueError('Post-mining teacher saw fields beyond deployment input')
+        visible = replay.visible_match(audit, episode, ignore_order=True)
+        entries = copy.deepcopy(episode['entries'])
+        random.Random(int(content_fingerprint(episode)[:16], 16) ^ (71923 + pass_index)).shuffle(entries)
+        mapping = {f'q{pass_index}-{index+1}': entry['id'] for index, entry in enumerate(entries)}
+        for index, entry in enumerate(entries):
+            entry['id'] = f'q{pass_index}-{index+1}'
+        if entries != visible['entries']:
+            raise ValueError('Post-mining candidate permutation does not replay')
+        annotation = next(row for row in response['labels'] if row['id'] == visible['id'])
+        observed = derive_candidate_label(annotation, visible)
+        observed['acceptable_ids'] = [mapping[value] for value in observed['acceptable_ids']]
+        if observed != record['review_labels'][pass_index] or not same_action(observed, episode['label']):
+            raise ValueError('Post-mining accepted action does not replay to both teacher responses')
+
+
 def publish_mixture(original, pool, reviews, selection, plan, output_dir, preprocessor):
     hard = plan.document['hardening']
     by_id = {row['id']: row for row in pool}
@@ -161,6 +188,7 @@ def publish_mixture(original, pool, reviews, selection, plan, output_dir, prepro
     for identifier in chosen_ids:
         row = copy.deepcopy(by_id[identifier])
         replay.verify(row)
+        verify_post_mining_review(row, approved[identifier], replay)
         fingerprint = content_fingerprint(row)
         if fingerprint in old_contents or placement_issue(row):
             raise ValueError('Reviewed new hardening example duplicates an original or is locally rejected')
