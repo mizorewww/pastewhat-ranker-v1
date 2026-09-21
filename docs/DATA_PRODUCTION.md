@@ -193,3 +193,45 @@ replays the raw authoring capture through the pinned Swift formatter and student
 budget, verifies both original teacher request views and returned action sets,
 and checks the blind family/deployment response. This replay makes no API calls
 and never reads Calibration/Test data.
+
+The first v4 agent inspection also rejected a commit comparison with unspecified
+patch direction and a Python positive containing `return` outside any visible
+function. Their original labels and audits remain quarantined. Git-diff authors
+now state the old/new direction and output requirements when those distinguish
+candidates. Python editor scenarios include a complete short compilable scope;
+every positive literal paste is compiled without execution. Compilation is only
+a syntax gate, not proof of semantic correctness. A common authoring error that
+copies the entire selected value into an unchanged before/after fragment is
+rejected as a conservative synthetic-data restriction. None of these checks
+changes the production AX representation, student inputs or existing labels.
+
+The [current model configuration](https://www.kimi.com/code/docs/en/kimi-code/models.html)
+was checked on 2026-09-21 after Context7 returned an older model description.
+`kimi-for-coding` currently resolves to K2.8 Preview and supports `low`, `high`
+and `max` reasoning effort. Omitting effort defaults to `max`; the official
+mapping recommends `high`. `TeacherClient` validates those values and writes the
+actual effort into every reasoning-enabled request and request hash. Disabled
+authoring omits effort and rejects conflicting explicit values. The existing
+max-default audits remain valid under their original recorded requests.
+
+Before formal generation resumes with a changed effort, `data_tools.teacher_probe`
+prepares 20 explicit Train-family cases through the same native capture and
+preprocessing. The root agent independently reviews the expected actions before
+requests. Identical blind inputs are paired at high/max in batches of five;
+actual actions, token usage and response time are recorded. These engineering
+cases never enter formal Train/Dev data. The aggregate report excludes examples
+and labels, and the shared `production-ready.json` points to its verified hash.
+The normal client default then follows that marker's high/max choice. A small
+probe cannot establish equal generalization quality; observed results are
+reported without extrapolating to held-out accuracy.
+
+When a 403 omits a reset time, the full-window fallback can be refined only by a
+recent, independently observed official account-console countdown. The shared
+lock records the source, observation time, visible countdown, safety margin,
+original error and original fallback. This route cannot shorten a server
+Retry-After, permission block or weekly/monthly limit. It never buys extra quota,
+switches credentials or changes client identity.
+
+Rolling and full frozen Train/Dev JSONL corpora are ignored by Git to avoid large
+blobs; code, small engineering fixtures, hashes and public manifests remain in
+Git. Full dataset artifacts are published through the final Hugging Face package.

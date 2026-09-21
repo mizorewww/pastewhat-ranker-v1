@@ -1,0 +1,1345 @@
+{
+  "cases": [
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Accent swatch: #A1B2C3. This field accepts exactly six hexadecimal digits after #, in either letter case."
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "Hex color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#A1B2C3"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#a1b2c3"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgb(161,178,195)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#A1B2C3FF"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-01-hex-equivalent"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Use rgba() syntax: red 20, green 40, blue 60, alpha 0.5."
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "CSS color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgba(20, 40, 60, 0.05)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgba(20,40,60,0.5)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgba(20,40,60,1)"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-02-rgba-alpha"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Enter pure red in #RRGGBB form only; rgb(), named colors and alpha are unsupported."
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "Hex color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "red"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgb(255,0,0)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#FF000080"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "no_match",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-03-hex-no-match"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Brand palette selection is pending; no accent color has been chosen."
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "Accent color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#112233"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#334455"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#556677"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "insufficient_context",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-04-color-missing"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Use rgb() syntax with decimal channels 128, 64, 32. Whitespace inside the function is optional."
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "CSS color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgb(128,64,32)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgb(128,32,64)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "rgb(128, 64, 32)"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-05-rgb-whitespace"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "把边框颜色设为 #123456，字段只接受六位十六进制格式。"
+        ]
+      },
+      "context": {
+        "applicationCategory": "creative",
+        "fieldLabel": "Hex color",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000000"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000001"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000002"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000003"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c5",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000004"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c6",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000005"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c7",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000006"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c8",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000007"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c9",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000008"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c10",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000009"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c11",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000A"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c12",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000B"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c13",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000C"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c14",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000D"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c15",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000E"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c16",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#00000F"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c17",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000010"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c18",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000011"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c19",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#000012"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c20",
+          "kind": "color",
+          "sourceCategory": "writing",
+          "text": "#123456"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c20"
+        ],
+        "decision": "select"
+      },
+      "family_id": "design_color_syntax",
+      "id": "effort-probe-06-twenty-hex"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Read the existing invoice without changing server state. API documentation requires uppercase GET for this endpoint."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "HTTP method",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "POST"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "GET"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "get"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "DELETE"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "http_method",
+      "id": "effort-probe-07-method-get"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Read an existing record without modification; this endpoint accepts GET only."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "HTTP method",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "POST"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "PUT"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "DELETE"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "no_match",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "http_method",
+      "id": "effort-probe-08-method-unavailable"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "No endpoint or operation has been selected yet."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "HTTP method",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "GET"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "POST"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "PUT"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "insufficient_context",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "http_method",
+      "id": "effort-probe-09-method-unknown"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Replace the complete existing record at this endpoint; its documented method is uppercase PUT."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "HTTP method",
+        "fieldRole": "AXTextField",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "POST",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "text",
+          "sourceCategory": "writing",
+          "text": "PUT"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "family_id": "http_method",
+      "id": "effort-probe-10-method-replace"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Task runner command: list only local Git branches. Do not include remote-tracking branches and do not modify repository state."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Shell prompt",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch -a"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch -r"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "git_branch_listing",
+      "id": "effort-probe-11-branches-local"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Task runner command: list only remote-tracking branches. Local branches must not be included; do not modify repository state."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Shell prompt",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch --remotes"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch -a"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch -r"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git branch"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "family_id": "git_branch_listing",
+      "id": "effort-probe-12-branches-remote"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Task runner: print the patch of index changes relative to HEAD only. Ignore any unstaged working-tree changes."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Shell prompt",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff --cached"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff HEAD"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff --staged"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2",
+          "c4"
+        ],
+        "decision": "select"
+      },
+      "family_id": "git_diff_selection",
+      "id": "effort-probe-13-diff-staged"
+    },
+    {
+      "capture": {
+        "afterSelection": "",
+        "beforeSelection": "",
+        "nearbyText": [
+          "Print the complete forward patch transforming OLD commit 1a2b3c4 into NEW commit 5d6e7f8. No summary-only output. Their parent relationship is unspecified."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Shell prompt",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff 5d6e7f8 1a2b3c4"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff --stat 1a2b3c4 5d6e7f8"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git diff 1a2b3c4 5d6e7f8"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "command",
+          "sourceCategory": "development",
+          "text": "git show 5d6e7f8"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "family_id": "git_diff_selection",
+      "id": "effort-probe-14-diff-direction"
+    },
+    {
+      "capture": {
+        "afterSelection": "\n",
+        "beforeSelection": "def unique(items):\n    return ",
+        "nearbyText": [
+          "Python: items is a list of hashable values in arbitrary order with possible duplicates. Return a list with duplicates removed, keeping each first occurrence in its original order."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "list(set(items))"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "list(dict.fromkeys(items))"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "sorted(set(items))"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "python_collection",
+      "id": "effort-probe-15-dedup-order"
+    },
+    {
+      "capture": {
+        "afterSelection": "\n",
+        "beforeSelection": "def unique(items):\n    return ",
+        "nearbyText": [
+          "Python: items contains hashable values. Return a set containing its unique values; the result must be a set, not a list."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "list(dict.fromkeys(items))"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "set(items)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "list(items)"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "family_id": "python_collection",
+      "id": "effort-probe-16-set-result"
+    },
+    {
+      "capture": {
+        "afterSelection": "\n",
+        "beforeSelection": "def lookup(items, key):\n    return ",
+        "nearbyText": [
+          "Python: items is a dict with integer values. Return items[key] when present and 0 when missing, without adding or changing dictionary entries."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "items.get(key, 0)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "items[key]"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "items.get(key)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "items.setdefault(key, 0)"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "family_id": "python_collection",
+      "id": "effort-probe-17-dict-default"
+    },
+    {
+      "capture": {
+        "afterSelection": "\n",
+        "beforeSelection": "def convert(items):\n    return ",
+        "nearbyText": [
+          "Python: items is a sequence of hashable values. The required output collection type, duplicate policy and ordering policy have not been specified."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "list(items)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "set(items)"
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "tuple(items)"
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "insufficient_context",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "python_collection",
+      "id": "effort-probe-18-collection-missing"
+    },
+    {
+      "capture": {
+        "afterSelection": ")\n",
+        "beforeSelection": "def load(path):\n    return open(path, ",
+        "nearbyText": [
+          "Python: open the existing file for binary reading only; do not create, truncate or write the file."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "\"w\"",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"rb\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"r\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"wb\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"r+b\""
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "family_id": "python_file_mode",
+      "id": "effort-probe-19-file-binary-read"
+    },
+    {
+      "capture": {
+        "afterSelection": ")\n",
+        "beforeSelection": "def append_file(path):\n    return open(path, ",
+        "nearbyText": [
+          "Python: open for text append, preserving existing contents and creating the file if missing. Reading is unnecessary."
+        ]
+      },
+      "context": {
+        "applicationCategory": "development",
+        "fieldLabel": "Code editor",
+        "fieldRole": "AXTextArea",
+        "hasAccessibility": true,
+        "inputSurface": "unknown",
+        "isSecure": false,
+        "selectedText": "",
+        "surroundingText": ""
+      },
+      "entries": [
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c1",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"w\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c2",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"r\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c3",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"xb\""
+        },
+        {
+          "capabilities": [
+            "text"
+          ],
+          "id": "c4",
+          "kind": "code",
+          "sourceCategory": "development",
+          "text": "\"rb\""
+        }
+      ],
+      "expected_label": {
+        "abstain_reason": "no_match",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "family_id": "python_file_mode",
+      "id": "effort-probe-20-file-append-missing"
+    }
+  ],
+  "human_validated": false,
+  "purpose": "Train-only agent-authored engineering probe for reasoning effort; excluded from formal data"
+}

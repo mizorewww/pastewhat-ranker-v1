@@ -26,6 +26,17 @@ from data_tools.rate_limit import AccountCoordinator
 from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 
 
+def production_gate():
+    path = ROOT / "local/kimi-account-rate/production-ready.json"
+    if not path.is_file():
+        return {"ready": False, "reason": "waiting_for_train_only_reasoning_effort_probe"}
+    gate = json.loads(path.read_text())
+    report = ROOT / gate.get("report_path", "")
+    inside = report.resolve().is_relative_to(ROOT.resolve())
+    ready = gate.get("ready") is True and gate.get("reasoning_effort") in ("high", "max") and inside and report.is_file() and sha256(report.read_bytes()) == gate.get("report_sha256")
+    return {**gate, "ready": ready}
+
+
 class Progress:
     def __init__(self, split):
         self.split = split
@@ -129,7 +140,8 @@ def main():
     trackers = {split: Progress(split) for split in workers}
     coordinator = AccountCoordinator()
     account_status = coordinator.status()
-    children = {split: launch(split, amount, run_dir) if not account_status["paused"] else (None, None) for split, amount in workers.items()}
+    gate = production_gate()
+    children = {split: launch(split, amount, run_dir) if not account_status["paused"] and gate["ready"] else (None, None) for split, amount in workers.items()}
     restarts = Counter()
     next_restart = {split: 0.0 for split in workers}
     started = time.monotonic()
@@ -148,7 +160,8 @@ def main():
     while not stopping:
         elapsed = max(1.0, time.monotonic() - started)
         account_status = coordinator.status()
-        status = {"updated_at": utc_now(), "prompt_version": PROMPT_VERSION, "elapsed_seconds": round(elapsed, 1), "account_rate_state": account_status, "splits": {}}
+        gate = production_gate()
+        status = {"updated_at": utc_now(), "prompt_version": PROMPT_VERSION, "elapsed_seconds": round(elapsed, 1), "account_rate_state": account_status, "production_gate": gate, "splits": {}}
         for split, tracker in trackers.items():
             progress = tracker.read()
             tracker.publish_pool()
@@ -159,7 +172,7 @@ def main():
             code = process.poll() if process is not None else -1
             progress.update(target=targets[split], child_pid=process.pid if process is not None else None, child_exit_code=code, supervisor_restarts=restarts[split], accepted_episodes_per_hour=round(rate * 3600, 2), estimated_remaining_seconds=round(remaining / rate) if rate else None)
             status["splits"][split] = progress
-            if code is not None and remaining > 0 and not account_status["paused"] and time.monotonic() >= next_restart[split]:
+            if code is not None and remaining > 0 and not account_status["paused"] and gate["ready"] and time.monotonic() >= next_restart[split]:
                 if output is not None:
                     output.close()
                 restarts[split] += 1

@@ -106,6 +106,7 @@ class TeacherClient:
         max_tokens: int = 16384,
         temperature: float = 1.0,
         thinking: str | None = None,
+        reasoning_effort: str | None = None,
         phase: str,
         request_id: str,
     ) -> TeacherResult:
@@ -122,6 +123,21 @@ class TeacherClient:
             # Documented in moonshotai/kimi-code's own Kimi provider; this is
             # an extra OpenAI-compatible field, not a fabricated client identity.
             body["thinking"] = {"type": thinking}
+        if reasoning_effort is not None and reasoning_effort not in ("low", "high", "max"):
+            raise ValueError("reasoning_effort must be low, high, or max")
+        if thinking == "disabled":
+            if reasoning_effort is not None:
+                raise ValueError("Disabled thinking cannot include reasoning_effort")
+        else:
+            # K2.8 Preview defaults to max when omitted. Set the documented
+            # recommended high explicitly; production waits for a paired probe.
+            default_effort = "high"
+            marker = self.coordinator.directory / "production-ready.json"
+            if marker.is_file():
+                policy = json.loads(marker.read_text())
+                if policy.get("ready") is True and policy.get("reasoning_effort") in ("high", "max"):
+                    default_effort = policy["reasoning_effort"]
+            body["reasoning_effort"] = reasoning_effort or default_effort
         request_bytes = canonical_bytes(body)
         audit_id = sha256(canonical_bytes({"endpoint": self.endpoint, "body": body}))
         path = self.audit_dir / f"{audit_id}.json"
