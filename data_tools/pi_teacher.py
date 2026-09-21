@@ -100,26 +100,53 @@ def pi_error_messages(stdout):
     return errors
 
 
+def pi_rate_limit_evidence(stdout, stderr=b""):
+    """Read provider error events, never generated candidate text or billing."""
+    text = ("\n".join(pi_error_messages(stdout)) + "\n" + stderr.decode(errors="replace")).lower()
+    numeric_429 = bool(re.search(r"\b429\b", text))
+    explicit_limit = "reached free model rate limit" in text
+    if not numeric_429 and not explicit_limit:
+        return None
+    countdowns = []
+    for number, unit in re.findall(r"\byour limit will reset in\s+(\d+)\s+(seconds?|minutes?|hours?)\b", text):
+        multiplier = 1 if unit.startswith("second") else 60 if unit.startswith("minute") else 3600
+        seconds = int(number) * multiplier
+        if 0 <= seconds <= 7 * 86400:
+            countdowns.append(seconds)
+    return {"signal": "provider_error_contains_429" if numeric_429 else "explicit_provider_free_model_rate_limit", "http_status_observed": False, "provider_reset_countdown_seconds": max(countdowns) if countdowns else None, "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr)}
+
+
 def record_pi_failure(coordinator, *, timed_out, stdout, stderr):
     # Inspect provider errors, not synthetic candidate/assistant text that may
     # itself mention permissions or rate limits.
     text = ("\n".join(pi_error_messages(stdout)) + "\n" + stderr.decode(errors="replace")).lower()
     authentication = any(word in text for word in ("unauthorized", "authentication failed", "invalid api key", "invalid token", "permission denied", "insufficient credits", "quota exceeded", "entitlement"))
     transient = timed_out or any(word in text for word in ("timeout", "timed out", "temporarily", "overloaded", "rate limit", "429", "502", "503", "504", "econnreset", "etimedout", "econnrefused", "enotfound", "fetch failed", "ended without an eos trailer", "network error", "socket hang up", "connection reset"))
+    rate_limit = pi_rate_limit_evidence(stdout, stderr)
     resources = load_resources()
     with coordinator._state() as state:
         failures = state.setdefault("pi_failure_counts", {})
-        kind = "authentication_or_entitlement" if authentication else "transient_transport" if transient else "configuration_or_unclassified_process_error"
+        kind = "authentication_or_entitlement" if authentication else "provider_rate_limit" if rate_limit else "transient_transport" if transient else "configuration_or_unclassified_process_error"
         failures[kind] = failures.get(kind, 0) + 1
         state["last_pi_failure"] = {"classification": kind, "at": time.time(), "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr)}
-        if re.search(r"\b429\b", text) and resources is not None:
+        if rate_limit is not None and resources is not None:
             document, binding = resources
             previous_cap = state["max_in_flight"]
             state["max_in_flight"] = min(previous_cap, document["fallback_max_in_flight"])
-            reduction = {"at": time.time(), "reason": "observed_provider_429", "resource_supplement": binding, "previous_max_in_flight": previous_cap, "effective_max_in_flight": state["max_in_flight"], "automatic_reincrease": False}
+            reduction = {"at": time.time(), "reason": "observed_provider_rate_limit", "evidence": rate_limit, "resource_supplement": binding, "previous_max_in_flight": previous_cap, "effective_max_in_flight": state["max_in_flight"], "automatic_reincrease": False}
             state["resource_concurrency_reduction"] = reduction
             state.setdefault("resource_concurrency_reduction_history", []).append(reduction)
-        if transient and not authentication:
+        if rate_limit is not None and not authentication:
+            observed_at = time.time()
+            countdown = rate_limit["provider_reset_countdown_seconds"]
+            delay = countdown + 5 if countdown is not None else min(900, 60 * 2 ** min(failures[kind] - 1, 4))
+            evidence = {**rate_limit, "observed_at": observed_at, "safety_seconds": 5 if countdown is not None else None, "deadline": observed_at + delay, "reference": "completed_provider_error_events_plus_reported_countdown"}
+            state["last_pi_rate_limit"] = evidence
+            state.setdefault("pi_rate_limit_history", []).append(evidence)
+            state["cooldown_until"] = max(state.get("cooldown_until", 0), evidence["deadline"])
+            state["pause_reason"] = "pi_provider_rate_limit"
+            state["reset_source"] = "provider_error_countdown_with_safety_margin" if countdown is not None else "bounded_local_retry_backoff"
+        elif transient and not authentication:
             delay = min(900, 60 * 2 ** min(failures[kind] - 1, 4))
             state["cooldown_until"] = max(state.get("cooldown_until", 0), time.time() + delay)
             state["pause_reason"] = "pi_transient_transport_backoff"

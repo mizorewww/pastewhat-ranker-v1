@@ -1,0 +1,64 @@
+{
+  "all_five_failed_outer_attempts_usage_unknown": true,
+  "automatic_reincrease": false,
+  "data_or_label_changes": false,
+  "effective_local_cap": 6,
+  "evaluator_reported_failed_outer_attempts": 1,
+  "existing_first_incident_conservative_deadline_preserved": 1789981360.815395,
+  "future_matching_provider_errors": "Store explicit countdown plus five seconds; unknown reset uses bounded backoff. Provider errors are read separately from synthetic content.",
+  "guard_prevented_additional_provider_calls": true,
+  "http_429_observed": false,
+  "maintenance_interrupted_http_requests": 0,
+  "maintenance_new_unknown_usage": 0,
+  "observed_error_class": "explicit_provider_free_model_rate_limit",
+  "observed_terminal_events_are_not_provider_attempt_counts": true,
+  "offline_validation": {
+    "actual_owned_error_replays": 4,
+    "ordinary_generated_text_does_not_trigger_rate_limit": true,
+    "private_temporary_coordinator_only": true,
+    "provider_countdown_plus_safety_verified": true,
+    "real_account_not_used_by_validation": true,
+    "sticky_cap_survives_new_instance": true,
+    "teacher_calls": 0,
+    "temporary_fixtures_removed": true
+  },
+  "owned_dev_failed_outer_attempts": 0,
+  "owned_evidence": [
+    {
+      "attempt_id": "29b11916c83c4063a4a6da902effcc44",
+      "audit_id": "b63e49edbe087f34316f1ffa18b95f483b63c839e224ffca804868f2dbf7db7e",
+      "completed_at": "2026-09-21T08:47:38.539525+00:00",
+      "events_sha256": "680a2418242dec7d910b8fb4e755761222f018e7fa8d7ea4aea3b73c9985cb54"
+    },
+    {
+      "attempt_id": "3a90e63cdfa7430a8c7bc27efb5de7f8",
+      "audit_id": "426f17440d21737c5814b9c6ec95e9d0857674ebbe106362dbbf65126443b85d",
+      "completed_at": "2026-09-21T08:47:40.206432+00:00",
+      "events_sha256": "a1afdd8d83ecabfc8ed80bde86fa24a36b413455fd1e68fec631ded6c47372e6"
+    },
+    {
+      "attempt_id": "63262d1efd8e4ad1922bab7fee9d5929",
+      "audit_id": "c6a1c8cbd599f28ff6408d137c3bd6f71e8d2b16ebfb6556eaced8aec462c3a0",
+      "completed_at": "2026-09-21T08:47:37.817141+00:00",
+      "events_sha256": "483a219ea6aca5062b4c20b636f5054926d0467aa33361d30577bf93c94c0e41"
+    },
+    {
+      "attempt_id": "b64daa2998724fa191434b508753d297",
+      "audit_id": "a19c7d2adb2c4a9c4a300de29b26ea3ab6eb0c1af9abecedbdb9752389899baa",
+      "completed_at": "2026-09-21T08:47:35.220713+00:00",
+      "events_sha256": "fa55dbf5ae4cdfd1afe1176062ca4f1fd9ac6aae55eed036228689bc38cf65e1"
+    }
+  ],
+  "owned_train_failed_outer_attempts": 4,
+  "recorded_at": "2026-09-21T09:00:40.351898+00:00",
+  "reported_countdowns_seconds": [
+    21,
+    23,
+    24,
+    26
+  ],
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "upgrade_or_model_switch": false,
+  "version": "pastewhat-pi-provider-rate-limit-recovery-v1"
+}

@@ -149,3 +149,13 @@ correction in their cache identity and source evidence. One observed foreign-UID
 completion contributed four Train rows, which were excluded without editing
 their original labels or audit bytes; its 5,818 known tokens remain in cost
 accounting. The aggregate record is `reports/data/pi-model-identity-quarantine.json`.
+
+Pi provider errors can report a model rate limit and a reset countdown without
+exposing an HTTP status. These explicit error events now receive a distinct
+`provider_rate_limit` classification, a sticky local fallback to six requests,
+and the reported reset countdown plus a five-second margin. A missing countdown
+keeps bounded backoff. This does not change account entitlement, upgrade a plan,
+or switch models. Multiple Pi error events from one CLI attempt are not counted
+as additional provider calls when the single-call guard blocked them; unknown
+usage stays unknown. The first observed incident and offline replay are recorded
+in `reports/data/pi-provider-rate-limit-recovery.json`.
