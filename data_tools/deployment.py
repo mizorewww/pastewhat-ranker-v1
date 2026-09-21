@@ -44,9 +44,31 @@ CODE_AUTHORING = (
     "otherwise harmless broader behavior may also be acceptable."
 )
 
+PYTHON_AUTHORING = (
+    "For Python, the visible literal paste result must be a complete compilable "
+    "module/function, or the actual enclosing function must be visible in "
+    "beforeSelection/afterSelection with exact indentation. A bare return, yield, "
+    "break, continue or await cannot rely on an invisible enclosing function/loop. "
+    "Use complete short function candidates in an empty editor when that is the "
+    "simplest faithful scenario. Do not assume the editor auto-indents pasted text. "
+)
+
+GIT_DIFF_AUTHORING = (
+    "For comparing commits, explicitly state the old/source revision and "
+    "new/target revision and the required output (for example, the forward patch "
+    "from old to new). Merely 'compare A with B' does not constrain direction. "
+    "Do not infer a commit's parent from adjacent abbreviated git-log lines. "
+    "Scope/output constraints must visibly distinguish git diff, reversed diff, "
+    "git show, --stat or --name-only if they are different candidates. "
+    "Nearby guidance must be actual static UI help, not terminal scrollback. "
+)
+
 
 def authoring_requirement(family_id):
-    return HTTP_METHOD_AUTHORING if family_id == "http_method" else CODE_AUTHORING
+    if family_id == "http_method":
+        return HTTP_METHOD_AUTHORING
+    extra = PYTHON_AUTHORING if family_id.startswith("python_") else GIT_DIFF_AUTHORING if family_id == "git_diff_selection" else ""
+    return CODE_AUTHORING + extra
 
 
 def placement_issue(episode, label=None):
@@ -71,6 +93,8 @@ def placement_issue(episode, label=None):
     if focus:
         before = focus.get("beforeSelection", "")
         after = focus.get("afterSelection", "")
+        if selected and ((before == selected and not after) or (after == selected and not before)):
+            return "Synthetic whole-field replacement duplicates selectedText outside the replaced range"
         unselected = before + after if focus.get("selectionKnown") else focus.get("textWindow", "")
         if code_editor and re.search(r"_{3,}", unselected):
             return "Unselected code blank cannot be replaced by pasting an answer token"
@@ -78,6 +102,21 @@ def placement_issue(episode, label=None):
             return "Nonempty field has no observable caret or replacement range"
     elif surrounding and label and label["decision"] == "select":
         return "Select lacks a complete, observable production caret representation after budgeting"
+    if label and label["decision"] == "select" and code_editor and episode.get("family_id", "").startswith("python_"):
+        if focus and not focus.get("selectionKnown"):
+            return "Python select requires an observed literal insertion range"
+        before = focus.get("beforeSelection", "") if focus else ""
+        after = focus.get("afterSelection", "") if focus else ""
+        positives = set(label["acceptable_ids"])
+        for entry in episode["entries"]:
+            if entry["id"] not in positives:
+                continue
+            try:
+                # Compile only: never execute generated clipboard code. These
+                # synthetic cases intentionally include the complete short scope.
+                compile(before + entry["text"] + after, "<synthetic-paste>", "exec")
+            except (SyntaxError, ValueError) as exc:
+                return f"Python positive is not syntactically usable at the visible paste location: {getattr(exc, 'msg', str(exc))}"
     if episode.get("family_id") == "http_method":
         if context.get("fieldLabel") != "HTTP method" or context.get("fieldRole") != "AXTextField":
             return "HTTP method synthetic tasks require a real standalone method text field"

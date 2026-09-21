@@ -234,7 +234,41 @@
       "reason": "Existing executable editor text has no observable replacement range; cannot certify direct paste",
       "reviewer": "data-agent; http_method also independently rejected by root-agent",
       "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "d02988606fb622e660950a391fecc057c391e76c65ba2ad96c41a84d34c52993",
+      "family_id": "git_diff_selection",
+      "id": "train-main-v4-git_diff_selection-00008",
+      "original_generation_audit_id": "f1259f0ffb739e1dd20924621b30874ce36dd1333cce04f31bac3ade395ea10f",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "reason": "Root agent review: visible 'diff A against B' does not constrain old-to-new patch direction or output; reversed diff and git show are not excluded by observable evidence, so singleton acceptable set is unsupported.",
+      "reviewer": "root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "80efb38cdcd3ad0595ae5776593e90dcff843088eec222a5e756aef990c3fbed",
+      "family_id": "python_exception",
+      "id": "dev-main-v4-python_exception-00005",
+      "original_generation_audit_id": "fc4bf2c59d1ee221d52390fad73269673600fc5b7816f6edfd21f7a29308e560",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "reason": "Data agent review: the selected try/except contains return outside any visible enclosing function in an empty editor; literal paste fails Python compile. Original label is preserved and rejected, not changed to abstain.",
+      "reviewer": "data-agent",
+      "split": "dev"
     }
   ],
-  "reviewed_at": "2026-09-21T01:11:20.417011+00:00"
+  "reviewed_at": "2026-09-21T01:54:43.357101+00:00"
 }

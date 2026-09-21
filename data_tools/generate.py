@@ -63,6 +63,8 @@ The production adapter computes UTF-16 offsets; DO NOT count or emit numeric
 selection offsets. An empty field uses beforeSelection="", afterSelection="",
 selectedText="". For a whole-field replacement before/after are both empty and
 selectedText is the exact current entire value. Prefer simple real empty fields.
+beforeSelection and afterSelection EXCLUDE the selected middle text. Do not
+copy selectedText into either fragment; that would create a second old value.
 For an UNKNOWN selection, capture has EXACTLY textWindow, nearbyText and
 context.selectedText="". textWindow is the observable current field text.
 The assembled field window is at most1700 characters.
@@ -254,6 +256,9 @@ def validate_generated(value, plans):
             raise ValueError("Unknown deployment input surface")
         if episode["context"].get("surroundingText"):
             raise ValueError("Raw surroundingText must be empty; author literal capture fragments instead")
+        capture, selected = episode.get("capture", {}), episode["context"].get("selectedText", "")
+        if selected and ((capture.get("beforeSelection") == selected and capture.get("afterSelection") == "") or (capture.get("afterSelection") == selected and capture.get("beforeSelection") == "")):
+            raise ValueError("Synthetic whole-field capture duplicated selectedText in an unchanged fragment; author a new valid selection")
         nearby = episode.get("capture", {}).get("nearbyText")
         if not isinstance(nearby, list) or any(not isinstance(value, str) for value in nearby):
             raise ValueError("capture.nearbyText must be an array of strings")
@@ -366,11 +371,9 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
         complete = {episode["id"] for episode in stored["episodes"]} == {plan["id"] for plan in batch["plans"]}
         if complete and all(episode.get("provenance", {}).get("family_review_audit_id") and episode.get("provenance", {}).get("blind_label_audit_id") for episode in stored["episodes"]):
             return stored
-        usage.update(stored.get("usage", {}))
-        accepted.update({episode["id"]: episode for episode in stored["episodes"]})
-        rejected.extend(stored.get("rejected", []))
-        starting_attempt = stored.get("attempts_completed", 0)
-        atomic_json(output_path.with_suffix(".partial.json"), {**stored, "episodes": list(accepted.values())})
+        # Restore once through the partial branch below, so migrated rejections
+        # are not counted twice when a previously complete batch loses a slot.
+        atomic_json(output_path.with_suffix(".partial.json"), stored)
         output_path.unlink()
     partial_path = output_path.with_suffix(".partial.json")
     if partial_path.is_file():
