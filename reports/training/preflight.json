@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "checks": {
+    "candidate_permutation_max_error": 0.0,
+    "abstain_permutation_error": 0.0,
+    "padding_max_error": 0.0,
+    "candidate_padding_excluded": true,
+    "save_reload_max_error": 0.0,
+    "multi_positive_loss_error": 6.150929909853886e-08,
+    "ids_and_labels_excluded": true,
+    "preparation_idempotent": true,
+    "max_pair_tokens": 975,
+    "encoder_grad_norm": 0.07604645192623138,
+    "abstain_grad_norm": 18.39057159423828,
+    "rank_head_grad_norm": 13.358004570007324,
+    "finite_loss": true
+  },
+  "tolerances": {
+    "torch_padding": 2e-05,
+    "mlx_fp16_absolute": 0.05
+  },
+  "mlx_fp16_parity": [
+    {
+      "candidate_count": 1,
+      "max_absolute_error": 0.00025644898414611816,
+      "torch_top_action": 1,
+      "mlx_top_action": 1
+    },
+    {
+      "candidate_count": 5,
+      "max_absolute_error": 0.000710606575012207,
+      "torch_top_action": 5,
+      "mlx_top_action": 5
+    },
+    {
+      "candidate_count": 10,
+      "max_absolute_error": 0.000710606575012207,
+      "torch_top_action": 10,
+      "mlx_top_action": 10
+    },
+    {
+      "candidate_count": 20,
+      "max_absolute_error": 0.0008028745651245117,
+      "torch_top_action": 20,
+      "mlx_top_action": 20
+    }
+  ],
+  "timing": {
+    "candidate_count": 3,
+    "pair_tokens": 38,
+    "all_step_seconds": [
+      1.582407208999939,
+      0.6731936249998398,
+      0.6496734590000415,
+      0.6547197079999023,
+      0.672951540998838,
+      0.6716702909998276
+    ],
+    "warm_median_step_seconds": 0.6631949994998649,
+    "includes_optimizer_update_every_episode": true,
+    "training_dtype": "MPS BF16 autocast with FP32 master weights"
+  },
+  "software": {
+    "python": "3.12.13",
+    "torch": "2.14.0",
+    "platform": "macOS-27.2-arm64-arm-64bit"
+  },
+  "not_accuracy_benchmark": true
+}

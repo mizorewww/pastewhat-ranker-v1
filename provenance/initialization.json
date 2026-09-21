@@ -1,0 +1,21 @@
+{
+  "source_repo": "convaiinnovations/laya-multilingual",
+  "revision": "052592a15d198d9ad47da779604259b10b47b7aa",
+  "original_weight_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+  "tokenizer_sha256": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+  "original_storage_precision": "float16, non-quantized original upstream weights",
+  "training_master_precision": "float32",
+  "encoder": "ModernBERT/mmBERT-base, 22 layers, hidden size 768, vocabulary 256000",
+  "parameter_policy": "Retain tokenizer and encoder only; strictly load every encoder parameter. Initialize candidate and group-abstain heads. Discard original typed-decision/action heads and calibration.",
+  "documentation": [
+    "https://github.com/NandhaKishorM/laya",
+    "https://huggingface.co/convaiinnovations/laya-multilingual/tree/052592a15d198d9ad47da779604259b10b47b7aa",
+    "https://github.com/pytorch/pytorch/blob/main/docs/source/notes/amp_examples.md",
+    "https://github.com/pytorch/pytorch/blob/main/torch/utils/checkpoint.py",
+    "https://github.com/ml-explore/mlx/blob/main/docs/src/usage/saving_and_loading.rst"
+  ],
+  "implementation_attribution": [
+    "Trainable ModernBERT encoder adapted from mizorewww/laya-coreml/laya_coreml/torch_model.py (Apache-2.0).",
+    "MLX encoder adapted from mizorewww/laya-mlx/laya_mlx/model.py (Apache-2.0)."
+  ]
+}
