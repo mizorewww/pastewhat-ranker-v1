@@ -11,6 +11,7 @@ import random
 
 from data_tools.generate import PARTITION_PATH, ROOT, validate_labels
 from data_tools.content import content_fingerprint
+from data_tools.deployment import placement_issue
 from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 from pastewhat_ranker.preprocess import Preprocessor
 
@@ -53,6 +54,8 @@ def main():
     for episode in episodes:
         if episode["family_id"] not in allowed_families:
             raise ValueError("Conceptual family crosses split ownership")
+        if not args.overfit and placement_issue(episode):
+            raise ValueError(f"Unusable synthetic paste placement in {episode['id']}: {placement_issue(episode)}")
         required_audits = ("generation_audit_id", "label_audit_id", "blind_label_audit_id", "family_review_audit_id")
         if any(not episode.get("provenance", {}).get(key) for key in required_audits):
             raise ValueError("An episode has not passed all teacher review gates")

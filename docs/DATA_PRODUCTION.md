@@ -76,6 +76,17 @@ but is not a representative accuracy benchmark. These inspections are agent
 reviews, not human validation. Repeated teacher agreement and programmatic checks
 reduce errors; they do not establish that every synthetic label is correct.
 
+An additional first-batch v3 agent review found that code placeholders such as
+unselected `___` had been treated as question answering: a bare `POST` token
+would not replace that placeholder or supply missing JavaScript quotes. Similar
+unselected existing-code replacements and one incomplete positive set were
+quarantined without rewriting their labels. The content fingerprints and
+findings are in `data/train_dev.placement_review.json`; raw original episodes
+remain in ignored quarantine. Frozen production snapshots reject these contents
+even if their IDs or candidate order change. Their four teacher passes had
+agreed, illustrating why teacher consensus alone is not a correctness guarantee.
+The already independently reviewed engineering seed is unchanged.
+
 ## Running and auditing
 
 The repository environment is managed by `uv`. The tokenizer is the frozen

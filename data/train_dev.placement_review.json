@@ -1,0 +1,240 @@
+{
+  "frozen_model_examples_used": false,
+  "human_validated": false,
+  "protocol": "agent-review-literal-paste-v1",
+  "rejections": [
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "f5dcca6df31ab48f8b0aa8e009f59405a5a7990041b7e37daba8c9a9d2dfc103",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00000",
+      "original_generation_audit_id": "bd2b7018ab6f040a9759e8239b5e97e9147efd04a1580ad7adab8cfd24cf23aa",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "reason": "HTTP method synthetic tasks require a real standalone method text field",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "67deb5f77f6832bb442ada0b21d224f981fc1507163bbe2c8223170fc5270787",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00001",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "88a576e89ae742c49b40b2e21b8a85f469e94c8d42b7abaa024a342e9e10dbc4",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00002",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c3"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "c886a3b488a8d56d00a0c4011b32aad1b608ad93a041ba220ec859a8037b383e",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00003",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c5"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "7a87500af73594166d5b6f741f5c72d41c68461f28c70b8a3937f5d4266f8b0c",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00004",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "c40388e0f0018400ce39db6fbfee4074e0c040cfc8e65a22f7ed0274f3ef367e",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00005",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c4"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "40767076246b33ad036f9a35f6165cf9669e242b2a28132976ab35d32a1c0826",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00006",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c9"
+        ],
+        "decision": "select"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "6cfa07c2509d5a15d3c7cf62e73af8a51e072c752472a094f7ddd9b0cbbb0fa4",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00007",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": "no_match",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "58b34a45f74e806ec8e37b1f4a3e3ad9297417031147e77c34c26216127f3fb6",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00008",
+      "original_generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "original_label": {
+        "abstain_reason": "no_match",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "reason": "Unselected code blank cannot be replaced by pasting an answer token",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "45192aac9348738709b43199cd42ce6950dc968b40d68284dda26fde7ad955ae",
+      "family_id": "http_method",
+      "id": "train-main-http_method-00009",
+      "original_generation_audit_id": "af6c8a5888904141737b3d0737a00e6279668f02c63d21016627de290a489bd6",
+      "original_label": {
+        "abstain_reason": "ambiguous",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "reason": "HTTP method synthetic tasks require a real standalone method text field",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "a37611bdcb1a0abaa8df21116a41268ac8d11bec0c9b7e6e34d408633eae48c3",
+      "family_id": "python_exception",
+      "id": "dev-main-python_exception-00001",
+      "original_generation_audit_id": "d2458600d7e24457c85d7caffc655ced8110e77cd6901f51317cd4e696a500cd",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "reason": "Existing executable editor text has no observable replacement range; cannot certify direct paste",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "3fc213080dc3e306414a1d69c46969d1b168f75b1aa8834ac40615188266c350",
+      "family_id": "python_exception",
+      "id": "dev-main-python_exception-00003",
+      "original_generation_audit_id": "d2458600d7e24457c85d7caffc655ced8110e77cd6901f51317cd4e696a500cd",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "reason": "Existing executable editor text has no observable replacement range; cannot certify direct paste",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "5544f59a1dcba08b0b229414adbae47c1ecc88f405a51681bb706c2455c4c956",
+      "family_id": "python_exception",
+      "id": "dev-main-python_exception-00004",
+      "original_generation_audit_id": "d2458600d7e24457c85d7caffc655ced8110e77cd6901f51317cd4e696a500cd",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c5"
+        ],
+        "decision": "select"
+      },
+      "reason": "Independent agent review: broader Exception handler also rolls back and re-raises on IntegrityError; visible context does not forbid handling other exception types. Original positive set is incomplete.",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "baa979aa535c18a4824ce31ecac899f73ef62818432a7faad90e3b7dc8bc6b30",
+      "family_id": "python_exception",
+      "id": "dev-main-python_exception-00006",
+      "original_generation_audit_id": "d2458600d7e24457c85d7caffc655ced8110e77cd6901f51317cd4e696a500cd",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c4"
+        ],
+        "decision": "select"
+      },
+      "reason": "Existing executable editor text has no observable replacement range; cannot certify direct paste",
+      "reviewer": "data-agent; http_method also independently rejected by root-agent",
+      "split": "dev"
+    }
+  ],
+  "reviewed_at": "2026-09-21T01:11:20.417011+00:00"
+}
