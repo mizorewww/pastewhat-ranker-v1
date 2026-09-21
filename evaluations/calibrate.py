@@ -13,6 +13,7 @@ from evaluations.common import (
 )
 from evaluations.score import command_artifacts
 from run_contract import load_run_plan
+from pastewhat_ranker.calibration import VERSION as CALIBRATOR_VERSION
 
 
 def partition_families(episodes: list[dict]) -> dict:
@@ -57,13 +58,13 @@ def fit_calibrator(episodes: list[dict], predictions: list[dict], *, minimum_rec
     classifier.fit(scaler.transform([row["features"] for row in fit]), [row["target"] for row in fit])
     calibrator = {
         "schema": "pastewhat-recommendation-calibration",
-        "version": "pastewhat-calibrator-v1", "feature_names": FEATURE_NAMES,
+        "version": CALIBRATOR_VERSION, "feature_names": FEATURE_NAMES,
         "standardizer": {"mean": scaler.mean_.tolist(), "scale": scaler.scale_.tolist()},
         "coefficients": classifier.coef_[0].tolist(), "intercept": float(classifier.intercept_[0]),
         "threshold": 1.0, "target_precision": 0.95,
         "minimum_threshold_recommendations": minimum_recommendations,
         "candidate_must_beat_abstain": True, "candidate_abstain_ties": "abstain",
-        "missing_context_definition": "fieldLabel, selectedText and surroundingText are all blank",
+        "missing_context_definition": "No nonblank fieldLabel or selectedText and no actual text in the valid native focus envelope; format/selectionKnown metadata alone is empty. Legacy or malformed surroundingText remains literal text.",
         "fit_class_counts": dict(Counter(str(row["target"]) for row in fit)),
         "family_partition": partition,
     }

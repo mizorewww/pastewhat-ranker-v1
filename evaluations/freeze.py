@@ -9,6 +9,8 @@ import subprocess
 
 from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation, write_json
 from run_contract import load_run_plan
+from pastewhat_ranker.calibration import VERSION as CALIBRATOR_VERSION
+from evaluations.training_provenance import training_handoff_inputs
 
 
 def directory_hashes(root: Path) -> dict[str, str]:
@@ -68,10 +70,11 @@ def main():
     args.calibration_audit = args.calibration_audit or Path("reports/evaluation") / plan.run_id / "data-calibration-audit.json"
     args.test_audit = args.test_audit or Path("reports/evaluation") / plan.run_id / "data-test-audit.json"
     calibrator = json.loads(args.calibrator.read_text())
-    if calibrator.get("version") != "pastewhat-calibrator-v1":
+    if calibrator.get("version") != CALIBRATOR_VERSION:
         raise SystemExit("Expected the deployment-version correctness calibrator")
     if any(calibrator.get("provenance", {}).get(key) != value for key, value in plan.binding().items()):
         raise SystemExit("Calibrator belongs to a different registered production plan")
+    training_inputs = training_handoff_inputs(plan, args.deployment)
     allocation = {}
     partition = json.loads(args.family_partition.read_text())
     partition_hash = sha256(args.family_partition)
@@ -95,6 +98,7 @@ def main():
         "candidate_label_protocol": Path("data_tools/labeling.py"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
         "calibration_audit": args.calibration_audit, "test_audit": args.test_audit,
+        **training_inputs,
     }.items()}
     record = {
         "version": "pastewhat-release-freeze-v1", "status": "frozen_for_final_test",

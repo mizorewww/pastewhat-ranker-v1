@@ -56,6 +56,11 @@ Formal v6 uses `teacher-episodes-v6-compact-verdicts`. Its compact author suppli
 only slot, zero to two short displayed guidance strings, the selected complete
 old field value (or empty), and whole candidate payloads. Twenty evaluator-owned
 field profiles are fixed in `evaluations/authoring-profiles.json` before generation.
+Its v2 revision makes implementation-dependent runtime information explicit in
+the same observable helper text for every label bucket. Superseded v1-profile rows
+were quarantined with their unchanged inputs, labels and audits before any student
+scoring; the registered episode counts and native model-input contract did not
+change. This is an input-quality revision, not a model-result-based label change.
 The shared `compact-literal-fixture-v1` builder constructs the full observable
 context and capture without inspecting a label or inferred intent. An empty
 selection means an empty field with a known insertion point. Whole-field
@@ -164,8 +169,14 @@ class-weight adjustment. The four features are:
 2. Highest candidate score minus second-highest candidate score, substituting
    the abstain score for the second score in a one-candidate episode.
 3. Candidate count, without a hidden log transform.
-4. A missing-context flag, true when field label, selected text, and surrounding
-   text are all empty after preprocessing.
+4. A missing-context flag, true when field label and selected text are blank and
+   the surrounding observation has no actual text after preprocessing. In a valid
+   native `pastewhat-focus-v1` envelope, only nonblank before/after-selection text
+   (or unknown-position textWindow) and nearbyText strings count; `format` and
+   `selectionKnown` metadata alone do not count. Ordinary legacy strings and
+   malformed/truncated envelopes remain literal text. This corrected feature is
+   versioned as `pastewhat-calibrator-v2` so old coefficients cannot silently use
+   the changed interpretation.
 
 The target is one exactly when the episode is selectable and the highest-scored
 candidate is in `acceptable_ids`. One shared implementation computes training
@@ -202,6 +213,15 @@ artifact has changed. No test-derived error analysis, label correction,
 threshold change, or checkpoint selection may feed this version's release.
 Corrections require a versioned explanation and a new, independently held-out
 test for subsequent acceptance.
+
+The freeze also requires `pastewhat-training-handoff-v2`: the complete pilot,
+all three main seeds, executed hardening, actual optimizer steps and episode
+exposures, original encoder initializations, and Dev-only selection. Fifteen stage
+summary/config/manifest files, ten aggregate evidence files, the handoff and the
+reference weight file are individually hash-bound. The evaluator and release
+assembler share one verifier; it never follows evidence links into Train/Dev
+example files. Missing stages, changed evidence, or a non-Dev winner prevent
+final acceptance.
 
 The paired baseline is PasteWhat's existing Laya workflow at commit
 `87f9c09` (full commit and engine file hashes resolved in the run manifest).

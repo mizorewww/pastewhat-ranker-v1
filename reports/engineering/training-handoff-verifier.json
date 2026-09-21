@@ -1,0 +1,16 @@
+{
+  "scope": "Temporary aggregate proof fixture, not completed training or a model release",
+  "status": "passed",
+  "checks": [
+    "complete_fixture_binds_27_files",
+    "changed_aggregate_file_rejected",
+    "partial_seed_schedule_rejected",
+    "non_dev_winner_rejected_even_with_updated_hash"
+  ],
+  "source_sha256": "081421c9cb09e1020b1a8664ec11539112c53c2fe1d89bf023872eecf5217492",
+  "calibrator_version": "pastewhat-calibrator-v2",
+  "actual_model_loaded": false,
+  "teacher_requests": 0,
+  "production_plan_changed": false,
+  "temporary_fixture_removed": true
+}
