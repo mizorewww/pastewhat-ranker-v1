@@ -8,6 +8,7 @@ Calibration. Hard-example data must be produced independently after ranker-v0.
 import argparse
 import fcntl
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -182,6 +183,123 @@ def seed_initializations(run_plan=None):
     return records
 
 
+def artifact_record(path):
+    """A small aggregate evidence file, never an embedded training example."""
+    path = Path(path)
+    return {"path": str(path), "sha256": sha256_file(path)}
+
+
+def completed_stage_evidence(output, expected_config, train_count, dev_count, *, run_plan=None):
+    """Require the whole registered schedule, not merely a reusable checkpoint."""
+    output = Path(output)
+    manifest_path = output / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    if (manifest.get("config") != expected_config or expected_config.get("engineering_overfit")
+            or expected_config.get("max_steps")
+            or manifest.get("train_episodes") != train_count or manifest.get("dev_episodes") != dev_count):
+        raise ValueError("Training completion evidence differs from the full registered stage")
+    verify_binding(expected_config, run_plan, "Training completion configuration")
+    summary = verify_completed_run(output, expected_config)
+    effective = expected_config["effective_batch_episodes"]
+    epochs = expected_config["epochs"]
+    warmup = expected_config["head_warmup_steps"]
+    updates_per_epoch = math.ceil(train_count / effective)
+    expected_steps = warmup + updates_per_epoch * epochs
+    # Warmup cycles the complete dataset, including each final short batch.
+    cycles, remaining = divmod(warmup, updates_per_epoch)
+    expected_seen = cycles * train_count + min(train_count, remaining * effective) + train_count * epochs
+    if (summary.get("engineering_overfit") is not False
+            or summary.get("global_steps") != expected_steps
+            or summary.get("seen_episodes_including_head_warmup") != expected_seen
+            or Path(summary["manifest"]).resolve() != manifest_path.resolve()
+            or Path(summary["best_checkpoint"]).resolve() != (output / "best").resolve()):
+        raise ValueError("Training completion summary does not prove every registered optimizer step")
+    return {"status": "completed", "summary": artifact_record(output / "training_summary.json"),
+            "run_manifest": artifact_record(manifest_path),
+            "train_config": artifact_record(output / "train_config.yaml"),
+            "best_checkpoint": summary["best_checkpoint"], "best_weight_sha256": summary["best_weight_sha256"],
+            "best_dev_key": summary["best_dev_key"], "seed": expected_config["seed"],
+            "train_episodes": train_count, "dev_episodes": dev_count, "epochs": epochs,
+            "head_warmup_steps": warmup, "effective_batch_episodes": effective,
+            "global_steps": summary["global_steps"], "seen_episodes_including_head_warmup": expected_seen,
+            "initial_weight_sha256": manifest["initial_weight_sha256"]}
+
+
+def training_handoff(layout, micro, initializations, selected_seed, hardening_accepted, *, run_plan=None):
+    """Public aggregate proof of pilot, every main seed, and executed hardening."""
+    verify_run_plan(run_plan)
+    local, checkpoints, counts = layout["local"], layout["checkpoints"], layout["counts"]
+    seeds = list(run_plan.document["training_seeds"] if run_plan else (42, 43, 44))
+    stages = {}
+    for name, role, seed, initial in [("pilot", "pilot", 42, None),
+                                    *[(f"main_seed_{seed}", "main", seed, initializations[seed]["initial_model"]) for seed in seeds],
+                                    ("hardening", "hardening", selected_seed, None)]:
+        config = yaml.safe_load(Path(f"configs/{role}.yaml").read_text())
+        config.update(formal_stage_changes(role, micro, seed=seed, initial_model=initial, run_plan=run_plan))
+        output = checkpoints / (f"main-seed-{seed}" if role == "main" else name)
+        stages[name] = completed_stage_evidence(output, config, counts["train" if role == "main" else role],
+                                                counts["dev"], run_plan=run_plan)
+    winner = max(seeds, key=lambda seed: stages[f"main_seed_{seed}"]["best_dev_key"])
+    if winner != selected_seed:
+        raise ValueError("The selected seed is not the completed main run chosen by Dev")
+    evidence_paths = {"experiment_data": local / "frozen-experiment-data.json",
+                      "pilot_subset": local / "pilot-subset-verification.json",
+                      "seed_initializations": layout["reports"] / "seed-initializations.json",
+                      "v0_selection": local / "ranker-v0-ready.json",
+                      "hardening_mix": local / "hardening-data-mixture.json",
+                      "hardening_selection": local / "hardening-selection.json"}
+    if run_plan:
+        evidence_paths.update(pilot_data=local / "frozen-pilot-data.json",
+                              hardening_data=local / "frozen-hardening-data.json",
+                              run_plan_binding=local / "run-plan-binding.json")
+    records = {name: json.loads(path.read_text()) for name, path in evidence_paths.items()}
+    for name, record in records.items():
+        verify_binding(record, run_plan, "Training evidence " + name)
+    for name in ("experiment_data", "pilot_data", "hardening_data"):
+        if name in evidence_paths:
+            verify_frozen_data(evidence_paths[name], run_plan=run_plan)
+    subset, mixture, selection = records["pilot_subset"], records["hardening_mix"], records["hardening_selection"]
+    expected_mix = run_plan.document["hardening"] if run_plan else {"accepted_new": 5000, "retained_original": 5000}
+    if (subset.get("pilot_is_unchanged_subset") is not True or subset.get("pilot_episodes") != counts["pilot"]
+            or subset.get("main_episodes") != counts["train"]
+            or mixture.get("originals_preserved_exactly") is not True
+            or mixture.get("all_families_in_train_partition") is not True
+            or mixture.get("original_episodes") != expected_mix["retained_original"]
+            or mixture.get("new_episode_ids") != expected_mix["accepted_new"]
+            or records["v0_selection"].get("selected_by") != "Dev only"
+            or records["v0_selection"].get("selected_seed") != selected_seed
+            or selection.get("accepted") is not hardening_accepted
+            or selection.get("selected_by") != "Dev only" or selection.get("hardening_executed") is not True):
+        raise ValueError("Aggregate stage evidence does not prove the registered data or Dev selection")
+    selected_main_sha = stages[f"main_seed_{selected_seed}"]["best_weight_sha256"]
+    if (records["v0_selection"].get("weight_sha256") != selected_main_sha
+            or stages["hardening"]["initial_weight_sha256"] != selected_main_sha):
+        raise ValueError("Hardening did not start from the Dev-selected main checkpoint")
+    for seed in seeds:
+        if stages[f"main_seed_{seed}"]["initial_weight_sha256"] != initializations[seed]["model_sha256"]:
+            raise ValueError("A main run did not restart from its frozen original-encoder initialization")
+    if stages["pilot"]["initial_weight_sha256"] != initializations[42]["model_sha256"]:
+        raise ValueError("Pilot did not start from the frozen original-encoder initialization")
+    release = checkpoints / "ranker-v1-candidate"
+    reference_sha = sha256_file(release / "model.safetensors")
+    deployment_sha = sha256_file(release / "mlx" / "model.safetensors")
+    expected_sha = stages["hardening"]["best_weight_sha256"] if hardening_accepted else selected_main_sha
+    conversion_path = release / "mlx" / "conversion.json"
+    conversion = json.loads(conversion_path.read_text())
+    if (reference_sha != expected_sha or conversion.get("reference_weight_sha256") != reference_sha
+            or conversion.get("mlx_weight_sha256") != deployment_sha or conversion.get("strict_parameter_load") is not True):
+        raise ValueError("Release weights do not match the completed Dev selection and strict MLX export")
+    evidence_paths["conversion"] = conversion_path
+    return {"version": "pastewhat-training-handoff-v2", "reference_checkpoint": str(release),
+            "deployment_checkpoint": str(release / "mlx"), "reference_weight_sha256": reference_sha,
+            "deployment_weight_sha256": deployment_sha, "weight_sha256": deployment_sha,
+            "selected_by": "Dev only", "registered_seeds": seeds, "completed_seeds": seeds,
+            "selected_seed": selected_seed, "hardening_executed": True, "hardening_accepted": hardening_accepted,
+            "training_completion": {"status": "completed", "data_counts": counts, "stages": stages,
+                                    "evidence": {name: artifact_record(path) for name, path in evidence_paths.items()}},
+            "status": "conversion_requires_independent_parity_and_calibration"}
+
+
 def main():
     global STATE_PATH
     parser = argparse.ArgumentParser(description=__doc__)
@@ -279,15 +397,13 @@ def main():
     release = checkpoints / "ranker-v1-candidate"
     shutil.copytree(hardened["best_checkpoint"] if accept else v0, release, dirs_exist_ok=True)
     write_record(local / "hardening-selection.json", {"accepted": accept, "group_regressions": group_regressions,
+                                                     "selected_by": "Dev only", "hardening_executed": True,
                                                      "v0_dev": previous, "hardening_dev": current,
                                                      "selection_rule": "Dev balanced accuracy improves; no >5pp regression in group n>=20"}, run_plan)
     verify_run_plan(run_plan)
     subprocess.run([sys.executable, "-m", "pastewhat_ranker.export", "--model", str(release), "--output", str(release / "mlx")], check=True)
-    write_record(local / "ready-for-calibration.json", {"reference_checkpoint": str(release),
-                                                      "deployment_checkpoint": str(release / "mlx"),
-                                                      "weight_sha256": sha256_file(release / "mlx" / "model.safetensors"),
-                                                      "selected_seed": selected["seed"], "hardening_accepted": accept,
-                                                      "status": "conversion_requires_independent_parity_and_calibration"}, run_plan)
+    write_record(local / "ready-for-calibration.json",
+                 training_handoff(layout, micro, initializations, selected["seed"], accept, run_plan=run_plan), run_plan)
     write_record(state_path, {"phase": "calibration_handoff", "status": "training_stages_complete",
                               "updated_unix": time.time()}, run_plan)
 
