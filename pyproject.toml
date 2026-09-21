@@ -23,6 +23,7 @@ dependencies = [
 eval = ["scikit-learn==1.8.0"]
 
 [project.scripts]
+pastewhat-ranker-init = "pastewhat_ranker.initialize:main"
 pastewhat-ranker-train = "pastewhat_ranker.train:main"
 pastewhat-ranker-export = "pastewhat_ranker.export:main"
 pastewhat-ranker-worker = "pastewhat_ranker.worker:main"

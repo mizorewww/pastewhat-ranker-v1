@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "phase": "initialization_capacity_verification",
+  "candidates": 20,
+  "pair_tokens": 977,
+  "forward_backward_seconds": 5.757946333000291,
+  "finite_loss": true,
+  "mps_allocated_bytes": 2479038208,
+  "mps_driver_bytes": 9220882432,
+  "gradient_checkpointing": true,
+  "precision": "MPS BF16 autocast FP32 master",
+  "not_final_deployment_benchmark": true
+}

@@ -15,6 +15,8 @@ from .model import sha256_file
 
 def export_model(source, destination):
     source, destination = Path(source), Path(destination)
+    if source.resolve() == destination.resolve():
+        raise ValueError("MLX export must not overwrite its PyTorch reference directory")
     destination.mkdir(parents=True, exist_ok=True)
     config = json.loads((source / "config.json").read_text())
     config.update(deployment_backend="mlx", deployment_precision="float16",
