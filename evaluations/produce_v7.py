@@ -17,7 +17,7 @@ import time
 
 from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.rate_limit import AccountCoordinator
-from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonical_bytes, utc_now
+from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonical_bytes, observed_responses, utc_now
 from data_tools.v7 import produce_batch
 from evaluations.common import sha256, write_json
 from evaluations.generate_v7 import (
@@ -68,20 +68,31 @@ def usage_summary(directory):
     for path in directory.glob("*.json"):
         raw = json.loads(path.read_text())
         statuses[raw.get("status", "unknown")] += 1
-        response = raw.get("response") or {}
-        usage = response.get("usage") or {}
         phase = phases.setdefault(raw.get("phase", "unknown"), Counter())
         phase["request_records"] += 1
-        if usage:
-            models[response.get("model", "unspecified")] += 1
-            phase["known_responses"] += 1
-            totals["known_responses"] += 1
-            for name in ("prompt_tokens", "completion_tokens", "total_tokens"):
-                totals[name] += usage.get(name, 0)
-                phase[name] += usage.get(name, 0)
-            reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
-            totals["reported_reasoning_tokens"] += reasoning
-            phase["reported_reasoning_tokens"] += reasoning
+        for observed in observed_responses(raw):
+            response = observed.get("response") or {}
+            usage = response.get("usage") or {}
+            if usage:
+                models[response.get("model", "unspecified")] += 1
+                phase["known_responses"] += 1
+                totals["known_responses"] += 1
+                for name in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                    totals[name] += usage.get(name, 0)
+                    phase[name] += usage.get(name, 0)
+                reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
+                totals["reported_reasoning_tokens"] += reasoning
+                phase["reported_reasoning_tokens"] += reasoning
+            if observed.get("elapsed_seconds") is not None:
+                elapsed.append(observed["elapsed_seconds"])
+                phase["elapsed_seconds"] += observed["elapsed_seconds"]
+            if observed.get("started_at"):
+                starts.append(observed["started_at"])
+            if observed.get("completed_at"):
+                ends.append(observed["completed_at"])
+            if observed.get("phase") == "v7-author" and observed.get("status") == "success":
+                parsed = TeacherClient._result(observed, cache_hit=True).parsed
+                authored += len(parsed.get("episodes", [])) if isinstance(parsed, dict) else 0
         for attempt in raw.get("attempts", []):
             if attempt.get("error_type"):
                 unknown[attempt["error_type"]] += 1
@@ -89,22 +100,13 @@ def usage_summary(directory):
                 unknown["HTTP_" + str(attempt["http_status"])] += 1
         if raw.get("status") == "request_started":
             unknown["request_started_unobserved_completion"] += 1
-        if raw.get("elapsed_seconds") is not None:
-            elapsed.append(raw["elapsed_seconds"])
-            phase["elapsed_seconds"] += raw["elapsed_seconds"]
-        if raw.get("started_at"):
-            starts.append(raw["started_at"])
-        if raw.get("completed_at"):
-            ends.append(raw["completed_at"])
-        if raw.get("phase") == "v7-author" and raw.get("status") == "success":
-            parsed = TeacherClient._result(raw, cache_hit=True).parsed
-            authored += len(parsed.get("episodes", [])) if isinstance(parsed, dict) else 0
     return {"request_records": sum(statuses.values()), "statuses": dict(statuses),
             "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()},
             "unknown_usage_attempt_events": dict(unknown), "response_models": dict(models),
             "authored_draft_rows_including_repairs": authored,
             "first_request_at": min(starts, default=None), "latest_completion_at": max(ends, default=None),
             "summed_request_elapsed_seconds": sum(elapsed),
+            "response_accounting": "Each distinct observed completion, including retained invalid responses; successful cache reads do not add usage. Transport/HTTP unknown attempts come only from the top-level accumulated attempt ledger.",
             "reasoning_tokens_are_included_in_completion_tokens": True}
 
 
