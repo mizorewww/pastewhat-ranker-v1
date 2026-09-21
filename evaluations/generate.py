@@ -29,6 +29,10 @@ LITERAL_PASTE_PROTOCOL = "literal-paste-and-task-identity-v2"
 FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v2"
 CAPTURE_PROTOCOL = "pastewhat-capture-authoring-v1"
 
+
+class ProviderPaused(TeacherError):
+    """Account-wide pause; not a semantic rejection or generation retry."""
+
 GENERATOR_SYSTEM = """You create synthetic clipboard ranking benchmark episodes for a local macOS application.
 Return ONLY the requested JSON object. A whole clipboard entry is pasted unchanged;
 the system cannot extract a substring, execute code to obtain a different answer,
@@ -368,6 +372,8 @@ class Generator:
         key = f"{family['id']}-{specs[0]['slot']:04d}-{len(specs)}"
         path = self.state_dir / f"{key}.json"
         state = {}
+        if self.client.coordinator.status()["paused"]:
+            raise ProviderPaused("Provider account is paused; leave queued slots untouched")
         if path.is_file():
             state = json.loads(path.read_text())
             legacy = [row for row in state.get("episodes", []) if row.get("teacher", {}).get("family_review_protocol") != FAMILY_REVIEW_PROTOCOL]
@@ -429,7 +435,7 @@ class Generator:
                 return state
         failure_reasons = state.get("rejected_attempts", [])
         accepted_by_slot = {row["synthetic_metadata"]["generator_spec"]["slot"]: row for row in state.get("episodes", [])}
-        attempt_offset = len(failure_reasons)
+        attempt_offset = state.get("resume_attempt", len(failure_reasons))
         for attempt in range(attempt_offset, attempt_offset + 4):
             try:
                 pending_specs = [spec for spec in specs if spec["slot"] not in accepted_by_slot]
@@ -521,6 +527,17 @@ class Generator:
                 atomic_json(path, state)
                 return state
             except (TeacherError, ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
+                account = self.client.coordinator.status()
+                if isinstance(error, TeacherError) and account["paused"]:
+                    timestamp = utc_now()
+                    event = {"time": timestamp, "key": key, "attempt": attempt, "provider": account,
+                             "accepted_slots_preserved": len(accepted_by_slot), "classification": "provider_pause_not_data_rejection"}
+                    suffix = hashlib.sha256(timestamp.encode()).hexdigest()[:12]
+                    atomic_json(self.args.state / "provider-pauses" / self.args.split / (key + "-" + suffix + ".json"), event)
+                    atomic_json(path, {"status": "provider_paused", "key": key, "family": family["id"],
+                                       "episodes": list(accepted_by_slot.values()), "rejected_attempts": failure_reasons,
+                                       "resume_attempt": attempt, "family_partition_sha256": self.partition_hash})
+                    raise ProviderPaused("Provider paused; current attempt and accepted slots saved") from None
                 failure_reasons.append({"attempt": attempt, "kind": type(error).__name__, "message": str(error)[:300]})
                 atomic_json(path, {"status": "retrying", "key": key, "episodes": list(accepted_by_slot.values()), "rejected_attempts": failure_reasons})
         state = {"status": "failed", "key": key, "family": family["id"], "rejected_attempts": failure_reasons,
@@ -548,17 +565,29 @@ class Generator:
         # Surface every reserved operation early without changing any split,
         # quota, label, candidate set, or final dataset ordering.
         planned.sort(key=lambda batch: (batch[2][0]["slot"], batch[0]))
-        completed, accepted = [], 0
+        completed, accepted, provider_paused = [], 0, False
         with ThreadPoolExecutor(max_workers=self.args.workers) as executor:
             futures = {executor.submit(self.run_batch, *batch): f"{batch[1]['id']}-{batch[2][0]['slot']:04d}-{len(batch[2])}" for batch in planned}
             for future in as_completed(futures):
+                if future.cancelled():
+                    completed.append({"status": "provider_paused", "key": futures[future], "episodes": [], "rejected_attempts": []})
+                    continue
                 try:
                     result = future.result()
                 except (TeacherError, ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
                     # Legacy re-audits may fail before a new generation attempt.
                     # Keep their on-disk state and mark this release incomplete.
-                    result = {"status": "failed", "key": futures[future], "episodes": [],
-                              "rejected_attempts": [{"kind": type(error).__name__, "message": str(error)[:300]}]}
+                    if isinstance(error, TeacherError) and self.client.coordinator.status()["paused"]:
+                        provider_paused = True
+                        for waiting in futures:
+                            waiting.cancel()  # Running HTTP calls finish and retain their audited results.
+                        saved = self.state_dir / (futures[future] + ".json")
+                        rows = json.loads(saved.read_text()).get("episodes", []) if saved.is_file() else []
+                        result = {"status": "provider_paused", "key": futures[future],
+                                  "episodes": [row for row in rows if passed_current_gates(row)], "rejected_attempts": []}
+                    else:
+                        result = {"status": "failed", "key": futures[future], "episodes": [],
+                                  "rejected_attempts": [{"kind": type(error).__name__, "message": str(error)[:300]}]}
                 completed.append(result)
                 accepted += len(result.get("episodes", []))
                 print(json.dumps({"split": self.args.split, "completed_batches": len(completed),
@@ -591,6 +620,7 @@ class Generator:
             raise ValueError("duplicate model-visible episodes in evaluator split")
         if failures:
             write_json(self.args.output.with_suffix(".incomplete.json"), {"failed_batches": failures, "accepted": accepted,
+                                                                         "provider_paused": provider_paused,
                                                                          "target": sum(len(batch[2]) for batch in planned)}, overwrite=True)
             raise SystemExit("Some generation batches failed; resumable state retained, frozen dataset not published")
         write_jsonl(self.args.output, episodes)
