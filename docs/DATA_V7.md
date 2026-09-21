@@ -12,6 +12,12 @@ blind Kimi decision-label call. The response gives the complete acceptable-ID
 set or an abstention reason. Neither candidate IDs, mother-task identity, planned
 action nor unavailable context is evidence supplied to this labeler.
 
+A valid author list with 1–20 entries is retained in full, even when its actual
+count differs slightly from the independently sampled target. Provenance records
+both counts and the difference; no candidate is inserted or removed to fit a
+number. Empty lists and lists above twenty require the one allowed author repair.
+Count distributions must be reported by action and language to expose bias.
+
 A deterministic hash preselects approximately 10% of complete source batches for
 a second independent label after candidate IDs and ordering change. Programmatic
 concerns, such as a Python positive that does not compile at the visible insertion
@@ -21,6 +27,12 @@ Disagreements are rejected without editing teacher labels. Accepted provenance
 distinguishes `single_pass`, `sampled_reviewed` and `risk_reviewed`. This protocol
 does not claim every row was independently reviewed twice, human validated, or
 semantically correct merely because a teacher returned a valid answer.
+Opaque IDs use `e0`/`c0` consistently. If the label response has malformed or
+unmappable rows, valid rows are kept and only the invalid rows receive one
+label-only format repair. Author text is not regenerated for an ID formatting
+error. Previously cached drafts rejected solely by count or ID plumbing may be
+newly projected and labeled once; prior semantic rejections are excluded from
+this recovery. Their original records remain unchanged.
 
 Conceptual operation families remain in the original frozen partition. Each
 source batch records its operation, mother-task ID, data seed and visible-fixture

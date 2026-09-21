@@ -132,15 +132,22 @@ def main():
         return
     batch_dir = base / "batches" / args.split
     batch_dir.mkdir(parents=True, exist_ok=True)
-    pending = [spec for spec in specs if not (batch_dir / (spec["batch_id"] + ".json")).is_file() or json.loads((batch_dir / (spec["batch_id"] + ".json")).read_text())["status"] != "complete"]
     if args.max_batches:
-        pending = pending[:args.max_batches]
+        specs = specs[:args.max_batches]
+    pending = [spec for spec in specs if not (batch_dir / (spec["batch_id"] + ".json")).is_file() or json.loads((batch_dir / (spec["batch_id"] + ".json")).read_text())["status"] != "complete"]
     client = TeacherClient(base / "teacher" / args.split)
+    author_cache = {}
+    for path in client.audit_dir.glob("*.json"):
+        audit = json.loads(path.read_text())
+        if audit.get("phase") == "v7-author" and audit.get("status") == "success":
+            request_id = audit["request_id"]
+            batch_id, attempt = request_id.rsplit("-a", 1)
+            author_cache.setdefault(batch_id, {})[int(attempt)] = client._result(audit, cache_hit=True)
     preprocessor = Preprocessor(str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
     registry = ContentRegistry(base / "content.sqlite3")
     started = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        futures = {executor.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim): spec["batch_id"] for spec in pending}
+        futures = {executor.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"])): spec["batch_id"] for spec in pending}
         for future in as_completed(futures):
             future.result()
             plan.verify_unchanged()

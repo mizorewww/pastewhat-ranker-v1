@@ -27,6 +27,9 @@ AUTHOR_SYSTEM = """Create synthetic clipboard decisions from the supplied fixed 
 source. Remain within its single operation and supplied data seed. Output JSON:
 {"episodes":[{"slot":"exact plan id","guidance":["short actual UI helper text"],
 "selected":"whole field value selected, or empty","candidates":["literal text"]}]}.
+Default selected to empty. A nonempty selection is naturally existing old field
+content, usually different from the new goal; never insert the correct candidate
+as selectedText merely to reveal an answer. Occasional real reuse is possible.
 Use exactly each plan's candidate_count, language and action scenario. Guidance
 has 0–2 strings, each <=180 characters. Candidates are compact directly pasteable
 text (prefer <=300 characters), {"file":["synthetic-basename.pdf"]}, or
@@ -106,7 +109,11 @@ def prepare_author_batch(raw, plans, profile, preprocessor):
         try:
             if sum(row.get("slot") == plan["id"] for row in drafts if isinstance(row, dict)) != 1:
                 raise ValueError("Missing or duplicated author slot")
-            row = compile_compact_episode(mapping[plan["id"]], episode_id=plan["id"], profile=profile, candidate_count=plan["candidate_count"])
+            draft = mapping[plan["id"]]
+            candidates = draft.get("candidates")
+            if not isinstance(candidates, list) or not 1 <= len(candidates) <= 20:
+                raise ValueError("Actual candidate list must contain1–20 complete entries")
+            row = compile_compact_episode(draft, episode_id=plan["id"], profile=profile, candidate_count=len(candidates))
             row = apply_observation_variant(row, plan.get("observation_variant", "standard"))
             row["context"] = project_context(row["context"], capture=row["capture"])
             row["entries"] = project_candidates(row["entries"])
@@ -184,7 +191,7 @@ def program_issue(episode, label, family):
     return None
 
 
-def produce_batch(spec, *, client, preprocessor, destination, claim=None):
+def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached_author=None, author_cache=None):
     destination = Path(destination)
     digest = sha256(canonical_bytes(spec))
     if destination.is_file():
@@ -205,12 +212,14 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None):
             usage.update({key: result.usage.get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
             usage["reasoning_tokens"] += result.usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
 
-    for attempt in range(record["attempts"], 2):
+    for attempt in range(record["attempts"], 1 if cached_author is not None else 2):
         pending = [plan for plan in spec["plans"] if plan["id"] not in accepted and plan["id"] not in terminal]
         if not pending:
             break
         try:
-            author = client.complete_json(AUTHOR_SYSTEM, json.dumps({"mother_task": spec["mother_task"], "field_profile": spec["profile"], "plans": pending, "repair": attempt, "previous_findings": record["rejected"][-len(spec["plans"]):]}, ensure_ascii=False), max_tokens=24576, temperature=0.6, thinking="disabled", response_format="json_object", phase="v7-author", request_id=spec["batch_id"] + f"-a{attempt}")
+            author = cached_author if cached_author is not None else (author_cache or {}).get(attempt)
+            if author is None:
+                author = client.complete_json(AUTHOR_SYSTEM, json.dumps({"mother_task": spec["mother_task"], "field_profile": spec["profile"], "plans": pending, "repair": attempt, "previous_findings": record["rejected"][-len(spec["plans"]):]}, ensure_ascii=False), max_tokens=24576, temperature=0.6, thinking="disabled", response_format="json_object", phase="v7-author", request_id=spec["batch_id"] + f"-a{attempt}")
             remember(author)
             prepared, errors = prepare_author_batch(author.parsed, pending, spec["profile"], preprocessor)
             record["rejected"].extend(errors)
@@ -253,7 +262,7 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None):
                     quality = "sampled_reviewed" if spec["audit_sample"] else "risk_reviewed" if row["id"] in reviewed else "single_pass"
                     primary = primary_for[row["id"]]
                     review = review_for.get(row["id"])
-                    row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
+                    row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "planned_candidate_count": plan["candidate_count"], "actual_candidate_count": len(row["entries"]), "candidate_count_delta": len(row["entries"]) - plan["candidate_count"], "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
                     accepted[row["id"]] = row
         except TeacherError as error:
             record.update(accepted=list(accepted.values()), usage=dict(usage))
