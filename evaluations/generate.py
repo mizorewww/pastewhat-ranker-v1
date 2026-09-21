@@ -27,6 +27,7 @@ LANGUAGES = ("English", "Simplified Chinese", "Spanish", "Japanese", "French", "
 COUNTS = tuple(range(1, 21))
 LITERAL_PASTE_PROTOCOL = "literal-paste-visible-selection-v1"
 FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v2"
+CAPTURE_PROTOCOL = "pastewhat-capture-authoring-v1"
 
 GENERATOR_SYSTEM = """You create synthetic clipboard ranking benchmark episodes for a local macOS application.
 Return ONLY the requested JSON object. A whole clipboard entry is pasted unchanged;
@@ -90,6 +91,13 @@ fragment that only works after an unstated edit. If the visible placement cannot
 establish direct usability, abstain for insufficient context; if literal placement
 is clear and every candidate breaks it, abstain no_match. Do not silently reinterpret
 code, shell, URL, email, or spreadsheet syntax to make a candidate acceptable.
+surroundingText may contain a JSON object with format pastewhat-focus-v1. When
+selectionKnown is true, beforeSelection and afterSelection are the actual visible
+text on either side of the selected range/caret. The literal resulting window is
+beforeSelection + the complete candidate + afterSelection. nearbyText contains
+observed static sibling labels/help. When selectionKnown is false, textWindow is
+visible but the insertion position is unknown. A clipped/incomplete representation
+does not authorize guessing omitted boundaries, intent, or syntax.
 """
 
 AUDIT_SYSTEM = """You independently audit a synthetic clipboard decision dataset.
@@ -137,6 +145,15 @@ unselected placeholder is replaced or expose invented cursor tokens as real AX
 context. Missing cursor evidence in otherwise realistic input can be a legitimate
 insufficient-context case; absence of a valid literal paste alone is not unrealistic."""
 
+FAMILY_SYSTEM += """
+surroundingText with format pastewhat-focus-v1 is the application's real structured
+observation: beforeSelection/afterSelection delimit an actually observed selection
+or insertion point; nearbyText consists only of bounded static sibling labels.
+selectionKnown:false means textWindow is visible but caret placement is unknown.
+These JSON field names are a production representation, not invented cursor tokens.
+Do not infer missing fields or clipped portions of that representation.
+"""
+
 
 def canonical(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
@@ -178,6 +195,7 @@ def passed_current_gates(episode: dict) -> bool:
             not teacher.get("secondary_family_ids") and
             teacher.get("literal_paste_protocol") == LITERAL_PASTE_PROTOCOL and
             teacher.get("family_review_protocol") == FAMILY_REVIEW_PROTOCOL and
+            episode.get("synthetic_metadata", {}).get("capture_authoring_protocol") == CAPTURE_PROTOCOL and
             matches_label_quota(episode))
 
 
@@ -215,10 +233,15 @@ def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partiti
         opaque = hashlib.sha256(f"{row_id}:candidate:{index}".encode()).hexdigest()[:10]
         entry["id"] = "c_" + opaque
     random.Random(spec["variation_seed"]).shuffle(entries)
-    context = project_context(raw.get("context", {}))
+    capture = raw.get("capture")
+    if not isinstance(capture, dict):
+        raise ValueError("Formal evaluator data requires raw observable capture authoring evidence")
+    context = project_context(raw.get("context", {}), capture=capture)
     episode = preprocessor.prepare_episode({"id": row_id, "family_id": family["id"], "context": context, "entries": entries})
     episode.update(split=split, group=family["id"], parent_id=row_id,
                    synthetic_metadata={"language": spec["language"], "generator_spec": spec,
+                                       "capture_authoring_protocol": CAPTURE_PROTOCOL,
+                                       "raw_capture_sha256": hashlib.sha256(canonical(capture)).hexdigest(),
                                        "family_partition_sha256": partition_hash})
     return episode
 
@@ -399,13 +422,18 @@ class Generator:
                 generated = self.client.complete_json(
                     GENERATOR_SYSTEM + "\nEVERY episode in this call MUST concern this ONE operation: " + family["operation"]
                     + "\nVary examples WITHIN that operation; do not switch to another task category. A no-match or ambiguous example still concerns that same operation.",
-                    json.dumps({"task": "Generate one full episode per spec, ALL for this single operation: " + family["operation"] + " Output {episodes:[{slot,context,entries}]}. No labels.",
+                    json.dumps({"task": "Generate one full episode per spec, ALL for this single operation: " + family["operation"] + " Output {episodes:[{slot,context,capture,entries}]}. No labels.",
                                 "allowed_family": family,
                                 "specs": pending_specs, "attempt": attempt,
                                 "context_schema": {"applicationCategory": "one of browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown",
                                                    "inputSurface": "A single string chosen from: " + ",".join(sorted(SURFACES)), "fieldRole": "AXTextField or AXTextArea", "fieldLabel": "actual visible field label",
-                                                   "selectedText": "actual selected text or empty", "surroundingText": "actual context/request visible around cursor or empty",
+                                                   "selectedText": "Exact actual selected substring of capture.textWindow, or empty for insertion/unknown", "surroundingText": "MUST be the empty string; Swift derives the real structured context from capture",
                                                    "hasAccessibility": True, "isSecure": False},
+                                "capture_schema": {"textWindow": "Actual focused control text, at most 1700 characters. No invented cursor markers or unselected fill-in-the-blank placeholder.",
+                                                   "selectionLocation": "Nonnegative UTF-16 code-unit offset into textWindow, or null if unknown",
+                                                   "selectionLength": "UTF-16 code-unit length of context.selectedText, or null iff position unknown; range must match selectedText exactly",
+                                                   "nearbyText": ["Zero to four actual static sibling labels/headings/help strings; max 240 characters each, 600 total. Not another editable field, hidden intent, imagined user request, or distant document."]},
+                                "capture_rules": "Exactly these four capture keys. Empty standalone field: textWindow empty, selectionLocation 0, selectionLength 0. Whole-field replacement may select the actual existing text with exact offsets. Unknown selection requires both offsets null and selectedText empty. No AX access requires entirely empty captured content and null offsets. Keep fields short and offsets exact; UTF-16 surrogate pairs count as two units. The app pastes literally at this observed range and performs no edit, escaping, or cursor movement.",
                                 "candidate_schema": {"id": "opaque, overwritten before labeling", "text": "whole clipboard entry", "kind": "A single string chosen from: " + ",".join(sorted(KINDS)),
                                                      "capabilities": ["text"], "sourceCategory": "A single string from browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown; actual source app category, not identity"}}, ensure_ascii=False),
                     max_tokens=24576, temperature=0.6, thinking="disabled",
@@ -417,8 +445,20 @@ class Generator:
                 by_slot = {row["slot"]: row for row in values}
                 if len(values) != len(pending_specs) or set(by_slot) != {spec["slot"] for spec in pending_specs}:
                     raise ValueError("generation did not cover every requested slot exactly once")
-                episodes = [normalize_generated(by_slot[spec["slot"]], spec, self.args.split, family,
-                                                self.partition_hash, self.preprocessor) for spec in pending_specs]
+                episodes = []
+                invalid_inputs = []
+                for spec in pending_specs:
+                    try:
+                        episodes.append(normalize_generated(by_slot[spec["slot"]], spec, self.args.split, family,
+                                                           self.partition_hash, self.preprocessor))
+                    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
+                        invalid_inputs.append({"slot": spec["slot"], "kind": type(error).__name__, "message": str(error)[:200]})
+                if invalid_inputs:
+                    failure_reasons.append({"attempt": attempt, "kind": "observable_input_projection_rejected",
+                                            "count": len(invalid_inputs), "details": invalid_inputs,
+                                            "generation_audit_id": generated.audit_id})
+                if not episodes:
+                    raise ValueError("No generated episode passed observable capture and schema projection")
                 labels, blind_labels, labeled, second = self.independently_label(episodes, key + f"-attempt-{attempt}")
                 for episode in episodes:
                     episode["label"] = labels[episode["id"]]["label"]
@@ -455,6 +495,7 @@ class Generator:
                     failure_reasons.append({"attempt": attempt, "kind": "teacher_review_disagreement", "count": len(disputes),
                                             "generation_audit_id": generated.audit_id, "label_audit_id": labeled.audit_id,
                                             "review_audit_id": family_response.audit_id})
+                if len(accepted_by_slot) < len(specs):
                     # Preserve independently accepted rows and regenerate only
                     # disputed slots. Never silently relabel a dispute.
                     atomic_json(path, {"status": "partial", "key": key, "family": family["id"],
@@ -564,7 +605,7 @@ def main():
     parser.add_argument("--tokenizer", type=Path, default=Path("../laya-mlx/models/laya-multilingual/tokenizer"))
     parser.add_argument("--partition", type=Path, default=Path("data_tools/family_partition.json"))
     parser.add_argument("--audit", type=Path, default=Path("local/teacher"))
-    parser.add_argument("--state", type=Path, default=Path("local/evaluator-generation-v2"))
+    parser.add_argument("--state", type=Path, default=Path("local/evaluator-generation-v4"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--workers", type=int, default=2)

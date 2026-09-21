@@ -88,6 +88,8 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
             raise ValueError("Generated slot is missing or duplicated")
         recreated = normalize_generated(json.loads(json.dumps(originals[0])), metadata["generator_spec"], split,
                                        families[episode["family_id"]], partition_hash, preprocessor)
+        if recreated["synthetic_metadata"]["raw_capture_sha256"] != metadata.get("raw_capture_sha256"):
+            raise ValueError("Raw observable capture differs from its authoring audit")
         if recreated["preprocessing"]["visible_sha256"] != visible_hash:
             raise ValueError("Generation, native projection, and preprocessing do not reproduce labeled input")
         label_request, label_response = read_audit(episode["teacher"]["label_audit_id"], LABEL_SYSTEM)
@@ -145,7 +147,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
             "partition_sha256": partition_hash, "label_counts": dict(counts),
             "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
             "teacher_audit_files": len(audit_files), "teacher_audit_bundle_sha256": hashlib.sha256(canonical_bytes(audit_files)).hexdigest(),
-            "checks": ["exact production preprocessing", "native Swift projection replay", "token budget and full candidate preservation",
+            "checks": ["exact production preprocessing", "native Swift UTF-16 selection/nearby projection replay", "raw capture hash and authoring contract", "token budget and full candidate preservation",
                        "opaque label-request identifiers", "label-request metadata exclusion", "two blind labels with remapped IDs and order",
                        "blind observed-operation classification and deployment review", "actual-label sampling quotas",
                        "within-split order/ID-independent duplicate detection"],

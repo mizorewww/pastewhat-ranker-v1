@@ -27,6 +27,13 @@ of the same content kind. These are targets, not achieved facts.
 Only synthetic content is used. The vendored native Swift context projection
 first derives input surface from actual AX metadata; generated surface guesses
 are ignored, and inaccessible contexts cannot contain AX-only field content.
+Formal generation uses the `pastewhat-capture-authoring-v1` evidence contract:
+the actual focused text window, valid UTF-16 selection range or explicitly unknown
+range, and at most four bounded neighboring static strings. The authoring context
+has no free-form `surroundingText`. Shared production Swift converts this evidence
+to `pastewhat-focus-v1` before student preprocessing. Raw capture remains only in
+generation provenance; it cannot give the teacher extra information. Unversioned
+earlier free-form drafts remain outside the formal v4 data state.
 The actual production `Preprocessor` then budgets and clips every episode before
 two blind teacher labeling calls, with independently shuffled candidate order
 and rewritten opaque candidate IDs in the second call. Labels must agree after
@@ -47,6 +54,13 @@ release dataset. Review is by agents and the teacher;
 it must never be described as human validation. The report records rejected,
 disputed, repaired, and accepted episode counts and the responding teacher
 model, rather than assuming an API alias identifies fixed weights.
+
+Within each fixed family allocation, candidate counts (all integers 1–20),
+languages, and requested label buckets are shuffled with separate fixed seed
+streams. Sharing a modulo schedule among these fields would create a label
+shortcut. A one-candidate ambiguity request becomes insufficient information in
+the same abstention bucket without changing candidate count. The accepted labels,
+counts, and languages are reported from the completed data, not merely the plan.
 
 Literal paste usability is part of both blind labeling passes and deployment
 review. Only the observed selection is replaced; otherwise the entry is inserted
