@@ -69,6 +69,26 @@ independent [heldout verification](../reports/data/heldout-resource-window.json)
 Kimi producers remain retired and their quota state is retained. There is no
 automatic Kimi fallback.
 
+## Local blocker notifications
+
+`uv run python -m tools.production_watch --run-plan configs/run_plan_efficient.json`
+observes only aggregate progress, coordinator state and reported pipeline errors.
+It calls no teacher, reads no examples, and never changes the coordinator or
+restarts production. It posts a local macOS notification for a provider block,
+at least five minutes of provider backoff, persistent concurrency reduction,
+reported training/evaluation/publication failure, and completed publication.
+Routine batches and an intentional maintenance drain do not produce alerts.
+Notification deduplication persists across observer restarts and rearms after
+the condition clears. Command failures can retry after five minutes.
+
+Its current summary and delivery-attempt records are private under
+`local/monitor/ranker-v1-efficient-20260921/`. Only fixed messages enter
+AppleScript arguments; provider responses, example text and credentials do not.
+An accepted notification command does not prove the user saw a banner: display
+is controlled by [macOS notification preferences](https://developer.apple.com/library/archive/documentation/LanguagesUtilities/Conceptual/MacAutomationScriptingGuide/DisplayNotifications.html).
+The observer reports recorded failures; it cannot diagnose every silently hung
+process or post a new message into an inactive Codex conversation.
+
 ## Verification and release evidence
 
 One actual isolated Pi call labeled six existing Train-only engineering cases
