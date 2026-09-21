@@ -32,6 +32,16 @@ data lives only at the plan's `local/evaluator-heldout/<run_id>/` paths. Explici
 `--staging` authoring probes are not registered production data and cannot be
 scored as formal Calibration or Test. These are planned counts, not achieved facts.
 
+The first production plan is `configs/run_plan.json`, run
+`ranker-v1-local-20260921`, registered before formal scoring with SHA-256
+`0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6`.
+It specifies Train 1,000, Dev 200, Calibration 400, Test 600 and a 500-episode
+Train pilot. Calibration has 50 episodes per family, split 200 fit / 200 threshold;
+Test has 50 per family including 35 planned selectable cases. All quality gates,
+including 30 answerable cases per critical Test family and at least 25 Calibration
+recommendations, remain unchanged. This run does not claim completion of the
+original suggested 20,000 / 1,000 / 1,000 / 2,000 data scale.
+
 Only synthetic content is used. The vendored native Swift context projection
 first derives input surface from actual AX metadata; generated surface guesses
 are ignored, and inaccessible contexts cannot contain AX-only field content.

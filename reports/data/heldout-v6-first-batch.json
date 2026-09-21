@@ -1,0 +1,95 @@
+{
+  "version": "heldout-v6-first-batch-v1",
+  "started_at": "2026-09-21T02:52:52.799054+00:00",
+  "finished_at": "2026-09-21T03:07:21.247520+00:00",
+  "wall_seconds": 868.448466,
+  "splits": {
+    "calibration": {
+      "target_slots": 4,
+      "authored_rows_in_parseable_responses": 8,
+      "teacher_http_response_records": 10,
+      "teacher_phase_counts": {
+        "post-truncation-label": 2,
+        "blind-operation-classification": 2,
+        "independent-generation": 4,
+        "blind-permuted-post-truncation-label": 2
+      },
+      "raw_usage_counters": {
+        "cached_tokens": 10496,
+        "completion_tokens": 26257,
+        "prompt_tokens": 28274,
+        "total_tokens": 54531
+      },
+      "sum_request_elapsed_seconds": 532.3941340010169,
+      "malformed_json_response_records": 1,
+      "teacher_four_gate_accepted": 3,
+      "independent_semantic_exclusions": 2,
+      "retained_after_independent_review": 1,
+      "retained_exact_audit_passed": true,
+      "rejection_event_counts": {
+        "teacher_review_disagreement": 4,
+        "TeacherError": 1,
+        "observable_input_projection_rejected": 1,
+        "ValueError": 1,
+        "independent_unusable_positive": 2
+      },
+      "projection_rejection_counts": {
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 1
+      },
+      "response_format_counts": {
+        "null": 10
+      },
+      "teacher_audit_bundle_sha256": "46f573d699e7c5d7a9fb68aa16078a7d37129ec3fa4d05e57bb2b28b7b1b28a0",
+      "retained_dataset_sha256": "c424ea1db9742223cbb6fa82378d1065a9dacc1f19d36bc539d3589dc1b29e99"
+    },
+    "test": {
+      "target_slots": 4,
+      "authored_rows_in_parseable_responses": 13,
+      "teacher_http_response_records": 13,
+      "teacher_phase_counts": {
+        "blind-permuted-post-truncation-label": 3,
+        "post-truncation-label": 3,
+        "blind-operation-classification": 3,
+        "independent-generation": 4
+      },
+      "raw_usage_counters": {
+        "cached_tokens": 16936,
+        "completion_tokens": 24847,
+        "prompt_tokens": 26708,
+        "total_tokens": 51555
+      },
+      "sum_request_elapsed_seconds": 624.9762992499927,
+      "malformed_json_response_records": 0,
+      "teacher_four_gate_accepted": 1,
+      "independent_semantic_exclusions": 0,
+      "retained_after_independent_review": 1,
+      "retained_exact_audit_passed": true,
+      "rejection_event_counts": {
+        "observable_input_projection_rejected": 8,
+        "teacher_review_disagreement": 4,
+        "ValueError": 1
+      },
+      "projection_rejection_counts": {
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 8
+      },
+      "response_format_counts": {
+        "null": 13
+      },
+      "teacher_audit_bundle_sha256": "8e0739cd21a76a6db88c76bbd7267520e7d3b700e7f4dca3e6f6098feb947ba7",
+      "retained_dataset_sha256": "b075dd38c4baa36afcdcf3f794c491a059d5da59196282e0da7b257f77dbd4d2"
+    }
+  },
+  "formal_run": false,
+  "registered_production_data": false,
+  "student_inference_used": false,
+  "human_validated": false,
+  "teacher_contract": "compact-literal-fixture-v1 + independent-candidate-verdicts-v1",
+  "native_projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "limitations": [
+    "This small authoring probe started before json_object format was enabled; no retrospective format claim.",
+    "Two independently reviewed semantic exclusions retain their original inputs, labels and teacher audits privately.",
+    "Agreement of two teacher labels is not ground truth or measured student accuracy.",
+    "The two retained rows are isolated staging evidence, not part of the registered Calibration/Test allocation.",
+    "New costs track execution; they do not rewrite the immutable registered production plan."
+  ]
+}
