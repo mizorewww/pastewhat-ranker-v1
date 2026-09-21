@@ -23,7 +23,7 @@ def verify_freeze(path: Path, dataset: Path | None = None) -> dict:
     frozen = json.loads(path.read_text())
     if frozen.get("status") != "frozen_for_final_test":
         raise ValueError("Final Test requires an explicitly approved freeze")
-    for section in ("deployment", "baseline", "baseline_model", "runtime_code", "evaluation_code"):
+    for section in ("deployment", "baseline", "baseline_model", "runtime_code", "evaluation_code", "context_projection"):
         root = Path(frozen[section]["root"])
         actual = directory_hashes(root)
         if actual != frozen[section]["files"]:
@@ -73,6 +73,7 @@ def main():
         "baseline_model": {"root": str(args.baseline_model.resolve()), "files": directory_hashes(args.baseline_model)},
         "runtime_code": {"root": str(Path("src/pastewhat_ranker").resolve()), "files": directory_hashes(Path("src/pastewhat_ranker"))},
         "evaluation_code": {"root": str(Path("evaluations").resolve()), "files": directory_hashes(Path("evaluations"))},
+        "context_projection": {"root": str(Path("tools/context_projection").resolve()), "files": directory_hashes(Path("tools/context_projection"))},
         "inputs": inputs, "calibration_status": calibrator["status"],
         "quality_target": {"answerable_top1_delta": 0.05, "key_group_maximum_decline": 0.05,
                            "key_group_minimum_answerable": 30, "recommendation_precision": 0.95},
