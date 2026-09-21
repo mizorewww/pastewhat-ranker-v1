@@ -1,0 +1,45 @@
+{
+  "audit_id": "f20e346388106c626854a33193b052e01b9aef48758caad870e2e5dd10e6bb5c",
+  "cache_hit": false,
+  "documentation": "Kimi Code confirms OpenAI-compatible transport but does not explicitly document this parameter",
+  "earlier_request": {
+    "finding": "Disabled-thinking requests require temperature 0.6; retried with that supported value",
+    "http_status": 400
+  },
+  "elapsed_seconds": 1.2516289580016746,
+  "endpoint": "https://api.kimi.com/coding/v1/chat/completions",
+  "human_validated": false,
+  "model": "kimi-for-coding",
+  "purpose": "Kimi Code json_object parameter compatibility only; no semantic quality or schema enforcement claim",
+  "reasoning_enabled_probe": {
+    "audit_id": "536ba5dd76e86bfccb7934cb83b6326dd0d5657e9cbeaa1f9ad971fa4035f833",
+    "cache_hit": false,
+    "elapsed_seconds": 2.823179999999411,
+    "model": "kimi-for-coding",
+    "reasoning_effort": "high",
+    "response_sha256": "6faf87591b348a17d525f80bc63905950a494f8b4125ffe805da8d7ae0442de6",
+    "status": "accepted_request_with_valid_expected_json",
+    "temperature": 1.0,
+    "usage": {
+      "completion_tokens": 119,
+      "completion_tokens_details": {
+        "reasoning_tokens": 86
+      },
+      "prompt_tokens": 182,
+      "total_tokens": 301
+    }
+  },
+  "response_format": {
+    "type": "json_object"
+  },
+  "response_sha256": "dfd177885f5919cf9bb0cfac38339bfbb400613a9ed4db6daffe370284cdc54c",
+  "started_at": "2026-09-21T02:49:59.131446+00:00",
+  "status": "accepted_request_with_valid_expected_json",
+  "temperature": 0.6,
+  "thinking": "disabled",
+  "usage": {
+    "completion_tokens": 28,
+    "prompt_tokens": 114,
+    "total_tokens": 142
+  }
+}

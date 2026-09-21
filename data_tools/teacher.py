@@ -107,6 +107,7 @@ class TeacherClient:
         temperature: float = 1.0,
         thinking: str | None = None,
         reasoning_effort: str | None = None,
+        response_format: str | None = None,
         phase: str,
         request_id: str,
     ) -> TeacherResult:
@@ -117,6 +118,10 @@ class TeacherClient:
             "temperature": temperature,
             "stream": False,
         }
+        if response_format is not None:
+            if response_format != "json_object":
+                raise ValueError("The optional compatibility probe supports only json_object")
+            body["response_format"] = {"type": response_format}
         if thinking is not None:
             if thinking not in ("enabled", "disabled"):
                 raise ValueError("thinking must be enabled or disabled")
