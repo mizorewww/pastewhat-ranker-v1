@@ -61,6 +61,10 @@ def main():
     run_lock = (local / "pipeline.lock").open("w")
     fcntl.flock(run_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     (local / "pipeline.pid").write_text(str(os.getpid()) + "\n")
+    if sys.platform == "darwin" and shutil.which("caffeinate"):
+        watcher = subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        (local / "caffeinate.pid").write_text(str(watcher.pid) + "\n")
     state_path = local / "status.json"
     wait_for_snapshot("data/frozen/overfit-train-32.jsonl", 32, state_path, "overfit_preparation")
     throughput_path = Path("reports/training/throughput.json")
