@@ -1,0 +1,111 @@
+{
+  "already_dispatched_slots_at_registration": 15,
+  "assignments": {
+    "dev-main-v6-ranker-v1-local-20260921-chat_deadline_extension-00006": {
+      "candidate_count": 19,
+      "context_language": "English",
+      "family_id": "chat_deadline_extension",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-chat_deadline_extension-00021": {
+      "candidate_count": 18,
+      "context_language": "Japanese",
+      "family_id": "chat_deadline_extension",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-design_vector_raster-00024": {
+      "candidate_count": 17,
+      "context_language": "Simplified Chinese",
+      "family_id": "design_vector_raster",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-git_tag_version-00023": {
+      "candidate_count": 13,
+      "context_language": "English",
+      "family_id": "git_tag_version",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-markdown_link-00024": {
+      "candidate_count": 15,
+      "context_language": "English",
+      "family_id": "markdown_link",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-process_signal-00015": {
+      "candidate_count": 17,
+      "context_language": "English",
+      "family_id": "process_signal",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-process_signal-00017": {
+      "candidate_count": 5,
+      "context_language": "English",
+      "family_id": "process_signal",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-python_exception-00023": {
+      "candidate_count": 19,
+      "context_language": "English",
+      "family_id": "python_exception",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-spreadsheet_rounding-00010": {
+      "candidate_count": 6,
+      "context_language": "English",
+      "family_id": "spreadsheet_rounding",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-spreadsheet_rounding-00018": {
+      "candidate_count": 19,
+      "context_language": "English",
+      "family_id": "spreadsheet_rounding",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-sql_between_boundary-00012": {
+      "candidate_count": 5,
+      "context_language": "English",
+      "family_id": "sql_between_boundary",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "dev-main-v6-ranker-v1-local-20260921-sql_between_boundary-00014": {
+      "candidate_count": 20,
+      "context_language": "Simplified Chinese",
+      "family_id": "sql_between_boundary",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    }
+  },
+  "counts": {
+    "generic_field": 4,
+    "no_accessibility": 8
+  },
+  "dispatched_ids_sha256": "21bd9f9c5280d2351aa92b893cb59f0054ab05a3cb5f9a0b3f428a8af9f1d7f8",
+  "family_counts": {
+    "chat_deadline_extension": 2,
+    "design_vector_raster": 1,
+    "git_tag_version": 1,
+    "markdown_link": 1,
+    "process_signal": 2,
+    "python_exception": 1,
+    "spreadsheet_rounding": 2,
+    "sql_between_boundary": 2
+  },
+  "protocol": "registered-observation-variants-v1",
+  "registered_at": "2026-09-21T03:55:53.470119+00:00",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "selection": "Only never-dispatched missing-intent slots; balanced family round robin and farthest future original slot first. Candidate count, language, family, action bucket and ID unchanged.",
+  "split": "dev",
+  "supplement_sha256": "2d5c7945f0a8119b454f8cc4ab6466567db5ea4e7f2b2d09ddd1fb4a6b714bf7"
+}

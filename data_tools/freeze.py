@@ -203,6 +203,15 @@ def main():
         fractions = (labels["select"] / len(chosen), labels["no_match"] / len(chosen), (labels["ambiguous"] + labels["insufficient_context"]) / len(chosen))
         if any(abs(actual - target) > 0.025 for actual, target in zip(fractions, (0.7, 0.2, 0.1), strict=True)):
             raise ValueError("Observed labels fall outside the predeclared 70/20/10 tolerance of 2.5 percentage points")
+    observation_counts = Counter(row.get("provenance", {}).get("observation_variant", {}).get("variant", "standard") for row in chosen)
+    observation_binding = None
+    if run_plan:
+        from data_tools.observation_assignments import load_assignment, assignment_path, POLICY
+        assigned = load_assignment(args.split, run_plan)
+        if assigned:
+            if args.stage in {"train", "dev"} and any(observation_counts[variant] != count for variant, count in assigned["counts"].items()):
+                raise ValueError("Full formal snapshot lacks the registered observation-variant counts")
+            observation_binding = {"supplement_sha256": sha256(POLICY.read_bytes()), "assignment_sha256": sha256(assignment_path(args.split, run_plan).read_bytes()), "full_split_targets": assigned["counts"], "snapshot_counts": dict(observation_counts)}
     data = b"".join(canonical_bytes(episode) + b"\n" for episode in chosen)
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.is_file() and output.read_bytes() != data:
@@ -212,6 +221,7 @@ def main():
     publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {**(run_plan.binding() if run_plan else {}), "split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
     manifest["difficulty_profile"] = describe_difficulty(chosen)
+    manifest["observation_variants"] = observation_binding or {"snapshot_counts": dict(observation_counts)}
     manifest["source_path"] = str(source.relative_to(ROOT))
     manifest["select_with_same_kind_negative"] = with_same_kind_negative
     manifest["context_coverage"] = {"no_accessibility": sum(not episode["context"]["hasAccessibility"] for episode in chosen), "with_selection": sum(bool(episode["context"]["selectedText"]) for episode in chosen), "application_categories": dict(Counter(episode["context"]["applicationCategory"] for episode in chosen)), "input_surfaces": dict(Counter(episode["context"]["inputSurface"] for episode in chosen))}

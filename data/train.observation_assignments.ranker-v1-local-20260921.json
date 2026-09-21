@@ -1,0 +1,479 @@
+{
+  "already_dispatched_slots_at_registration": 45,
+  "assignments": {
+    "train-main-v6-ranker-v1-local-20260921-chat_acknowledgment-00018": {
+      "candidate_count": 20,
+      "context_language": "English",
+      "family_id": "chat_acknowledgment",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-chat_polite_decline-00013": {
+      "candidate_count": 5,
+      "context_language": "English",
+      "family_id": "chat_polite_decline",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-chat_polite_decline-00015": {
+      "candidate_count": 1,
+      "context_language": "English",
+      "family_id": "chat_polite_decline",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-configuration_boolean-00019": {
+      "candidate_count": 4,
+      "context_language": "English",
+      "family_id": "configuration_boolean",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-contact_postal_address-00008": {
+      "candidate_count": 1,
+      "context_language": "English",
+      "family_id": "contact_postal_address",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-contact_postal_address-00018": {
+      "candidate_count": 6,
+      "context_language": "English",
+      "family_id": "contact_postal_address",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-design_color_syntax-00011": {
+      "candidate_count": 13,
+      "context_language": "Simplified Chinese",
+      "family_id": "design_color_syntax",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-design_image_dimensions-00019": {
+      "candidate_count": 16,
+      "context_language": "Simplified Chinese",
+      "family_id": "design_image_dimensions",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-directory_creation-00010": {
+      "candidate_count": 17,
+      "context_language": "Simplified Chinese",
+      "family_id": "directory_creation",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-disk_usage-00006": {
+      "candidate_count": 20,
+      "context_language": "Simplified Chinese",
+      "family_id": "disk_usage",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-disk_usage-00024": {
+      "candidate_count": 9,
+      "context_language": "English",
+      "family_id": "disk_usage",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-document_export_format-00017": {
+      "candidate_count": 7,
+      "context_language": "Simplified Chinese",
+      "family_id": "document_export_format",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-document_export_format-00019": {
+      "candidate_count": 4,
+      "context_language": "Simplified Chinese",
+      "family_id": "document_export_format",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-email_recipient_address-00018": {
+      "candidate_count": 19,
+      "context_language": "English",
+      "family_id": "email_recipient_address",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-email_recipient_address-00022": {
+      "candidate_count": 9,
+      "context_language": "English",
+      "family_id": "email_recipient_address",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-email_subject_summary-00001": {
+      "candidate_count": 20,
+      "context_language": "Simplified Chinese",
+      "family_id": "email_subject_summary",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-email_subject_summary-00019": {
+      "candidate_count": 17,
+      "context_language": "English",
+      "family_id": "email_subject_summary",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-file_copy_destination-00012": {
+      "candidate_count": 17,
+      "context_language": "Simplified Chinese",
+      "family_id": "file_copy_destination",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-file_listing-00016": {
+      "candidate_count": 11,
+      "context_language": "English",
+      "family_id": "file_listing",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-git_branch_listing-00015": {
+      "candidate_count": 13,
+      "context_language": "Simplified Chinese",
+      "family_id": "git_branch_listing",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-git_branch_listing-00019": {
+      "candidate_count": 1,
+      "context_language": "Japanese",
+      "family_id": "git_branch_listing",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-git_commit_inspection-00013": {
+      "candidate_count": 4,
+      "context_language": "English",
+      "family_id": "git_commit_inspection",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00007": {
+      "candidate_count": 8,
+      "context_language": "English",
+      "family_id": "git_diff_selection",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-git_remote_configuration-00024": {
+      "candidate_count": 17,
+      "context_language": "English",
+      "family_id": "git_remote_configuration",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-http_authentication-00012": {
+      "candidate_count": 1,
+      "context_language": "Simplified Chinese",
+      "family_id": "http_authentication",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-http_content_type-00021": {
+      "candidate_count": 11,
+      "context_language": "English",
+      "family_id": "http_content_type",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-http_method-00006": {
+      "candidate_count": 2,
+      "context_language": "English",
+      "family_id": "http_method",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-http_method-00022": {
+      "candidate_count": 1,
+      "context_language": "Simplified Chinese",
+      "family_id": "http_method",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-javascript_async-00011": {
+      "candidate_count": 4,
+      "context_language": "English",
+      "family_id": "javascript_async",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-literal_text_search-00011": {
+      "candidate_count": 18,
+      "context_language": "Simplified Chinese",
+      "family_id": "literal_text_search",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-path_absolute_relative-00003": {
+      "candidate_count": 8,
+      "context_language": "English",
+      "family_id": "path_absolute_relative",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-path_absolute_relative-00019": {
+      "candidate_count": 15,
+      "context_language": "Simplified Chinese",
+      "family_id": "path_absolute_relative",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-process_inspection-00022": {
+      "candidate_count": 11,
+      "context_language": "English",
+      "family_id": "process_inspection",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-python_collection-00000": {
+      "candidate_count": 3,
+      "context_language": "English",
+      "family_id": "python_collection",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-python_collection-00018": {
+      "candidate_count": 15,
+      "context_language": "Simplified Chinese",
+      "family_id": "python_collection",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-python_file_mode-00016": {
+      "candidate_count": 7,
+      "context_language": "Simplified Chinese",
+      "family_id": "python_file_mode",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-regex_character_class-00002": {
+      "candidate_count": 14,
+      "context_language": "Simplified Chinese",
+      "family_id": "regex_character_class",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-regex_character_class-00005": {
+      "candidate_count": 18,
+      "context_language": "English",
+      "family_id": "regex_character_class",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-spreadsheet_date_format-00020": {
+      "candidate_count": 11,
+      "context_language": "English",
+      "family_id": "spreadsheet_date_format",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-spreadsheet_date_format-00024": {
+      "candidate_count": 17,
+      "context_language": "English",
+      "family_id": "spreadsheet_date_format",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-spreadsheet_sum_average-00003": {
+      "candidate_count": 7,
+      "context_language": "English",
+      "family_id": "spreadsheet_sum_average",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-spreadsheet_sum_average-00024": {
+      "candidate_count": 9,
+      "context_language": "Simplified Chinese",
+      "family_id": "spreadsheet_sum_average",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-spreadsheet_text_join-00021": {
+      "candidate_count": 1,
+      "context_language": "English",
+      "family_id": "spreadsheet_text_join",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_insert_columns-00013": {
+      "candidate_count": 16,
+      "context_language": "English",
+      "family_id": "sql_insert_columns",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_insert_columns-00016": {
+      "candidate_count": 6,
+      "context_language": "English",
+      "family_id": "sql_insert_columns",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_numeric_predicate-00000": {
+      "candidate_count": 18,
+      "context_language": "English",
+      "family_id": "sql_numeric_predicate",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_numeric_predicate-00018": {
+      "candidate_count": 4,
+      "context_language": "English",
+      "family_id": "sql_numeric_predicate",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_order_limit-00024": {
+      "candidate_count": 9,
+      "context_language": "English",
+      "family_id": "sql_order_limit",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-sql_update_scope-00022": {
+      "candidate_count": 5,
+      "context_language": "Simplified Chinese",
+      "family_id": "sql_update_scope",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-swift_optional-00004": {
+      "candidate_count": 5,
+      "context_language": "English",
+      "family_id": "swift_optional",
+      "planned_scenario_type": "ambiguous",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-swift_optional-00024": {
+      "candidate_count": 14,
+      "context_language": "English",
+      "family_id": "swift_optional",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-translation_target_language-00021": {
+      "candidate_count": 15,
+      "context_language": "English",
+      "family_id": "translation_target_language",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-translation_target_language-00024": {
+      "candidate_count": 16,
+      "context_language": "English",
+      "family_id": "translation_target_language",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-url_host_environment-00013": {
+      "candidate_count": 13,
+      "context_language": "Simplified Chinese",
+      "family_id": "url_host_environment",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-url_host_environment-00022": {
+      "candidate_count": 8,
+      "context_language": "English",
+      "family_id": "url_host_environment",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00013": {
+      "candidate_count": 3,
+      "context_language": "Simplified Chinese",
+      "family_id": "url_scheme_port",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00017": {
+      "candidate_count": 10,
+      "context_language": "English",
+      "family_id": "url_scheme_port",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-writing_bulleted_outline-00015": {
+      "candidate_count": 8,
+      "context_language": "English",
+      "family_id": "writing_bulleted_outline",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "generic_field"
+    },
+    "train-main-v6-ranker-v1-local-20260921-writing_bulleted_outline-00022": {
+      "candidate_count": 10,
+      "context_language": "English",
+      "family_id": "writing_bulleted_outline",
+      "planned_scenario_type": "ambiguous",
+      "variant": "no_accessibility"
+    },
+    "train-main-v6-ranker-v1-local-20260921-writing_concise_summary-00011": {
+      "candidate_count": 7,
+      "context_language": "English",
+      "family_id": "writing_concise_summary",
+      "planned_scenario_type": "insufficient_context",
+      "variant": "no_accessibility"
+    }
+  },
+  "counts": {
+    "generic_field": 20,
+    "no_accessibility": 40
+  },
+  "dispatched_ids_sha256": "94b9c760576ff22118a60eb892ca2340c342737a3edd765caf6862c16e02a8dd",
+  "family_counts": {
+    "chat_acknowledgment": 1,
+    "chat_polite_decline": 2,
+    "configuration_boolean": 1,
+    "contact_postal_address": 2,
+    "design_color_syntax": 1,
+    "design_image_dimensions": 1,
+    "directory_creation": 1,
+    "disk_usage": 2,
+    "document_export_format": 2,
+    "email_recipient_address": 2,
+    "email_subject_summary": 2,
+    "file_copy_destination": 1,
+    "file_listing": 1,
+    "git_branch_listing": 2,
+    "git_commit_inspection": 1,
+    "git_diff_selection": 1,
+    "git_remote_configuration": 1,
+    "http_authentication": 1,
+    "http_content_type": 1,
+    "http_method": 2,
+    "javascript_async": 1,
+    "literal_text_search": 1,
+    "path_absolute_relative": 2,
+    "process_inspection": 1,
+    "python_collection": 2,
+    "python_file_mode": 1,
+    "regex_character_class": 2,
+    "spreadsheet_date_format": 2,
+    "spreadsheet_sum_average": 2,
+    "spreadsheet_text_join": 1,
+    "sql_insert_columns": 2,
+    "sql_numeric_predicate": 2,
+    "sql_order_limit": 1,
+    "sql_update_scope": 1,
+    "swift_optional": 2,
+    "translation_target_language": 2,
+    "url_host_environment": 2,
+    "url_scheme_port": 2,
+    "writing_bulleted_outline": 2,
+    "writing_concise_summary": 1
+  },
+  "protocol": "registered-observation-variants-v1",
+  "registered_at": "2026-09-21T03:55:53.372769+00:00",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "selection": "Only never-dispatched missing-intent slots; balanced family round robin and farthest future original slot first. Candidate count, language, family, action bucket and ID unchanged.",
+  "split": "train",
+  "supplement_sha256": "2d5c7945f0a8119b454f8cc4ab6466567db5ea4e7f2b2d09ddd1fb4a6b714bf7"
+}

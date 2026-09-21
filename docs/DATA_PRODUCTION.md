@@ -332,3 +332,26 @@ match does not prove semantic difficulty. Native file/image summaries are exclud
 from plaintext overlap. Agent checks and executable temporary-fixture reviews are
 reported with their actual convenience sample sizes; they are not human review or
 a random estimate of dataset correctness.
+
+The registered observation supplement in `configs/observation_supplement.json`
+addresses a measured coverage gap: initial compact profiles always had AX access
+and a nonempty field label, so their missing-context calibration feature could
+never equal one. Of the existing missing-intent slots, 40 Train and 8 Dev slots
+now have no AX observations, and 20 Train and 4 Dev slots retain only a normal
+field label/role. Their independent owner assignments name only slots with no
+prior author request; all candidate counts, languages, family lineage and action
+buckets stay fixed. Already dispatched inputs and labels are preserved.
+
+`data_tools.observations` applies this registered state after compiling the author
+fixture and before unchanged native projection and token budgeting. No-AX fields
+and capture are empty and unknown; generic fields have no synthetic guidance or
+selected text. The two blind labels and family/deployment reviewer all receive
+only that final visible view. No hidden complete scene is supplied for family
+classification, and unknown or mixed families are still rejected and regenerated.
+Candidate-ID/order-independent deduplication runs after observation removal.
+Variant provenance binds the supplement, independent assignment and adapter hashes;
+it is excluded from model features and exactly replayed before freezing. Full
+Train/Dev snapshots must meet the supplementary counts; the pilot reports the
+counts actually present in its unchanged subset. The first verification used
+existing accepted-row replay and eight local native fixtures, with zero teacher
+calls or new staging examples. Observational coverage is not an accuracy claim.

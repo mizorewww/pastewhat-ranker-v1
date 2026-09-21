@@ -117,7 +117,7 @@ def placement_issue(episode, label=None):
                 compile(before + entry["text"] + after, "<synthetic-paste>", "exec")
             except (SyntaxError, ValueError) as exc:
                 return f"Python positive is not syntactically usable at the visible paste location: {getattr(exc, 'msg', str(exc))}"
-    if episode.get("family_id") == "http_method":
+    if episode.get("family_id") == "http_method" and context.get("hasAccessibility"):
         if context.get("fieldLabel") != "HTTP method" or context.get("fieldRole") != "AXTextField":
             return "HTTP method synthetic tasks require a real standalone method text field"
         if selected and not re.fullmatch(r"[A-Za-z-]+", selected.strip()):

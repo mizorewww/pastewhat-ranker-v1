@@ -25,6 +25,8 @@ from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.authoring import AUTHORING_PROTOCOL, candidate_space, compile_compact_episode, owned_profile
 from data_tools.labeling import LABEL_PROTOCOL, VERDICT_LABEL_SYSTEM, derive_candidate_label
 from data_tools.scheduling import prioritize_pilot_batches
+from data_tools.observations import apply_observation_variant
+from data_tools.observation_assignments import load_assignment, provenance_for_slot
 from data_tools.deployment import authoring_requirement, placement_issue
 from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonical_bytes, sha256, utc_now
 
@@ -332,7 +334,13 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
     if run_plan:
         run_plan.verify_unchanged()
     output_path = batch_dir / f"{batch['batch_id']}.json"
-    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "compact_authoring_sha256": sha256(Path(__file__).with_name("authoring.py").read_bytes()), "operation_requirements_sha256": sha256(canonical_bytes(AUTHOR_OPERATION_GUIDANCE)), "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "candidate_projection_provenance": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch}))
+    observation_contract = {}
+    if run_plan:
+        for slot in batch["plans"]:
+            if slot.get("observation_variant"):
+                observation_contract = {"observation_variant_contract": provenance_for_slot(split, run_plan, slot["id"])}
+                break
+    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "compact_authoring_sha256": sha256(Path(__file__).with_name("authoring.py").read_bytes()), "operation_requirements_sha256": sha256(canonical_bytes(AUTHOR_OPERATION_GUIDANCE)), "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "candidate_projection_provenance": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch, **observation_contract}))
     accepted, usage, rejected, starting_attempt = {}, {}, [], 0
     if output_path.is_file():
         stored = json.loads(output_path.read_text())
@@ -372,6 +380,10 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             author_family = {"id": batch["family"]["id"], "operation": positive_operation}
             field_fixture = owned_profile(batch["family"]["id"])
             user = json.dumps({"operation_family": author_family, "field_fixture": field_fixture, "operation_requirements": AUTHOR_OPERATION_GUIDANCE.get(batch["family"]["id"], ""), "plans": pending, "attempt": repair, "previous_validation_findings": last_error, "instructions": "Each episode uses slot equal to its plan id. Exercise only this operation in the fixed field. Preserve scenario_type and exact candidate count. Return only compact episode fields."}, ensure_ascii=False)
+            if any(plan.get("observation_variant") for plan in pending):
+                authored_request = json.loads(user)
+                authored_request["observation_variants"] = "Some plans have a registered observation_variant. For those slots return guidance=[] and selected=''. no_accessibility means only the app category and native candidates are visible; generic_field keeps the normal field label but no task text. Do not add phrases announcing unknown intent. Keep the same conceptual family, complete candidate group, count, language and scenario bucket. The final native view is independently labeled and audited; unclassifiable families are rejected."
+                user = json.dumps(authored_request, ensure_ascii=False)
             user, recovered_audit_id = recover_author_request(client, batch, pending, repair, user)
             atomic_json(partial_path, {"contract_sha256": contract_hash, "episodes": list(accepted.values()), "usage": usage, "rejected": rejected, "attempts_completed": repair, "pending_author_request": {"request_id": f"{batch['batch_id']}-g{repair}", "user": user, "recovered_success_audit_id": recovered_audit_id}})
             generation = client.complete_json(GENERATOR_SYSTEM, user, max_tokens=24576, response_format="json_object", temperature=1.0 if repair else 0.6, thinking=None if repair else "disabled", phase=f"{split}-{phase}-generate", request_id=f"{batch['batch_id']}-g{repair}")
@@ -387,6 +399,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                     if episode is None:
                         raise ValueError("Requested episode missing")
                     episode = compile_compact_episode(episode, episode_id=plan["id"], profile=field_fixture, candidate_count=plan["candidate_count"])
+                    episode = apply_observation_variant(episode, plan.get("observation_variant", "standard"))
                     episode = validate_generated({"episodes": [episode]}, [plan])[0]
                     episode["family_id"] = batch["family"]["id"]
                     from tools.project_context import project_context
@@ -473,6 +486,11 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                     "observed_abstain_reasons": [episode["label"]["abstain_reason"], second_reason],
                     "review": "two blind teacher passes agree on action and acceptable IDs after order/ID perturbation; reason agreement recorded separately; independently teacher-reviewed; programmatically validated; not human validated",
                 }
+                if plan.get("observation_variant"):
+                    observation = provenance_for_slot(split, run_plan, episode["id"])
+                    if observation is None or observation["variant"] != plan["observation_variant"]:
+                        raise ValueError("Observation assignment changed during authoring")
+                    episode["provenance"]["observation_variant"] = observation
                 duplicate = registry.claim(episode) if registry is not None else None
                 if duplicate:
                     rejected.append(quarantine_duplicate(episode, duplicate, batch_dir))
@@ -611,6 +629,7 @@ def assemble(records, split, phase, limit, preprocessor, run_plan=None):
         "prompt_version": PROMPT_VERSION, "preprocessing": preprocessor.manifest(),
         "labels": dict(counts), "candidate_counts": dict(sorted(Counter(len(episode["entries"]) for episode in episodes).items())),
         "families": dict(sorted(Counter(episode["family_id"] for episode in episodes).items())),
+        "observation_variants": dict(Counter(episode.get("provenance", {}).get("observation_variant", {}).get("variant", "standard") for episode in episodes)),
         "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in episodes),
         "ambiguous_vs_insufficient_reason_disagreements": sum(episode.get("provenance", {}).get("reason_agreement") is False for episode in episodes),
         "select_with_same_kind_negative": hard_negative, "select_episodes": len(selected),
@@ -668,6 +687,17 @@ def main():
     preprocessor = Preprocessor(args.tokenizer)
     client = TeacherClient(ROOT / "local" / "teacher" / args.split / args.phase)
     batches = build_plan(args.split, limit, args.batch_size, args.phase, target_override=target, run_plan=run_plan)
+    if run_plan and args.phase == "main":
+        observation_assignment = load_assignment(args.split, run_plan)
+        if observation_assignment:
+            for batch in batches:
+                for slot in batch["plans"]:
+                    assigned = observation_assignment["assignments"].get(slot["id"])
+                    if assigned:
+                        expected = {"family_id": batch["family"]["id"], "candidate_count": slot["candidate_count"], "context_language": slot["context_language"], "planned_scenario_type": slot["scenario_type"]}
+                        if any(assigned.get(key) != value for key, value in expected.items()):
+                            raise ValueError("Observation assignment changed a fixed sampling slot")
+                        slot["observation_variant"] = assigned["variant"]
     batch_dir = ROOT / "local" / "generated" / args.split / (args.phase + "-" + CACHE_VERSION)
     if run_plan:
         batch_dir /= run_plan.run_id

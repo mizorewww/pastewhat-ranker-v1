@@ -1,0 +1,130 @@
+{
+  "adapter_sha256": "77ce23e84418c571c4896c4d24405ca636fdeb437e2142a067a7e04b54936401",
+  "checked_at": "2026-09-21T03:56:51.053589+00:00",
+  "existing_labels_edited": 0,
+  "offline_native_fixtures": [
+    {
+      "family": "http_method",
+      "missing_context": true,
+      "native_and_budget_valid": true,
+      "variant": "no_accessibility"
+    },
+    {
+      "family": "http_method",
+      "missing_context": false,
+      "native_and_budget_valid": true,
+      "variant": "generic_field"
+    },
+    {
+      "family": "git_diff_selection",
+      "missing_context": true,
+      "native_and_budget_valid": true,
+      "variant": "no_accessibility"
+    },
+    {
+      "family": "git_diff_selection",
+      "missing_context": false,
+      "native_and_budget_valid": true,
+      "variant": "generic_field"
+    },
+    {
+      "family": "design_image_dimensions",
+      "missing_context": true,
+      "native_and_budget_valid": true,
+      "variant": "no_accessibility"
+    },
+    {
+      "family": "design_image_dimensions",
+      "missing_context": false,
+      "native_and_budget_valid": true,
+      "variant": "generic_field"
+    },
+    {
+      "family": "python_exception",
+      "missing_context": true,
+      "native_and_budget_valid": true,
+      "variant": "no_accessibility"
+    },
+    {
+      "family": "python_exception",
+      "missing_context": false,
+      "native_and_budget_valid": true,
+      "variant": "generic_field"
+    }
+  ],
+  "owned_splits": {
+    "dev": {
+      "assigned_slots_have_no_prior_author_request": true,
+      "old_accepted_rows_replayed_without_changes": 9,
+      "registered_variants": {
+        "generic_field": 4,
+        "no_accessibility": 8
+      },
+      "variant_families": {
+        "chat_deadline_extension": 2,
+        "design_vector_raster": 1,
+        "git_tag_version": 1,
+        "markdown_link": 1,
+        "process_signal": 2,
+        "python_exception": 1,
+        "spreadsheet_rounding": 2,
+        "sql_between_boundary": 2
+      }
+    },
+    "train": {
+      "assigned_slots_have_no_prior_author_request": true,
+      "old_accepted_rows_replayed_without_changes": 37,
+      "registered_variants": {
+        "generic_field": 20,
+        "no_accessibility": 40
+      },
+      "variant_families": {
+        "chat_acknowledgment": 1,
+        "chat_polite_decline": 2,
+        "configuration_boolean": 1,
+        "contact_postal_address": 2,
+        "design_color_syntax": 1,
+        "design_image_dimensions": 1,
+        "directory_creation": 1,
+        "disk_usage": 2,
+        "document_export_format": 2,
+        "email_recipient_address": 2,
+        "email_subject_summary": 2,
+        "file_copy_destination": 1,
+        "file_listing": 1,
+        "git_branch_listing": 2,
+        "git_commit_inspection": 1,
+        "git_diff_selection": 1,
+        "git_remote_configuration": 1,
+        "http_authentication": 1,
+        "http_content_type": 1,
+        "http_method": 2,
+        "javascript_async": 1,
+        "literal_text_search": 1,
+        "path_absolute_relative": 2,
+        "process_inspection": 1,
+        "python_collection": 2,
+        "python_file_mode": 1,
+        "regex_character_class": 2,
+        "spreadsheet_date_format": 2,
+        "spreadsheet_sum_average": 2,
+        "spreadsheet_text_join": 1,
+        "sql_insert_columns": 2,
+        "sql_numeric_predicate": 2,
+        "sql_order_limit": 1,
+        "sql_update_scope": 1,
+        "swift_optional": 2,
+        "translation_target_language": 2,
+        "url_host_environment": 2,
+        "url_scheme_port": 2,
+        "writing_bulleted_outline": 2,
+        "writing_concise_summary": 1
+      }
+    }
+  },
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "scope": "Post-implementation native/schema/replay verification. No teacher-quality claim, no new staging dataset, no heldout examples read.",
+  "supplement_sha256": "2d5c7945f0a8119b454f8cc4ab6466567db5ea4e7f2b2d09ddd1fb4a6b714bf7",
+  "teacher_calls": 0
+}

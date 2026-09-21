@@ -72,6 +72,29 @@ class ReplayVerifier:
         if raw is None:
             raise ValueError("Episode is absent from its authoring response")
         raw = compile_compact_episode(raw, episode_id=episode["id"], profile=profile, candidate_count=len(episode["entries"]))
+        observation = provenance.get("observation_variant")
+        expected_assignment = None
+        if provenance.get("run_id"):
+            assigned_path = self.root / "data" / f"{self.split}.observation_assignments.{provenance['run_id']}.json"
+            if assigned_path.parent.resolve() != (self.root / "data").resolve():
+                raise ValueError("Invalid owned observation assignment path")
+            if assigned_path.is_file():
+                assigned = json.loads(assigned_path.read_text())
+                expected_assignment = assigned["assignments"].get(episode["id"])
+        if bool(observation) != bool(expected_assignment):
+            raise ValueError("Episode does not preserve its pre-registered observation variant")
+        if observation:
+            from data_tools.observations import OBSERVATION_PROTOCOL, apply_observation_variant
+            policy_path = self.root / "configs/observation_supplement.json"
+            policy = json.loads(policy_path.read_text())
+            if observation.get("protocol") != OBSERVATION_PROTOCOL or observation.get("variant") != expected_assignment["variant"] or expected_assignment["family_id"] != episode["family_id"]:
+                raise ValueError("Observation variant or conceptual lineage differs from assignment")
+            if any(assigned.get(key) != provenance.get(key) or policy.get(key) != provenance.get(key) for key in ("run_id", "run_plan_sha256")):
+                raise ValueError("Observation supplement/assignment belongs to a different run")
+            expected_hashes = {"supplement_sha256": sha256(policy_path.read_bytes()), "assignment_sha256": sha256(assigned_path.read_bytes()), "observation_adapter_sha256": sha256((self.root / "data_tools/observations.py").read_bytes())}
+            if any(observation.get(key) != value for key, value in expected_hashes.items()) or assigned.get("supplement_sha256") != expected_hashes["supplement_sha256"]:
+                raise ValueError("Observation supplement, assignment or adapter changed")
+            raw = apply_observation_variant(raw, observation["variant"])
         raw = validate_generated({"episodes": [raw]}, [{"id": episode["id"], "candidate_count": len(episode["entries"])}])[0]
         raw["family_id"] = episode["family_id"]
         raw["context"] = project_context(raw["context"], capture=raw["capture"])
