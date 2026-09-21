@@ -1,0 +1,90 @@
+{
+  "status": "passed",
+  "scope": "Plan schema/allocation only; no actual production sizes selected",
+  "allocation_checks": [
+    {
+      "split": "train",
+      "episodes": 1000,
+      "families": 40,
+      "action_totals": {
+        "select": 700,
+        "no_match": 200,
+        "missing_intent": 100
+      }
+    },
+    {
+      "split": "dev",
+      "episodes": 200,
+      "families": 8,
+      "action_totals": {
+        "select": 140,
+        "no_match": 40,
+        "missing_intent": 20
+      }
+    },
+    {
+      "split": "calibration",
+      "episodes": 200,
+      "families": 8,
+      "action_totals": {
+        "select": 140,
+        "no_match": 40,
+        "missing_intent": 20
+      }
+    },
+    {
+      "split": "test",
+      "episodes": 600,
+      "families": 12,
+      "action_totals": {
+        "select": 420,
+        "no_match": 120,
+        "missing_intent": 60
+      }
+    },
+    {
+      "split": "train",
+      "episodes": 500,
+      "families": 40,
+      "action_totals": {
+        "select": 350,
+        "no_match": 100,
+        "missing_intent": 50
+      }
+    },
+    {
+      "split": "train",
+      "episodes": 20000,
+      "families": 40,
+      "action_totals": {
+        "select": 14000,
+        "no_match": 4000,
+        "missing_intent": 2000
+      }
+    },
+    {
+      "split": "calibration",
+      "episodes": 1000,
+      "families": 8,
+      "action_totals": {
+        "select": 700,
+        "no_match": 200,
+        "missing_intent": 100
+      }
+    },
+    {
+      "split": "test",
+      "episodes": 2000,
+      "families": 12,
+      "action_totals": {
+        "select": 1400,
+        "no_match": 400,
+        "missing_intent": 200
+      }
+    }
+  ],
+  "old_test_allocation_preserved": true,
+  "private_heldout_data_read": false,
+  "temporary_plan_deleted": true,
+  "changed_plan_rejected": true
+}
