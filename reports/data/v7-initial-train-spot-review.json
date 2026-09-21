@@ -1,0 +1,75 @@
+{
+  "version": "pastewhat-train-spot-review-v1",
+  "created_at": "2026-09-21T05:03:11.107997+00:00",
+  "run_id": "ranker-v1-efficient-20260921",
+  "scope": "Root agent review of one hash-selected select row per represented early Train family; no Cal/Test examples or model scores inspected.",
+  "selection": "minimum sha256(root-v7-first-review:+episode_id) within each available Train select family at the review snapshot",
+  "reviewed_rows": [
+    {
+      "id": "train-v7-directory_creation-00009",
+      "family_id": "directory_creation",
+      "visible_sha256": "427ee80c3a9b71e187be1c9d70f19b06ea3e776fe23ef04fe490108532eebb07"
+    },
+    {
+      "id": "train-v7-disk_usage-00009",
+      "family_id": "disk_usage",
+      "visible_sha256": "07de1fd346e9dd8077b4af09fe230d995fe81928d72fbd6a6c572acec69029c2"
+    },
+    {
+      "id": "train-v7-file_copy_destination-00002",
+      "family_id": "file_copy_destination",
+      "visible_sha256": "576f57edf41e47a67b0fb82744fb51b1b2d882aff5676a6e305620196b613cb6"
+    },
+    {
+      "id": "train-v7-file_listing-00007",
+      "family_id": "file_listing",
+      "visible_sha256": "84cb3e2b60be176274c7c9fb52bf00988ee96e7ae3f4c15fd4aa2d8bbaf0d800"
+    },
+    {
+      "id": "train-v7-git_branch_listing-00008",
+      "family_id": "git_branch_listing",
+      "visible_sha256": "21b754ea2639b8fd28915340d64db1960459c69df46432e2ff1bff567a57e0be"
+    },
+    {
+      "id": "train-v7-git_commit_inspection-00004",
+      "family_id": "git_commit_inspection",
+      "visible_sha256": "35ac398f485af44f3900d6055c9a7c6d313d361a85c9c600b4e6ad28743f25d9"
+    },
+    {
+      "id": "train-v7-git_remote_configuration-00002",
+      "family_id": "git_remote_configuration",
+      "visible_sha256": "6f110adde84691d86b8ae303e537bf6e4ca6bd15636a7b26dbec4231139d72b3"
+    },
+    {
+      "id": "train-v7-literal_text_search-00005",
+      "family_id": "literal_text_search",
+      "visible_sha256": "d516ef6c34db36e0a53fa3afc3d86f6dc45e0ddac1f1e43f370bd58fe87a74f6"
+    },
+    {
+      "id": "train-v7-process_inspection-00007",
+      "family_id": "process_inspection",
+      "visible_sha256": "45c09b3ef077b2674f0c24bfa78b36344dfe17188f17d811e570c50bf09a63d2"
+    }
+  ],
+  "findings": [
+    {
+      "id": "train-v7-file_listing-00007",
+      "status": "concrete_output_constraint_violation",
+      "candidate_id": "c2",
+      "reason": "The visible request allows only the directory path, but the positive ls -ld command prints metadata as well. The teacher marked it interchangeable with ls -d.",
+      "source": "https://www.gnu.org/software/coreutils/manual/html_node/What-information-is-listed.html"
+    },
+    {
+      "id": "train-v7-git_commit_inspection-00004",
+      "status": "scope_interchangeability_requires_independent_review",
+      "reason": "The positive set includes date, author, message, file and revision-range filters even though the visible request does not select those subsets. Distinguish additional output from omitting requested results."
+    }
+  ],
+  "action": "Request one new independent blind review of the two flagged inputs, quarantine confirmed disagreements, and backfill new source situations. Do not manually rewrite accepted labels or repeat all-corpus teacher audits.",
+  "limits": [
+    "This is not a representative label-accuracy estimate or a model benchmark.",
+    "Unflagged rows are not a claim of exhaustive adjudication.",
+    "Agent review is not human validation.",
+    "No final Test tuning."
+  ]
+}
