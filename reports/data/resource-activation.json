@@ -1,0 +1,79 @@
+{
+  "activation": {
+    "activated_max_in_flight": 12,
+    "at": 1789975763.1650848,
+    "operator_drain_token": "b29fc23519b94683a53e2bce170d1dce",
+    "previous_max_in_flight": 6,
+    "provider_cooldown_preserved": true,
+    "resource_supplement": {
+      "path": "configs/resource_supplement_swe2.json",
+      "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+    }
+  },
+  "borrowing": "Train adds2 submission slots for each Dev/Calibration/Test frozen-readiness file found, using existence only; hard pool takes the Train allocation only after base Train is frozen.",
+  "counts_at_resource_window_start": {
+    "dev": 198,
+    "train": 698
+  },
+  "fallback": "Any new observed provider429 persistently reduces global local concurrency to6 with bounded backoff; no automatic re-increase.",
+  "implementation_commit": "758397f",
+  "new_processes": {
+    "calibration": 59548,
+    "dev": 59332,
+    "hardening": 59333,
+    "supervisor": 59334,
+    "test": 59558,
+    "train": 59331
+  },
+  "new_provider_requests_during_maintenance": 0,
+  "new_unknown_usage_due_to_maintenance": 0,
+  "old_owned_processes_exited": true,
+  "preceding_real_provider_failure": {
+    "attempt_id": "61199cb7f37a4b3a8d0a2bf9b80d0524",
+    "audit_id": "0f168a124d65be2a1d8725843bf69dc6e8b58afac9b55f1fe1ce8beaf9f67146",
+    "first_window_includes_attempt": false,
+    "http_429_observed": false,
+    "observed_at": "2026-09-21T07:12:29.407816+00:00",
+    "provider_error_messages": [
+      "fetch failed",
+      "fetch failed",
+      "fetch failed",
+      "Only one provider completion is allowed per teacher process",
+      "Only one provider completion is allowed per teacher process",
+      "Only one provider completion is allowed per teacher process"
+    ],
+    "raw_event_file": {
+      "path": "local/v7/ranker-v1-efficient-20260921/teacher/train/pi-events/0f168a124d65be2a1d8725843bf69dc6e8b58afac9b55f1fe1ce8beaf9f67146/61199cb7f37a4b3a8d0a2bf9b80d0524/events.jsonl",
+      "sha256": "c1c0511b8b285f1e35e21725c70a9ed53b350db84dfa5be4b29e75b5d1c8960a"
+    },
+    "recorded_at": "2026-09-21T07:25:31.260560+00:00",
+    "recovery": "60-second bounded local transport backoff; later same request succeeded",
+    "source": "real Train provider attempt before resource upgrade",
+    "usage_known": false
+  },
+  "private_evidence_sha256": {
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-activation.json": "ae095e4a4648627a4742154a1eea465190f3143c8a5972bc4b56b91728d3fc26",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-drain.json": "3db14e6f8bc767a5e4a01c29c1c5eb17847da8c95a785a50ebadd65fb7e9be3f",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-launch.json": "825796b63b75ec4c356012cfe70588440bd11e3bdbb4ae0583887e9b5d1dbf79",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-owned-retirement.json": "9c2ac9354ae9ce327229d14951e3d2246d9434a563069803910f3a17ad660c6d",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-preceding-transport.json": "76e94c731956f7c52efa871854ebca173385affe78c383706d75f8e1f0813413",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-production-baseline.json": "72c58477950cf3b54bee312d717dbe4995022ec950ffbe888092c78f4dd0a622",
+    "local/v7/ranker-v1-efficient-20260921/resource-upgrade-release.json": "066077abd4d511d967acbc4c5b811d50fd96dc7148f8fc8f12cdb912af202ec7"
+  },
+  "receipt_of_provider_limit_state": "Original expired cooldown and existing failure counters preserved; no provider restriction was removed.",
+  "reported_at": "2026-09-21T07:31:47.170887+00:00",
+  "resource_supplement": {
+    "path": "configs/resource_supplement_swe2.json",
+    "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+  },
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "semantic_and_cache_effect": "Scheduling-only supplement. Visible features, source sampling, labels, teacher request controls and request cache identity are unchanged.",
+  "throughput_claim": "No throughput gain asserted until the next real productive window completes.",
+  "verification": {
+    "path": "reports/engineering/resource-scheduling.json",
+    "sha256": "dd60a46f82193da720f40470fa02369355baaf0df1c4f3a148c5d0f0ab4e6b92"
+  },
+  "version": "pastewhat-resource-activation-v1",
+  "window_start": "2026-09-21T07:30:49.478108+00:00"
+}
