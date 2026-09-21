@@ -159,7 +159,16 @@ def matches_label_quota(episode: dict) -> bool:
 def same_label(left: dict, right: dict) -> bool:
     return (left["decision"] == right["decision"] and
             set(left["acceptable_ids"]) == set(right["acceptable_ids"]) and
-            left.get("abstain_reason") == right.get("abstain_reason"))
+            (left.get("abstain_reason") == right.get("abstain_reason") or
+             (left["decision"] == "abstain" and not left["acceptable_ids"] and
+              {left.get("abstain_reason"), right.get("abstain_reason")} <= {"ambiguous", "insufficient_context"})))
+
+
+def reason_provenance(stored: dict, first: dict, second: dict) -> dict:
+    reasons = {"stored": stored.get("abstain_reason"), "first_pass": first.get("abstain_reason"),
+               "second_pass": second.get("abstain_reason")}
+    return {"label_reasons": reasons, "reason_agreement": len(set(reasons.values())) == 1,
+            "agreement_policy": "exact-select-and-no-match; pool-ambiguous-insufficient-v1"}
 
 
 def passed_current_gates(episode: dict) -> bool:
@@ -345,6 +354,7 @@ class Generator:
                                    label_model=labeled.model, blind_label_model=second.model,
                                    literal_paste_protocol=LITERAL_PASTE_PROTOCOL,
                                    audit_evidence=labels[row["id"]].get("evidence", ""))
+                    teacher.update(reason_provenance(row["label"], labels[row["id"]]["label"], blind_labels[row["id"]]))
                 if rejected:
                     quarantine = self.args.state / "quarantine" / self.args.split / (key + "-literal-paste.json")
                     atomic_json(quarantine, {"reason": "literal_paste_review_disagrees_with_original_label", "episodes": rejected,
@@ -426,6 +436,7 @@ class Generator:
                         "review_evidence": review.get("evidence", ""),
                         "human_validated": False,
                     }
+                    episode["teacher"].update(reason_provenance(label, label, blind_label))
                     if not self.attach_family_classification(episode, classified, family_response):
                         if episode["id"] not in disputes:
                             disputes.append(episode["id"])
@@ -526,6 +537,7 @@ class Generator:
                     "teacher_models": sorted({row["teacher"][key] for row in episodes for key in ("generation_model", "label_model", "review_model")}),
                     "truncated_episodes": sum(row["preprocessing"]["truncated"] for row in episodes),
                     "multi_positive_episodes": sum(len(row["label"]["acceptable_ids"]) > 1 for row in episodes),
+                    "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
                     "rejected_attempts": sum(len(row["rejected_attempts"]) for row in completed),
                     "preprocessing": self.preprocessor.manifest(), "generation_code_sha256": sha256(__file__),
                     "native_projection_sources": {str(path): sha256(path) for path in sorted(Path("tools/context_projection").glob("*.swift"))},

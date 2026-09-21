@@ -12,14 +12,12 @@ import re
 
 from data_tools.teacher import TeacherClient, canonical_bytes
 from evaluations.common import load_jsonl, sha256, validate_label, write_json
-from evaluations.generate import content_fingerprint, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM
+from evaluations.generate import content_fingerprint, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM, same_label, reason_provenance
 from pastewhat_ranker.preprocess import Preprocessor
 
 
 def label_equal(left: dict, right: dict) -> bool:
-    return (left["decision"] == right["decision"] and
-            set(left["acceptable_ids"]) == set(right["acceptable_ids"]) and
-            left.get("abstain_reason") == right.get("abstain_reason"))
+    return same_label(left, right)
 
 
 def unique_records(items: list[dict], count: int) -> dict:
@@ -119,6 +117,9 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         other["acceptable_ids"] = [ids[value] for value in other["acceptable_ids"]]
         if not label_equal(other, episode["label"]):
             raise ValueError("Blind teacher label passes disagree")
+        expected_reasons = reason_provenance(episode["label"], labels[opaque_id]["label"], other)
+        if any(episode["teacher"].get(key) != value for key, value in expected_reasons.items()):
+            raise ValueError("Pooled abstention reason provenance differs from the teacher responses")
         if episode["teacher"].get("review_protocol") != "blind-family-and-deployment-v1":
             audit_request, audit_response = read_audit(episode["teacher"]["review_audit_id"])
             reviews = unique_records(audit_response["reviews"], len(audit_request["episodes"]))
@@ -142,6 +143,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         counts[episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"]] += 1
     return {"passed": True, "split": split, "episodes": len(episodes), "data_sha256": sha256(data),
             "partition_sha256": partition_hash, "label_counts": dict(counts),
+            "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
             "teacher_audit_files": len(audit_files), "teacher_audit_bundle_sha256": hashlib.sha256(canonical_bytes(audit_files)).hexdigest(),
             "checks": ["exact production preprocessing", "native Swift projection replay", "token budget and full candidate preservation",
                        "opaque label-request identifiers", "label-request metadata exclusion", "two blind labels with remapped IDs and order",

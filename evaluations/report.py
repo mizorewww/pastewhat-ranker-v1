@@ -19,7 +19,12 @@ def slices(episodes: list[dict], predictions: list[dict]) -> dict:
     groups = defaultdict(list)
     for episode in episodes:
         outcome = row_outcome(episode, mapping[episode["id"]])
-        groups["label/" + (episode["label"]["abstain_reason"] or "select")].append(outcome)
+        reason = episode["label"]["abstain_reason"] or "select"
+        if reason in {"ambiguous", "insufficient_context"}:
+            reason = "ambiguous_or_insufficient_context"
+        groups["label/" + reason].append(outcome)
+        if episode.get("teacher", {}).get("reason_agreement") is False:
+            groups["teacher_reason_disagreement_same_abstain_action"].append(outcome)
         count = len(episode["entries"])
         bucket = "1" if count == 1 else "2-4" if count <= 4 else "5-10" if count <= 10 else "11-20"
         groups["candidate_count/" + bucket].append(outcome)

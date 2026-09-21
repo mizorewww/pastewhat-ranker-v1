@@ -59,6 +59,17 @@ semantic rejections are retained with original teacher provenance and cannot be
 readmitted through an ID or order change. All such checks occur before any student
 Test prediction; they are not corrections based on model errors.
 
+The one permitted label disagreement is `ambiguous` versus
+`insufficient_context` when both independent passes return `abstain` with an
+empty acceptable set. Both supervise the same abstention action and belong to
+the preregistered 10% sampling bucket. The first stored label is not changed;
+both observed reasons and `reason_agreement: false` remain in provenance. These
+episodes are reported under a combined ambiguity/insufficient-information group,
+without a fine-grained reason accuracy claim. Disagreement between `no_match`
+and either other reason remains a rejection, as does any select/action or
+acceptable-candidate disagreement. This policy was fixed before student Test
+scoring, based on annotation semantics rather than student performance.
+
 ## Calibration
 
 Only the final intended deployment weights and precision are calibrated.
