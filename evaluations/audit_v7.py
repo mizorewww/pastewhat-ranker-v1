@@ -37,13 +37,19 @@ class BatchAuditor:
     def verify_pi_evidence(self, raw):
         """Replay the final assistant event; streaming deltas never count twice."""
         from data_tools.pi_teacher import normalize_usage
-        from evaluations.freeze import TEACHER_TRANSITION, TEACHER_TRANSITION_SHA, teacher_transition_inputs
+        from evaluations.freeze import (TEACHER_TRANSITION, TEACHER_TRANSITION_SHA,
+                                        RESOURCE_SUPPLEMENT, RESOURCE_SUPPLEMENT_SHA, teacher_transition_inputs)
         for path in teacher_transition_inputs(self.plan).values():
             self.bound_files[str(path)] = sha256(path)
         transition = json.loads(TEACHER_TRANSITION.read_text())
         pins = json.loads(Path(transition["runtime"]["pins_path"]).read_text())
         if raw.get("teacher_transition_sha256") != TEACHER_TRANSITION_SHA:
             raise ValueError("The Pi audit lacks the registered teacher-transition binding")
+        if raw.get("resource_supplement"):
+            scheduling = raw["resource_supplement"]
+            if Path(scheduling["path"]).resolve() != RESOURCE_SUPPLEMENT.resolve() or scheduling["sha256"] != RESOURCE_SUPPLEMENT_SHA:
+                raise ValueError("The Pi audit claims a different scheduling supplement")
+            self.bind_file(scheduling)
         source_paths = set()
         for record in raw["source_files"]:
             self.bind_file(record)
@@ -288,6 +294,7 @@ def verify_slot(row, specifications, initial_slots, auditor):
 
 
 def audit_dataset(data, *, plan, split, tokenizer, partition):
+    from evaluations.freeze import RESOURCE_SUPPLEMENT
     require_plan_data_path(plan, split, data)
     episodes = load_jsonl(data)
     partition_document = json.loads(Path(partition).read_text())
@@ -328,6 +335,7 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
     return {"passed": True, "formal_run": True, **plan.binding(), "split": split,
             "episodes": len(episodes), "data_sha256": sha256(data), "partition_sha256": sha256(partition),
             "teacher_contract_version": PROTOCOL, "registered_allocation": allocation,
+            "resource_supplement": {"path": str(RESOURCE_SUPPLEMENT), "sha256": sha256(RESOURCE_SUPPLEMENT)},
             "quality_counts": dict(qualities), "observation_counts": dict(variants), "actual_candidate_counts": dict(counts),
             "teacher_sources": {role: [{**json.loads(source), "episodes": count} for source, count in sorted(values.items())]
                                 for role, values in sorted(source_counts.items())},

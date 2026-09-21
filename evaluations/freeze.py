@@ -20,6 +20,8 @@ import hashlib
 V7_CONTRACT = "teacher-episodes-v7-batched-decisions"
 TEACHER_TRANSITION = Path("configs/teacher_transition_swe2.json")
 TEACHER_TRANSITION_SHA = "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
+RESOURCE_SUPPLEMENT = Path("configs/resource_supplement_swe2.json")
+RESOURCE_SUPPLEMENT_SHA = "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
 
 
 def teacher_transition_inputs(plan):
@@ -46,6 +48,19 @@ def teacher_transition_inputs(plan):
         if sha256(path) != record["sha256"]:
             raise ValueError("A registered Pi provider source changed")
         inputs[name] = path
+    if sha256(RESOURCE_SUPPLEMENT) != RESOURCE_SUPPLEMENT_SHA:
+        raise ValueError("The registered Pi resource supplement changed")
+    resources = json.loads(RESOURCE_SUPPLEMENT.read_text())
+    if (any(resources.get(key) != value for key, value in plan.binding().items()) or
+            resources.get("teacher_transition_sha256") != TEACHER_TRANSITION_SHA or
+            resources.get("cache_identity_effect") != "none"):
+        raise ValueError("Pi scheduling provenance differs from the registered run and teacher")
+    inputs["pi_resource_supplement"] = RESOURCE_SUPPLEMENT
+    for index, record in enumerate(resources["evidence"]):
+        path = Path(record["path"])
+        if sha256(path) != record["sha256"]:
+            raise ValueError("Pi scheduling evidence changed")
+        inputs["pi_resource_evidence_" + str(index)] = path
     return inputs
 
 

@@ -14,7 +14,7 @@ directories. An explicit `--max-batches` bounds the initial cost check; its
 partial result cannot be used for formal scoring.
 
 After the initial cost check, `evaluations.produce_v7` resumes all registered
-sources with one worker per split. Its immutable local `sampling.json` records
+sources, initially with one worker per split. Its immutable local `sampling.json` records
 every original logical slot before full production. Each rejected logical slot
 can receive up to seven newly seeded source situations after the original,
 for eight situations total. Each situation retains the shared one-author-repair
@@ -52,6 +52,18 @@ rejected by receipt, process or label validation. Timeout and other failed
 attempts retain unknown usage explicitly when no counters were observed.
 Reports separate provider/model counters and preserve raw cache counters;
 they do not infer reasoning/cache inclusion or dollar cost from Pi metadata.
+
+The append-only `configs/resource_supplement_swe2.json` raises the local Pi
+concurrency ceiling from six to twelve after draining existing requests. The
+initial allocation becomes Train 6, Dev 2, Calibration 2 and Test 2. Train may
+borrow two slots when another split has actually frozen its complete dataset;
+this check uses file existence and never opens heldout examples. A real 429
+response lowers the shared cap to six and applies bounded backoff, without
+automatically raising it again. These are scheduling controls, not a provider
+entitlement or a change to scientific inputs. The supplement and its first
+production-window evidence enter the final freeze and public provenance;
+scheduling metadata remains outside teacher cache identities. Existing accepted
+rows, successful responses, sampling and decision protocols remain unchanged.
 
 Each batch gets one author request and one independent compact blind label
 request after native projection and student budgeting. Candidate IDs and order
