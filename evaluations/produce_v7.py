@@ -62,6 +62,7 @@ def retained(directory, plan, split):
 
 def usage_summary(directory):
     totals, phases, statuses, models, unknown = Counter(), {}, Counter(), Counter(), Counter()
+    pi_error_endings = Counter()
     provider_usage, failures = {}, Counter()
     elapsed, starts, ends = [], [], []
     authored = 0
@@ -98,7 +99,14 @@ def usage_summary(directory):
                     provider["counts"]["reported_reasoning_tokens"] += reasoning
                     provider["counts"]["reasoning_reported_responses"] += 1
             else:
-                unknown["observed_completion_without_reported_usage"] += 1
+                finish = (response.get("choices") or [{}])[0].get("finish_reason")
+                if source["transport"] == "pi-cli-json" and finish in {"error", "aborted"}:
+                    # A local single-call guard can emit another error ending
+                    # after one provider failure. Count the provider attempt
+                    # only from the outer ledger below, never from each ending.
+                    pi_error_endings[finish] += 1
+                else:
+                    unknown["observed_completion_without_reported_usage"] += 1
                 provider["counts"]["responses_without_reported_usage"] += 1
             for name in ("cacheRead", "cacheWrite"):
                 value = (observed.get("raw_usage") or {}).get(name)
@@ -127,11 +135,12 @@ def usage_summary(directory):
             "by_provider_model": [{**json.loads(source), **dict(value["counts"]), "accounting_semantics": dict(value["semantics"])}
                                   for source, value in sorted(provider_usage.items())],
             "unknown_usage_attempt_events": dict(unknown), "response_models": dict(models),
+            "pi_error_terminal_events_without_usage": dict(pi_error_endings),
             "failure_attempt_events": dict(failures),
             "authored_draft_rows_including_repairs": authored,
             "first_request_at": min(starts, default=None), "latest_completion_at": max(ends, default=None),
             "summed_request_elapsed_seconds": sum(elapsed),
-            "response_accounting": "Each distinct observed completion, including retained invalid responses; successful cache reads do not add usage. Transport/HTTP unknown attempts come only from the top-level accumulated attempt ledger.",
+            "response_accounting": "Observed completions count distinct final assistant events, including retained invalid responses and Pi agent errors; they are not a provider-call count. Successful cache reads do not add usage. Transport/HTTP unknown attempts come only from the top-level accumulated attempt ledger; Pi error endings without usage are reported separately because local guards can add endings without another provider call.",
             "reasoning_accounting": "Only explicitly reported reasoning counters are summed; Kimi includes them in completion_tokens. Pi reasoning and cache inclusion are not inferred.",
             "token_totals_are_reported_counters_not_a_billing_estimate": True}
 
