@@ -1,0 +1,347 @@
+{
+  "status": "passed",
+  "version": "pastewhat-export-regression-v1",
+  "reference_weight_sha256": "6ddd68f812a806a5031643b6d5a6164e556322afb8b75c417897f213b2cf670d",
+  "mlx_weight_sha256": "959ff84fbb40ef1802e5d7c2222155ca4e57294eb7d13a58a4c20318361a575c",
+  "preprocess_sha256": "137526002e29542e999a2410ce815afd087cde438da5206e509ea5da915cad15",
+  "regression_inputs_sha256": "96a2924c08a9660b2645c91dc7464f7471f5bae6866b70c843d2128de6cd4004",
+  "calibrator_sha256": null,
+  "run_artifacts_sha256": "79435e5a8f87eac9cbb4cfb0d0c224ea7148266885ce7545b649c7a195b3dd55",
+  "reference_scores_sha256": "daa59ab209b8915a42c40d0342bba4373bc9e46ee2a177f915974e0ccc1aa757",
+  "mlx_scores_sha256": "210528c94b80d1654e8d21f6f1608a549726f22210a884c0b8d0f507d9cc8b42",
+  "checks": {
+    "maximum_score_difference": true,
+    "mean_score_difference": true,
+    "raw_action_agreement": true,
+    "torch_permutation_max_abs": true,
+    "torch_padding_max_abs": true,
+    "torch_reload_exact": true,
+    "torch_mixed_candidate_count": true,
+    "torch_padding_candidates_excluded": true,
+    "mlx_permutation_max_abs": true,
+    "mlx_padding_max_abs": true,
+    "mlx_reload_exact": true,
+    "mlx_mixed_candidate_count": true,
+    "mlx_padding_candidates_excluded": true
+  },
+  "tolerances": {
+    "cross_backend_max_abs": 0.05,
+    "cross_backend_mean_abs": 0.01,
+    "mlx_padding_or_permutation_max_abs": 0.02,
+    "torch_padding_or_permutation_max_abs": 0.001,
+    "save_reload_max_abs": 0.0
+  },
+  "cases": 16,
+  "compared_scores": 160,
+  "max_absolute_score_difference": 0.022858262062072754,
+  "mean_absolute_score_difference": 0.0028327425476163625,
+  "invariants": {
+    "torch": {
+      "permutation_max_abs": 4.76837158203125e-07,
+      "padding_max_abs": 0.0,
+      "reload_max_abs": 0.0,
+      "mixed_candidate_count_max_abs": 0.0,
+      "padding_candidates_are_negative_infinity": true
+    },
+    "mlx": {
+      "permutation_max_abs": 0.0,
+      "padding_max_abs": 0.00390625,
+      "reload_max_abs": 0.0,
+      "mixed_candidate_count_max_abs": 0.0,
+      "padding_candidates_are_negative_infinity": true
+    }
+  },
+  "rows": [
+    {
+      "id": "regression-1-0",
+      "max_absolute_score_difference": 0.003565073013305664,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        42
+      ]
+    },
+    {
+      "id": "regression-1-1",
+      "max_absolute_score_difference": 0.008739948272705078,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        166
+      ]
+    },
+    {
+      "id": "regression-1-2",
+      "max_absolute_score_difference": 0.008347034454345703,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        607
+      ]
+    },
+    {
+      "id": "regression-1-3",
+      "max_absolute_score_difference": 0.022858262062072754,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        975
+      ]
+    },
+    {
+      "id": "regression-5-0",
+      "max_absolute_score_difference": 0.004830196499824524,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        46,
+        46,
+        46,
+        46,
+        46
+      ]
+    },
+    {
+      "id": "regression-5-1",
+      "max_absolute_score_difference": 0.006832601502537727,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        167,
+        167,
+        167,
+        167,
+        167
+      ]
+    },
+    {
+      "id": "regression-5-2",
+      "max_absolute_score_difference": 0.01712007075548172,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        607,
+        607,
+        607,
+        607,
+        607
+      ]
+    },
+    {
+      "id": "regression-5-3",
+      "max_absolute_score_difference": 0.004639148712158203,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        975,
+        975,
+        975,
+        975,
+        975
+      ]
+    },
+    {
+      "id": "regression-10-0",
+      "max_absolute_score_difference": 0.012607097625732422,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47
+      ]
+    },
+    {
+      "id": "regression-10-1",
+      "max_absolute_score_difference": 0.019654512405395508,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        167,
+        167,
+        167,
+        167,
+        167,
+        167,
+        167,
+        167,
+        167,
+        167
+      ]
+    },
+    {
+      "id": "regression-10-2",
+      "max_absolute_score_difference": 0.0037114769220352173,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        602,
+        602,
+        602,
+        602,
+        602,
+        602,
+        602,
+        602,
+        602,
+        602
+      ]
+    },
+    {
+      "id": "regression-10-3",
+      "max_absolute_score_difference": 0.009672164916992188,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975
+      ]
+    },
+    {
+      "id": "regression-20-0",
+      "max_absolute_score_difference": 0.0036056041717529297,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        47,
+        48,
+        48,
+        48,
+        48,
+        48,
+        48,
+        48,
+        48,
+        48,
+        47
+      ]
+    },
+    {
+      "id": "regression-20-1",
+      "max_absolute_score_difference": 0.006331264972686768,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": "candidate-0",
+      "mlx_raw_action": "candidate-0",
+      "pair_token_lengths": [
+        162,
+        162,
+        162,
+        162,
+        162,
+        162,
+        162,
+        162,
+        162,
+        162,
+        163,
+        163,
+        163,
+        163,
+        163,
+        163,
+        163,
+        163,
+        163,
+        162
+      ]
+    },
+    {
+      "id": "regression-20-2",
+      "max_absolute_score_difference": 0.005499422550201416,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        606,
+        606,
+        606,
+        606,
+        606,
+        606,
+        606,
+        606,
+        606,
+        606,
+        607,
+        607,
+        607,
+        607,
+        607,
+        607,
+        607,
+        607,
+        607,
+        606
+      ]
+    },
+    {
+      "id": "regression-20-3",
+      "max_absolute_score_difference": 0.004206478595733643,
+      "raw_action_agreement_allowing_identical_payload": true,
+      "reference_raw_action": null,
+      "mlx_raw_action": null,
+      "pair_token_lengths": [
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975,
+        975
+      ]
+    }
+  ],
+  "created_at": "2026-09-21T01:14:16.824603+00:00",
+  "scope": "Numerical export regression only; inputs are unlabeled and separate from Calibration/Test.",
+  "gpu_exclusive_confirmation": "Root approved fixed unlabeled regression16 on engineering checkpoint; training agent stopped pipeline PID 51239 and reserved GPU on 2026-09-21. Diagnostic only, not final acceptance."
+}

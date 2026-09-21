@@ -1,0 +1,45 @@
+{
+  "reference_files": {
+    "config.json": "056aa02a71c60a8f8d02e4e71d3f592509703ed0c2ef9153dacbceda0de49ce4",
+    "dev_metrics.json": "cd7bf16b7eacc6d8ecf973cc84fe729ecfa97e871e38a82eb83f1cc36eb94175",
+    "mlx/config.json": "096abd505a6df79e5b752231255e06c812d27213976392ae22827eb4601dc158",
+    "mlx/conversion.json": "d24b0824233e373f0872d77140d39ae0860c679a4cec5f8f3aba47d1eb96dd37",
+    "mlx/model.safetensors": "959ff84fbb40ef1802e5d7c2222155ca4e57294eb7d13a58a4c20318361a575c",
+    "mlx/preprocess.json": "137526002e29542e999a2410ce815afd087cde438da5206e509ea5da915cad15",
+    "mlx/tokenizer/tokenizer.json": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+    "mlx/tokenizer/tokenizer_config.json": "6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1",
+    "mlx/train_config.yaml": "8464600a9401f51175b1136b83b5b2e0044f2291d26fa5f19beb553ca3977ca4",
+    "mlx/training_summary.json": "272f0fab7065946bf2daf61e71542ab00ca20445b49847f8c14a99357f000006",
+    "model.safetensors": "6ddd68f812a806a5031643b6d5a6164e556322afb8b75c417897f213b2cf670d",
+    "preprocess.json": "137526002e29542e999a2410ce815afd087cde438da5206e509ea5da915cad15",
+    "selection.json": "20995c20731d9f9ad4fa6ff87aa78a89200fb945bce3a0eea7e6656e824dc598",
+    "tokenizer/tokenizer.json": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+    "tokenizer/tokenizer_config.json": "6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1",
+    "train_config.yaml": "8464600a9401f51175b1136b83b5b2e0044f2291d26fa5f19beb553ca3977ca4",
+    "training_summary.json": "272f0fab7065946bf2daf61e71542ab00ca20445b49847f8c14a99357f000006"
+  },
+  "mlx_files": {
+    "config.json": "096abd505a6df79e5b752231255e06c812d27213976392ae22827eb4601dc158",
+    "conversion.json": "d24b0824233e373f0872d77140d39ae0860c679a4cec5f8f3aba47d1eb96dd37",
+    "model.safetensors": "959ff84fbb40ef1802e5d7c2222155ca4e57294eb7d13a58a4c20318361a575c",
+    "preprocess.json": "137526002e29542e999a2410ce815afd087cde438da5206e509ea5da915cad15",
+    "tokenizer/tokenizer.json": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+    "tokenizer/tokenizer_config.json": "6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1",
+    "train_config.yaml": "8464600a9401f51175b1136b83b5b2e0044f2291d26fa5f19beb553ca3977ca4",
+    "training_summary.json": "272f0fab7065946bf2daf61e71542ab00ca20445b49847f8c14a99357f000006"
+  },
+  "runtime_code": {
+    "__init__.py": "31b680f67547c622fb070e9c8345e66e3553b9a50ee63f3ea172021983f5ae34",
+    "calibration.py": "5b119aa97c47d986e27869e574fbbb3e387fac572eb8236a243ded1276f84f54",
+    "encoder.py": "748c2c8a8c2d378083654d65efe4ae62593a85f16c68bbee0d23e968a5ab6c00",
+    "export.py": "d40f4e3e09b654c89e4b6855bcf972cceb26f7fd2b255070384933bafb334a0b",
+    "initialize.py": "4e26078315e1ebd3ce98e9f129d2557b21fa08f4fff0a3057f40e39a8717f418",
+    "mlx_model.py": "84de4b1e9f0814fc0257d996c957a49bb8554184fb1dc6aab8aa76b6f4d07433",
+    "model.py": "7f9914cbd36791eea4392bfc038c1a024037dd476b15d6985061fabf9ace327c",
+    "preprocess.py": "edc83507214373aea923e821fd6237f757ea970ff5543b61e0e2f39858ed6ec3",
+    "train.py": "095e580d7f81ddc82aab2368e36d0ca7c328b0d349e6f733c17396e537ad5593",
+    "worker.py": "651595a0a2713a0f9d7a23a73518d68559b48503e38935084a5e0b03515a5d1b"
+  },
+  "regression_inputs_sha256": "96a2924c08a9660b2645c91dc7464f7471f5bae6866b70c843d2128de6cd4004",
+  "parity_code_sha256": "0fc676ff09ee2dff5bddfb2e25180e62601689909a5c339d54a87e187fd5a009"
+}
