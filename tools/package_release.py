@@ -233,6 +233,8 @@ print(json.dumps(result, ensure_ascii=False))
 
 `data_manifest.json` gives actual split counts, conceptual-family partitioning, provenance and hashes. Train, Dev, Calibration and Test have separate roles. The final Test was opened for scoring only after the deployment weights, preprocessing and policy were frozen. No real clipboard history or user contexts were used.
 
+This model bundle includes aggregate dataset evidence; it does not publish the local episode JSONL files or private teacher audits. The available code, weights and manifests support inference and artifact verification, but do not by themselves enable exact reproduction of training or the benchmark without those datasets.
+
 {scale}
 
 `provenance/training/index.json` binds the completed pilot, every registered main seed, the executed hard-example round, and the Dev selection to their configurations, update counts and data hashes. These are actual training records; an initialization or pilot alone cannot satisfy this release bundle.

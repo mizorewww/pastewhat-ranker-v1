@@ -14,7 +14,7 @@ checkpoints/
 *.npz
 *.npy
 data/private/
-# Full synthetic corpora are released as hashed Hugging Face artifacts, not Git blobs.
+# Full synthetic corpora stay local; frozen manifests record their hashes.
 data/train.jsonl
 data/dev.jsonl
 data/train.accepted.jsonl
