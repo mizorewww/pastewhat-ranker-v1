@@ -41,10 +41,15 @@ repeating a rolling teacher request will reproduce its completion.
    abstain with no-match, ambiguous, or insufficient-context reason. Quoted
    selected candidate text checks ID mapping. There are no soft-logit targets.
 5. Another blind Kimi request sees the same information with episode ordering,
-   candidate ordering and candidate IDs changed. The two complete action sets
-   and abstention reasons must agree after remapping. Disagreements are retained
-   in audit and excluded; new episodes replace them. A majority vote never
-   silently changes a disputed label.
+   candidate ordering and candidate IDs changed. The complete action sets must
+   agree after remapping. No-match versus other abstention reasons is also a
+   rejection. If both passes abstain with empty positives and disagree only
+   between ambiguous and insufficient-context, their common ABSTAIN training
+   target is accepted in the shared 10% bucket. The first label remains unchanged;
+   both reasons and `reason_agreement:false` are recorded. Such rows are excluded
+   from reason-specific accuracy claims. Other disagreements are retained in
+   audit and excluded; new episodes replace them. A majority vote never silently
+   changes a disputed label.
 6. A separate teacher call receives all 68 operation descriptions without split
    assignments and infers the observed operation from visible input. It sees no
    expected family or proposed label. A primary family mismatch or required

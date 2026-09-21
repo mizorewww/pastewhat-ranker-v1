@@ -274,7 +274,10 @@ def blind_label_consensus(prepared, annotations, *, client, split, phase, reques
         first = annotations[f"e{index + 1}"]["label"]
         second = copy.deepcopy(verification[f"v{index + 1}"]["label"])
         second["acceptable_ids"] = [mappings[f"v{index + 1}"][identifier] for identifier in second["acceptable_ids"]]
-        equal = first["decision"] == second["decision"] and first["abstain_reason"] == second["abstain_reason"] and set(first["acceptable_ids"]) == set(second["acceptable_ids"])
+        missing_context_reasons = {"ambiguous", "insufficient_context"}
+        same_action = first["decision"] == second["decision"] and set(first["acceptable_ids"]) == set(second["acceptable_ids"])
+        same_reason_or_same_abstain_bucket = first["abstain_reason"] == second["abstain_reason"] or (first["decision"] == second["decision"] == "abstain" and first["abstain_reason"] in missing_context_reasons and second["abstain_reason"] in missing_context_reasons)
+        equal = same_action and same_reason_or_same_abstain_bucket
         if equal:
             agreed.add(episode["id"])
         else:
@@ -379,6 +382,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                     continue
                 episode["label"] = annotations[f"e{index + 1}"]["label"]
                 episode["parent_id"] = episode["id"]
+                second_reason = next(item["label"]["abstain_reason"] for item in verification.parsed["labels"] if item["id"] == f"v{index + 1}")
                 episode["provenance"] = {
                     "teacher": "kimi-for-coding",
                     "generation_audit_id": generation.audit_id,
@@ -390,7 +394,9 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                     "observed_family_id": review["review"]["observed_family_id"],
                     "family_review_protocol": "blind-68-operation-classification",
                     "blind_label_audit_id": verification.audit_id,
-                    "review": "two blind teacher label passes agree after order/ID perturbation; independently teacher-reviewed; programmatically validated; not human validated",
+                    "reason_agreement": episode["label"]["abstain_reason"] == second_reason,
+                    "observed_abstain_reasons": [episode["label"]["abstain_reason"], second_reason],
+                    "review": "two blind teacher passes agree on action and acceptable IDs after order/ID perturbation; reason agreement recorded separately; independently teacher-reviewed; programmatically validated; not human validated",
                 }
                 duplicate = registry.claim(episode) if registry is not None else None
                 if duplicate:
@@ -486,6 +492,7 @@ def assemble(records, split, phase, limit, preprocessor):
         "labels": dict(counts), "candidate_counts": dict(sorted(Counter(len(episode["entries"]) for episode in episodes).items())),
         "families": dict(sorted(Counter(episode["family_id"] for episode in episodes).items())),
         "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in episodes),
+        "ambiguous_vs_insufficient_reason_disagreements": sum(episode.get("provenance", {}).get("reason_agreement") is False for episode in episodes),
         "select_with_same_kind_negative": hard_negative, "select_episodes": len(selected),
         "truncated_episodes": sum(episode["preprocessing"]["truncated"] for episode in episodes),
         "teacher": "kimi-for-coding", "teacher_is_rolling": True,
