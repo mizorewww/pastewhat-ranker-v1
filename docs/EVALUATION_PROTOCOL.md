@@ -24,13 +24,20 @@ is approximately 70% selectable, 20% no match, and 10% insufficient information
 or ambiguous. At least half of selectable episodes contain a negative candidate
 of the same content kind. These are targets, not achieved facts.
 
-Only synthetic content is used. The actual production `Preprocessor` budgets
-and clips every episode before a fresh teacher labeling call. Proposed labels
-or generation rationales do not enter that call. Candidate IDs are opaque and
-shuffled independently. The teacher sees exactly the prepared context and
+Only synthetic content is used. The vendored native Swift context projection
+first derives input surface from actual AX metadata; generated surface guesses
+are ignored, and inaccessible contexts cannot contain AX-only field content.
+The actual production `Preprocessor` then budgets and clips every episode before
+two blind teacher labeling calls, with independently shuffled candidate order
+and rewritten opaque candidate IDs in the second call. Labels must agree after
+mapping back to the original IDs. Proposed labels or generation rationales do
+not enter those calls. The teacher sees exactly the prepared context and
 candidate records, without family, intended label, audit evidence, or source
-application identity. A validation pass checks allowed IDs, label consistency,
-family membership and visible evidence. Review is by agents and the teacher;
+application identity. A further audit checks allowed IDs, label consistency,
+family membership and visible evidence. The two blind labelers receive no
+proposed answer; the further family/realism reviewer can inspect their agreed
+answer but cannot override a disagreement. Disputed slots are replaced by newly
+generated episodes and independently labeled again. Review is by agents and the teacher;
 it must never be described as human validation. The report records rejected,
 disputed, repaired, and accepted episode counts and the responding teacher
 model, rather than assuming an API alias identifies fixed weights.
