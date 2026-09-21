@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import os
@@ -22,6 +21,8 @@ import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+from data_tools.rate_limit import AccountCoordinator, AccountPaused, retry_after_seconds
 
 
 DEFAULT_ENDPOINT = "https://api.kimi.com/coding/v1/chat/completions"
@@ -87,8 +88,7 @@ class TeacherClient:
         self.min_interval = min_interval
         self.timeout = timeout
         self.max_attempts = max_attempts
-        self._lock = threading.Lock()
-        self._next_request = 0.0
+        self.coordinator = AccountCoordinator(min_interval=min_interval)
         token = os.environ.get("KIMI_API_KEY", "").strip()
         if not token and CREDENTIAL_FILE.is_file():
             if CREDENTIAL_FILE.stat().st_mode & 0o077:
@@ -97,13 +97,6 @@ class TeacherClient:
         if not token:
             raise TeacherError("KIMI_API_KEY or the restricted local credential file is required")
         self._token = token
-
-    def _pace(self) -> None:
-        with self._lock:
-            delay = max(0.0, self._next_request - time.monotonic())
-            self._next_request = max(time.monotonic(), self._next_request) + self.min_interval
-        if delay:
-            time.sleep(delay)
 
     def complete_json(
         self,
@@ -139,7 +132,10 @@ class TeacherClient:
         attempts = []
         started = utc_now()
         for attempt in range(self.max_attempts):
-            self._pace()
+            try:
+                lease = self.coordinator.acquire(self.timeout)
+            except AccountPaused as exc:
+                raise TeacherError(str(exc)) from None
             request = Request(
                 self.endpoint,
                 data=request_bytes,
@@ -153,9 +149,12 @@ class TeacherClient:
             )
             before = time.monotonic()
             try:
-                with urlopen(request, timeout=self.timeout) as response:
-                    raw = response.read()
-                    response_headers = dict(response.headers)
+                try:
+                    with urlopen(request, timeout=self.timeout) as response:
+                        raw = response.read()
+                        response_headers = dict(response.headers)
+                finally:
+                    self.coordinator.release(lease)
                 decoded = json.loads(raw)
                 audit = {
                     "status": "success",
@@ -190,18 +189,13 @@ class TeacherClient:
                 # Only response hash and status are persisted, never headers or
                 # an exception string that could contain credential material.
                 safe_error = raw_error.decode(errors="replace").replace(self._token, "[REDACTED]")[:1000]
-                detail = {"attempt": attempt + 1, "http_status": exc.code, "response_sha256": sha256(raw_error), "message": safe_error, "elapsed_seconds": time.monotonic() - before}
-                attempts.append(detail)
                 retryable = exc.code in (408, 429, 500, 502, 503, 504)
                 delay = min(60.0, 2 ** (attempt + 1) + random.random())
-                retry_after = exc.headers.get("Retry-After")
-                if retry_after and retry_after.isdecimal():
-                    delay = max(delay, float(retry_after))
-                elif retry_after:
-                    try:
-                        delay = max(delay, parsedate_to_datetime(retry_after).timestamp() - time.time())
-                    except (ValueError, TypeError, OverflowError):
-                        pass
+                server_delay = retry_after_seconds(exc.headers)
+                delay = max(delay, server_delay or 0)
+                classification = self.coordinator.record_http_failure(exc.code, safe_error, exc.headers, delay)
+                detail = {"attempt": attempt + 1, "http_status": exc.code, "classification": classification, "response_sha256": sha256(raw_error), "message": safe_error, "elapsed_seconds": time.monotonic() - before, "retry_after_seconds": server_delay}
+                attempts.append(detail)
                 if not retryable or attempt + 1 == self.max_attempts:
                     atomic_json(path, {"status": "http_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi HTTP {exc.code}; audit {audit_id}; no response accepted") from None
