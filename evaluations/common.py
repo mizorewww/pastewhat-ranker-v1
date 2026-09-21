@@ -122,7 +122,10 @@ def percentile(values: list[float], percent: float) -> float | None:
 def row_outcome(episode: dict, prediction: dict) -> dict:
     answerable = episode["label"]["decision"] == "select"
     ids = set(episode["label"]["acceptable_ids"])
-    failed = bool(prediction.get("error")) or prediction.get("decision") in {"inference_failure", "invalid_request"}
+    failed = bool(prediction.get("error")) or prediction.get("decision") in {
+        "inference_failure", "invalid_request", "remote_unavailable", "model_unavailable",
+        "timeout", "worker_timeout", "error",
+    }
     recommended = prediction.get("recommendedID")
     if recommended is not None and recommended not in {entry["id"] for entry in episode["entries"]}:
         failed = True
@@ -175,10 +178,13 @@ def summarize(episodes: list[dict], predictions: list[dict]) -> dict:
     if len(mapping) != len(predictions) or set(mapping) != {episode["id"] for episode in episodes}:
         raise ValueError("prediction ids must exactly cover dataset ids")
     rows = [row_outcome(episode, mapping[episode["id"]]) for episode in episodes]
-    groups = defaultdict(list)
+    groups, families = defaultdict(list), defaultdict(list)
     for row in rows:
         groups[row["group"]].append(row)
-    return {"overall": summarize_outcomes(rows), "by_group": {key: summarize_outcomes(value) for key, value in sorted(groups.items())}}
+        families[row["family_id"]].append(row)
+    return {"overall": summarize_outcomes(rows),
+            "by_group": {key: summarize_outcomes(value) for key, value in sorted(groups.items())},
+            "by_family": {key: summarize_outcomes(value) for key, value in sorted(families.items())}}
 
 
 def paired_comparison(episodes: list[dict], baseline: list[dict], replacement: list[dict], *, bootstrap_repeats: int = 2000) -> dict:

@@ -67,8 +67,8 @@ def main():
     baseline_summary, ranker_summary = summarize(episodes, baseline), summarize(episodes, decisions)
     paired = paired_comparison(episodes, baseline, decisions)
     groups = {}
-    for group, current in ranker_summary["by_group"].items():
-        previous = baseline_summary["by_group"][group]
+    for group, current in ranker_summary["by_family"].items():
+        previous = baseline_summary["by_family"][group]
         delta = None if current["answerable_top1"] is None or previous["answerable_top1"] is None else current["answerable_top1"] - previous["answerable_top1"]
         eligible = current["answerable"] >= 30
         groups[group] = {"answerable": current["answerable"], "top1_delta": delta,
