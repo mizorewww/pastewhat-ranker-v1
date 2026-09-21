@@ -17,6 +17,8 @@ from pathlib import Path
 
 import yaml
 
+from pipeline_data_guards import (freeze_experiment_data, verify_frozen_data,
+                                  verify_hardening_mix, verify_pilot_subset)
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.train import atomic_json, read_allowed_data, verify_completed_run
 
@@ -90,6 +92,12 @@ def main():
     if pilot_metrics["coverage"] == 0 or pilot_metrics["answerable_top1"] == 0:
         raise RuntimeError("Pilot learned no usable candidate selections; diagnose before scaling")
     wait_for_snapshot("data/frozen/train-20000.jsonl", 20000, state_path, "main_preparation")
+    experiment_data = local / "frozen-experiment-data.json"
+    freeze_experiment_data(experiment_data, {"pilot_train": "data/frozen/pilot-train-5000.jsonl",
+                                            "main_train": "data/frozen/train-20000.jsonl",
+                                            "dev": "data/frozen/dev.jsonl"})
+    atomic_json(local / "pilot-subset-verification.json",
+                verify_pilot_subset("data/frozen/pilot-train-5000.jsonl", "data/frozen/train-20000.jsonl"))
     seed_report = Path("reports/training/seed-initializations.json")
     initialization_command = [sys.executable, "scripts/freeze_seed_initializations.py", "--output", str(seed_report)]
     local_source = Path("../laya-mlx/models/laya-multilingual")
@@ -99,6 +107,7 @@ def main():
     initializations = {row["seed"]: row for row in json.loads(seed_report.read_text())["seeds"]}
     runs = []
     for seed in (42, 43, 44):
+        verify_frozen_data(experiment_data)
         run = train_stage(f"main-seed-{seed}", "configs/main.yaml", f"checkpoints/main-seed-{seed}",
                           {"seed": seed, "initial_model": initializations[seed]["initial_model"],
                            "micro_batch_episodes": micro}, state_path, local)
@@ -111,6 +120,9 @@ def main():
                                                 "weight_sha256": sha256_file(v0 / "model.safetensors")})
     # Teacher/data agent mines only a new training pool, not final Test failures.
     wait_for_snapshot("data/frozen/hardening-train-10000.jsonl", 10000, state_path, "hardening_preparation")
+    verify_frozen_data(experiment_data)
+    atomic_json(local / "hardening-data-mixture.json",
+                verify_hardening_mix("data/frozen/train-20000.jsonl", "data/frozen/hardening-train-10000.jsonl"))
     hardened = train_stage("hardening", "configs/hardening.yaml", "checkpoints/hardening",
                            {"micro_batch_episodes": micro, "seed": selected["seed"]}, state_path, local)
     previous = json.loads((v0 / "dev_metrics.json").read_text())

@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checks": {
+    "unchanged_pilot_subset_accepted": true,
+    "exact_hardening_mix_accepted": true,
+    "changed_pilot_label_rejected": true,
+    "changed_original_hard_label_rejected": true,
+    "wrong_hardening_ratio_rejected": true,
+    "unchanged_frozen_data_accepted": true,
+    "cross_seed_data_change_rejected": true
+  },
+  "temporary_scaffolding_removed": true,
+  "no_training_rerun": true
+}
