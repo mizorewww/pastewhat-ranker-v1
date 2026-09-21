@@ -34,6 +34,13 @@ has no free-form `surroundingText`. Shared production Swift converts this eviden
 to `pastewhat-focus-v1` before student preprocessing. Raw capture remains only in
 generation provenance; it cannot give the teacher extra information. Unversioned
 earlier free-form drafts remain outside the formal v4 data state.
+The synthetic authoring domain excludes the exact pattern in which a nonempty
+selected value is duplicated as the entire unselected prefix with an empty suffix,
+or as the entire suffix with an empty prefix. Authors can mistakenly represent a
+whole-field replacement this way, producing two old values before the paste.
+Such rows are quarantined unchanged and regenerated, rather than repairing their
+capture or labels. This is a corpus constraint; the real AX projection continues
+to accept legitimate repeated text. Whole-field replacements use empty boundaries.
 The actual production `Preprocessor` then budgets and clips every episode before
 two blind teacher labeling calls, with independently shuffled candidate order
 and rewritten opaque candidate IDs in the second call. Labels must agree after

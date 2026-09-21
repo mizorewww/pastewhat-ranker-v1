@@ -70,6 +70,13 @@ placeholder will be replaced. selectedText is the only text the paste replaces.
 Otherwise the whole clipboard entry inserts literally, including quotes, spaces,
 newlines and escaping. Prefer actual standalone input fields for standalone values;
 an embedded value must already include the syntax required at the visible selection.
+beforeSelection and afterSelection EXCLUDE the selectedText between them. When
+replacing the whole field's old value, put that value ONLY in context.selectedText
+and use empty beforeSelection and afterSelection. For example, selectedText="old",
+beforeSelection="old", afterSelection="" means the field contains "oldold";
+pasting "new" produces "oldnew", NOT "new". Do not generate this duplicate-boundary
+authoring pattern. For a partial selection, keep only the actual unselected prefix
+and suffix around it, and ensure the candidate works with both unchanged.
 No markdown code fences."""
 
 LABEL_SYSTEM = """You independently label clipboard recommendation episodes.
@@ -206,6 +213,26 @@ def reason_provenance(stored: dict, first: dict, second: dict) -> dict:
             "agreement_policy": "exact-select-and-no-match; pool-ambiguous-insufficient-v1"}
 
 
+def duplicated_selection_boundary(context: dict) -> bool:
+    """Reject a common synthetic-authoring error, not a production AX input.
+
+    A legitimately repeated field can exist, but this narrowly defined pattern
+    is excluded from this synthetic corpus because authors confuse the selected
+    middle with its unselected boundaries. No input or label is silently fixed.
+    """
+    selected = context.get("selectedText", "")
+    if not selected:
+        return False
+    try:
+        focus = json.loads(context.get("surroundingText", ""))
+    except (ValueError, TypeError):
+        return False
+    if not isinstance(focus, dict) or focus.get("format") != "pastewhat-focus-v1" or focus.get("selectionKnown") is not True:
+        return False
+    before, after = focus.get("beforeSelection"), focus.get("afterSelection")
+    return (before == selected and after == "") or (after == selected and before == "")
+
+
 def passed_current_gates(episode: dict) -> bool:
     teacher = episode.get("teacher", {})
     return (teacher.get("observed_family_id") == episode["family_id"] and
@@ -214,6 +241,7 @@ def passed_current_gates(episode: dict) -> bool:
             teacher.get("literal_paste_protocol") == LITERAL_PASTE_PROTOCOL and
             teacher.get("family_review_protocol") == FAMILY_REVIEW_PROTOCOL and
             episode.get("synthetic_metadata", {}).get("capture_authoring_protocol") == CAPTURE_PROTOCOL and
+            not duplicated_selection_boundary(episode["context"]) and
             matches_label_quota(episode))
 
 
@@ -255,6 +283,8 @@ def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partiti
     if not isinstance(capture, dict):
         raise ValueError("Formal evaluator data requires raw observable capture authoring evidence")
     context = project_context(raw.get("context", {}), capture=capture)
+    if duplicated_selection_boundary(context):
+        raise ValueError("Synthetic capture duplicates the selected whole value in an unselected boundary")
     episode = preprocessor.prepare_episode({"id": row_id, "family_id": family["id"], "context": context, "entries": entries})
     episode.update(split=split, group=family["id"], parent_id=row_id,
                    synthetic_metadata={"language": spec["language"], "generator_spec": spec,
@@ -376,6 +406,18 @@ class Generator:
             raise ProviderPaused("Provider account is paused; leave queued slots untouched")
         if path.is_file():
             state = json.loads(path.read_text())
+            boundary_rejected = [row for row in state.get("episodes", []) if duplicated_selection_boundary(row["context"])]
+            if boundary_rejected:
+                quarantine = self.args.state / "quarantine" / self.args.split / ("evaluator-" + key + "-selection-boundary.json")
+                atomic_json(quarantine, {"reason": "synthetic_selected_value_duplicated_in_unselected_boundary",
+                                         "episodes": boundary_rejected, "labels_changed": False,
+                                         "student_predictions_used": False, "reviewed_at": utc_now()})
+                rejected_ids = {row["id"] for row in boundary_rejected}
+                self.rejected_content.update(content_fingerprint(row) for row in boundary_rejected)
+                state["episodes"] = [row for row in state["episodes"] if row["id"] not in rejected_ids]
+                state.setdefault("rejected_attempts", []).append({"kind": "synthetic_selection_boundary_duplication", "count": len(boundary_rejected)})
+                state["status"] = "partial"
+                atomic_json(path, state)
             legacy = [row for row in state.get("episodes", []) if row.get("teacher", {}).get("family_review_protocol") != FAMILY_REVIEW_PROTOCOL]
             if legacy:
                 classified, response = self.classify_families(legacy, key + "-legacy-blind-family")
