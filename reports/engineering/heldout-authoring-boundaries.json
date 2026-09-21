@@ -1,0 +1,24 @@
+{
+  "schema": "pastewhat-heldout-authoring-review-v1",
+  "reviewed_at": "2026-09-21T02:03:33.744837+00:00",
+  "scope": "Early formal v4 synthetic authoring, before any student Calibration or Test scoring",
+  "initial_teacher_gate_accepted": 6,
+  "independently_inspected": 6,
+  "quarantined_without_relabeling": 5,
+  "remaining_eligible": 1,
+  "failure_class": "A nonempty selected value was duplicated as the entire unselected prefix with an empty suffix; literal paste retained the old value",
+  "repair": "Original inputs, labels and teacher audits retained privately; regenerate those slots under an explicit authoring boundary constraint",
+  "domain_constraint": "Exact duplicated selection-boundary patterns are excluded from this synthetic corpus, including the mirrored suffix pattern; actual production AX behavior is unchanged",
+  "quarantine_files": [
+    {
+      "sha256": "5b33897546d2ea5e184a01e203d6d2df1f2574916a244709eb2f9f2f208ec9ea",
+      "episodes": 5
+    }
+  ],
+  "native_contract": "pastewhat-focus-v1",
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "human_validated": false,
+  "student_predictions_used": false,
+  "formal_accuracy_result": false,
+  "limitation": "Agreement between multiple teacher calls does not establish semantic correctness; these counts describe authoring quality, not model accuracy"
+}
