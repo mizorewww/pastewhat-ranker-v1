@@ -167,9 +167,10 @@ def label_with_one_repair(client, visible, *, phase, request_id, remember):
     labels, audit_for = {}, {}
     pending = visible
     findings = []
+    effort = "low" if phase == "v7-label" else "high"
     for repair in range(2):
         try:
-            result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": pending}, ensure_ascii=False), max_tokens=12288, reasoning_effort="high", response_format="json_object", phase=phase, request_id=request_id + (f"-format-repair-{repair}" if repair else ""))
+            result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": pending}, ensure_ascii=False), max_tokens=12288, reasoning_effort=effort, response_format="json_object", phase=phase, request_id=request_id + (f"-format-repair-{repair}" if repair else ""))
             remember(result)
             rows = result.parsed.get("labels", []) if isinstance(result.parsed, dict) else []
             for episode in pending:
@@ -219,8 +220,11 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
     accepted = {row["id"]: row for row in record["accepted"]}
     terminal = set(record.get("unrecoverable_label_ids", []))
     usage = Counter(record["usage"])
+    request_efforts = {}
 
     def remember(result):
+        audit = json.loads((client.audit_dir / (result.audit_id + ".json")).read_text())
+        request_efforts[result.audit_id] = audit["request"].get("reasoning_effort", "disabled")
         if result.audit_id not in record["audit_ids"]:
             record["audit_ids"].append(result.audit_id)
             usage.update({key: result.usage.get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
@@ -277,6 +281,8 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
                     primary = primary_for[row["id"]]
                     review = review_for.get(row["id"])
                     row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "planned_candidate_count": plan["candidate_count"], "actual_candidate_count": len(row["entries"]), "candidate_count_delta": len(row["entries"]) - plan["candidate_count"], "quota_slot_id": plan.get("quota_slot_id", plan["id"]), "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
+                    row["provenance"]["primary_reasoning_effort"] = request_efforts[primary.audit_id]
+                    row["provenance"]["review_reasoning_effort"] = request_efforts[review.audit_id] if review else None
                     accepted[row["id"]] = row
         except TeacherError as error:
             record.update(accepted=list(accepted.values()), usage=dict(usage))

@@ -73,7 +73,7 @@ class TeacherClient:
         endpoint: str = DEFAULT_ENDPOINT,
         model: str = DEFAULT_MODEL,
         min_interval: float = 0.5,
-        timeout: float = 240,
+        timeout: float = 480,
         max_attempts: int = 6,
     ) -> None:
         if endpoint not in (

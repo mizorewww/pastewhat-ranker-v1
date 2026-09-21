@@ -75,7 +75,8 @@ These commands obey the same account-wide cap, provider cooldown and persistent
 operator dispatch hold as the evaluator. They never restart legacy generators.
 
 Without `--max-batches`, the owned runner continues through the registered source
-schedule and up to eight finite replacement rounds. Each failed logical quota
+schedule and up to seven finite replacement rounds (eight mother situations in
+total per logical slot). Each failed logical quota
 slot gets a new source situation, mother-task ID and data seed while preserving
 its family, action, language, observation variant and preselected review cohort.
 Only one accepted episode can fill each logical slot. Exhaustion reports the
@@ -87,3 +88,17 @@ budget idempotence and label mappings, binds source audit-file hashes, and write
 the manifest/fingerprint sidecars before atomically publishing JSONL as the GPU
 readiness signal. Dev is independently frozen at 2k. Freeze completion is
 distinct from a rolling accepted pool reaching an approximate count.
+
+The bounded six-request low/high measurement is recorded in
+`reports/data/v7-teacher-effort-low-high.json`. Both efforts matched the action
+sets of all twenty independently reviewed engineering cases; high omitted four
+required abstention reasons, while low returned valid labels for all twenty.
+For the ten larger current Train episodes, low returned valid labels in156s and
+high hit the old240s timeout. The large-group quality comparison is therefore
+unobserved. This is limited engineering evidence, not a general equivalence
+claim. After root approval, new v7 primary labels and their single format repair
+use low; sampled/risk secondary reviews and post-mining confirmation use high.
+Actual request effort is retained in raw audits and new episode provenance.
+Existing accepted labels are unchanged. Later clients use a480s read timeout to
+reduce retries after the teacher has already spent substantial computation;
+retry count and the shared account cap are unchanged.

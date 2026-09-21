@@ -168,7 +168,7 @@ def main():
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--max-batches", type=int, help="Cap newly scheduled source batches for the initial real cost check")
     parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--backfill-rounds", type=int, default=8, help="Finite number of new-situation replacement rounds after original sources")
+    parser.add_argument("--backfill-rounds", type=int, default=7, help="At most8 mother situations: the original plus7 new-situation replacements")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--hard-pool", action="store_true", help="New Train-only source pool for Dev-selected v0 mining")
     args = parser.parse_args()
