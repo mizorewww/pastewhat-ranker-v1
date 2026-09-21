@@ -11,6 +11,7 @@ import sys
 import time
 
 from data_tools.pi_teacher import pi_coordinator
+from data_tools.resources import load_resources
 from data_tools.teacher import atomic_json, utc_now
 from data_tools.v7 import ROOT
 from run_contract import load_run_plan
@@ -33,10 +34,13 @@ def main():
     base.mkdir(parents=True, exist_ok=True)
     lock = (base / ".production-supervisor.lock").open("a")
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    resources = load_resources(plan)
+    ceiling = resources[0]["executor_max_workers"] if resources else 3
+    dev_workers = resources[0]["initial_workers"]["dev"] if resources else 1
     jobs = {
-        "train": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--workers", "3"],
-        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", "1"],
-        "hardening": [sys.executable, "-m", "data_tools.hardening_v7", "--run-plan", str(plan.path), "--workers", "2"],
+        "train": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--workers", str(ceiling)],
+        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", str(dev_workers)],
+        "hardening": [sys.executable, "-m", "data_tools.hardening_v7", "--run-plan", str(plan.path), "--workers", str(ceiling if resources else 2)],
     }
     processes = {}
     children = {}
@@ -79,7 +83,7 @@ def main():
             children[name] = child
             atomic_json(base / f"{name}.bulk-launch.json", process)
             states[name] = {"state": "running", "pid": child.pid}
-        atomic_json(base / "production-status.json", {**plan.binding(), "updated_at": utc_now(), "account": account, "jobs": states})
+        atomic_json(base / "production-status.json", {**plan.binding(), "updated_at": utc_now(), "account": account, "jobs": states, "resource_supplement": resources[1] if resources else None})
         if all(state["state"] == "frozen" for state in states.values()):
             return
         time.sleep(15)

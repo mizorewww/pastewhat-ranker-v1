@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import copy
 import fcntl
 import json
@@ -15,6 +15,7 @@ import time
 
 from data_tools.content import content_fingerprint
 from data_tools.freeze import choose_registered, publish_bytes
+from data_tools.resources import bounded_futures, worker_budget
 from data_tools.teacher import atomic_json, audit_source, canonical_bytes, make_teacher_client, sha256, utc_now
 from data_tools.v7 import PROTOCOL, ROOT, label_with_one_repair, remap_labels, same_action, visible_batch
 from pastewhat_ranker.preprocess import Preprocessor
@@ -176,8 +177,10 @@ def main():
     client = make_teacher_client(directory / "teacher")
     records = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        futures = [executor.submit(review, proposals[index:index + 10], client, directory / "reviews", plan) for index in range(0, len(proposals), 10)]
-        for future in as_completed(futures):
+        batches = (proposals[index:index + 10] for index in range(0, len(proposals), 10))
+        submit = lambda pool, batch: pool.submit(review, batch, client, directory / "reviews", plan)
+        capacity = lambda: worker_budget(plan, "train", args.workers, hard_pool=True)
+        for future in bounded_futures(executor, batches, submit, capacity):
             records.append(future.result())
             atomic_json(directory / "status.json", {**plan.binding(), "phase": "blind_post_mining_confirmation", "accepted": sum(len(record["accepted"]) for record in records), "rejected": sum(len(record["rejected"]) for record in records), "updated_at": utc_now()})
     manifest = publish(original, proposals, records, selection, plan, Preprocessor(str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer")), directory)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import subprocess
@@ -12,6 +13,7 @@ import time
 import uuid
 
 from data_tools.rate_limit import AccountCoordinator, AccountPaused
+from data_tools.resources import load_resources
 from data_tools.teacher import TeacherClient, TeacherError, atomic_json, audit_identity, canonical_bytes, sha256, utc_now, verify_audit_identity
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +25,8 @@ POLICY_PATH = ROOT / "configs/teacher_transition_swe2.json"
 
 def pi_coordinator():
     # This is an independent local courtesy cap, not a provider entitlement.
-    return AccountCoordinator(RATE_DIRECTORY, max_in_flight=6)
+    resources = load_resources()
+    return AccountCoordinator(RATE_DIRECTORY, max_in_flight=resources[0]["global_max_in_flight"] if resources else 6)
 
 
 def private_bytes(path: Path, content: bytes):
@@ -98,11 +101,19 @@ def record_pi_failure(coordinator, *, timed_out, stdout, stderr):
     text = ("\n".join(pi_error_messages(stdout)) + "\n" + stderr.decode(errors="replace")).lower()
     authentication = any(word in text for word in ("unauthorized", "authentication failed", "invalid api key", "invalid token", "permission denied", "insufficient credits", "quota exceeded", "entitlement"))
     transient = timed_out or any(word in text for word in ("timeout", "timed out", "temporarily", "overloaded", "rate limit", "429", "502", "503", "504", "econnreset", "etimedout", "econnrefused", "enotfound", "fetch failed", "ended without an eos trailer", "network error", "socket hang up", "connection reset"))
+    resources = load_resources()
     with coordinator._state() as state:
         failures = state.setdefault("pi_failure_counts", {})
         kind = "authentication_or_entitlement" if authentication else "transient_transport" if transient else "configuration_or_unclassified_process_error"
         failures[kind] = failures.get(kind, 0) + 1
         state["last_pi_failure"] = {"classification": kind, "at": time.time(), "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr)}
+        if re.search(r"\b429\b", text) and resources is not None:
+            document, binding = resources
+            previous_cap = state["max_in_flight"]
+            state["max_in_flight"] = min(previous_cap, document["fallback_max_in_flight"])
+            reduction = {"at": time.time(), "reason": "observed_provider_429", "resource_supplement": binding, "previous_max_in_flight": previous_cap, "effective_max_in_flight": state["max_in_flight"], "automatic_reincrease": False}
+            state["resource_concurrency_reduction"] = reduction
+            state.setdefault("resource_concurrency_reduction_history", []).append(reduction)
         if transient and not authentication:
             delay = min(900, 60 * 2 ** min(failures[kind] - 1, 4))
             state["cooldown_until"] = max(state.get("cooldown_until", 0), time.time() + delay)
@@ -209,6 +220,12 @@ class PiTeacherClient:
         started = utc_now()
         before = time.monotonic()
         common = {**base, "pid": os.getpid(), "lease_id": lease, "attempt_id": attempt_id, "started_at": started, "attempts": attempts}
+        resources = load_resources()
+        if resources is not None:
+            # Scheduling is audit-only: it must not invalidate a successful
+            # teacher response cache or alter the actual bound request.
+            common["resource_supplement"] = resources[1]
+            common["effective_local_max_in_flight"] = self.coordinator.status()["max_in_flight"]
         save({**common, "status": "request_started", "attempt_started_at": started})
         artifacts = self.audit_dir / "pi-events" / identifier / attempt_id
         try:

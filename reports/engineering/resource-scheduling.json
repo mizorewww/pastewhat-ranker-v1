@@ -1,0 +1,76 @@
+{
+  "checks": {
+    "all_50_tasks_once_in_original_submission_order": true,
+    "bounded_first_submission": 6,
+    "explicit_zero_lease_activation": true,
+    "hard_pool_waits_base_train": true,
+    "provider_cooldown_survives_operator_release": true,
+    "readiness_metadata_only_budget_sequence": [
+      6,
+      8,
+      10,
+      12
+    ],
+    "real_preupgrade_success_cache_replays_without_process": 6,
+    "sticky_429_cap_survives_restart": true,
+    "synthetic_literal_429_does_not_reduce_cap": true
+  },
+  "created_at": "2026-09-21T07:17:52.444033+00:00",
+  "gpu_calls": 0,
+  "production_state_modified": false,
+  "real_cache_replays": [
+    {
+      "audit_id": "4d7f113062daa27ff926bfff03f040481c8bcc690d05dfc3407d3264a6b98582",
+      "phase": "v7-author",
+      "response_model": "swe-2-medium",
+      "unchanged_audit_sha256": "46d32ddc935067da073dffbe3eb330eb0ba88a5750717d054f97d7a5d9825b94"
+    },
+    {
+      "audit_id": "2f0670db504a8d7635800f77ba2b395330fb05beede9eb5f6e01b8a3d83fba20",
+      "phase": "v7-author",
+      "response_model": "swe-2-medium",
+      "unchanged_audit_sha256": "bbddc344f09c661044657a4b13c7a1d40727d893d49b0d58a7f744dd0f0f2feb"
+    },
+    {
+      "audit_id": "72f36f0783e688b7639c3f210c44239f48ef3ed85cb891f70326a1d18600f25a",
+      "phase": "v7-label",
+      "response_model": "swe-2-medium",
+      "unchanged_audit_sha256": "4a9f70af3c95481b0c290950fc5b0fae8de881b94f19bb17cb851cc8221708a7"
+    },
+    {
+      "audit_id": "8f65c3b8fb2312732529325ad9609b8df7937873acda5abdeeb36677147999a0",
+      "phase": "v7-label",
+      "response_model": "swe-2-medium",
+      "unchanged_audit_sha256": "5ba4fa9c386ac2457eb6fed3bb2153e7e8bdfad5aa30f40dcbe46b49938bbcce"
+    },
+    {
+      "audit_id": "57c364d1c5890ab10d10dfc76374742b9d28b8ab002f9384f038b48cbf9470ce",
+      "phase": "v7-sampled-or-risk-review",
+      "response_model": "swe-2-high",
+      "unchanged_audit_sha256": "46d7fbed0a05f66302d741b4fb7d5e31c1622b3d5d0439139c908f5377358665"
+    },
+    {
+      "audit_id": "f52e85e34891980749e062ebfd3885f73a579ed0113e94e047e5d8c387073560",
+      "phase": "v7-sampled-or-risk-review",
+      "response_model": "swe-2-high",
+      "unchanged_audit_sha256": "23ce34f991e37cfd7404cac699a905e03a8df1b535291b07069b6ee3708c92ae"
+    }
+  ],
+  "resource_supplement": {
+    "path": "configs/resource_supplement_swe2.json",
+    "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+  },
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "source_sha256": {
+    "data_tools/generate_v7.py": "d2508416c7a533cf749f13b9b51f2e37e707831d10767dbb93e10ba9f3b189c3",
+    "data_tools/hardening_v7.py": "d03204caf840227f7f74eca23b2b38e3dc071a51054877a9e5a1bc3afb0b9037",
+    "data_tools/pi_teacher.py": "b6e79cdfa3f8f95a14ea80e87d21051979370b398f560a58c844474df89cfa57",
+    "data_tools/produce_v7.py": "29c48f753395263ed145e254f67a291a57f14940cf00d6e4676109a1ef998271",
+    "data_tools/rate_limit.py": "99fae1b40dcad7ae2bef1f3f6677edacddb0fc76436799fe6f8e838dc1353962",
+    "data_tools/resources.py": "60d51eb1a8e8f4f70c3c9e3f06495cf828dbeb8b028ee085ce5ffde08088ba76"
+  },
+  "teacher_api_calls": 0,
+  "temporary_verification_directories_removed": true,
+  "version": "pastewhat-resource-scheduling-verification-v1"
+}

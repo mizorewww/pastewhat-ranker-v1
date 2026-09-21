@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import copy
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
@@ -18,6 +18,7 @@ from data_tools.freeze_v7 import try_freeze
 from data_tools.teacher import atomic_json, audit_source, canonical_bytes, make_teacher_client, observed_responses, sha256, teacher_source_counts, utc_now
 from data_tools.rate_limit import AccountCoordinator
 from data_tools.pi_teacher import pi_coordinator
+from data_tools.resources import bounded_futures, load_resources, worker_budget
 from data_tools.v7 import PROTOCOL, produce_batch
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import action_quotas, family_quotas, load_run_plan
@@ -192,6 +193,7 @@ def main():
     parser.add_argument("--hard-pool", action="store_true", help="New Train-only source pool for Dev-selected v0 mining")
     args = parser.parse_args()
     plan = load_run_plan(args.run_plan)
+    resources = load_resources(plan)
     if plan.document["teacher_contract_version"] != PROTOCOL:
         raise SystemExit("This producer only runs the registered v7 protocol")
     if args.hard_pool and args.split != "train":
@@ -230,21 +232,18 @@ def main():
         pending = [spec for spec in sources if not (batch_dir / (spec["batch_id"] + ".json")).is_file() or json.loads((batch_dir / (spec["batch_id"] + ".json")).read_text())["status"] != "complete"]
         scheduled += len(pending)
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            futures = {executor.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"])): spec["batch_id"] for spec in pending}
-            try:
-                for future in as_completed(futures):
-                    future.result()
-                    plan.verify_unchanged()
-                    result = publish_pool(base, args.split, plan, started, target=target)
-                    print(json.dumps(result, ensure_ascii=False), flush=True)
-                    if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else 1000):
-                        rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
-                        for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
-                            print(json.dumps({"frozen": frozen}), flush=True)
-            except BaseException:
-                for future in futures:
-                    future.cancel()
-                raise
+            submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]))
+            capacity = lambda: worker_budget(plan, args.split, args.workers, hard_pool=args.hard_pool)
+            for future in bounded_futures(executor, pending, submit, capacity):
+                future.result()
+                plan.verify_unchanged()
+                result = publish_pool(base, args.split, plan, started, target=target)
+                result["scheduler"] = {"submitted_task_limit": capacity(), "executor_max_workers": args.workers, "resource_supplement": resources[1] if resources else None}
+                print(json.dumps(result, ensure_ascii=False), flush=True)
+                if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else 1000):
+                    rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
+                    for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
+                        print(json.dumps({"frozen": frozen}), flush=True)
 
     run_sources(original_specs)
     if not args.max_batches:

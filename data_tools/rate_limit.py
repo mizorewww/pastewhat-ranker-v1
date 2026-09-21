@@ -118,6 +118,9 @@ class AccountCoordinator:
                 "in_flight": len(state["leases"]),
                 "max_in_flight": state["max_in_flight"],
                 "http_error_counts": dict(state["http_error_counts"]),
+                **({"pi_failure_counts": dict(state["pi_failure_counts"])} if "pi_failure_counts" in state else {}),
+                **({"resource_activation": state["resource_activation"]} if "resource_activation" in state else {}),
+                **({"resource_concurrency_reduction": state["resource_concurrency_reduction"]} if "resource_concurrency_reduction" in state else {}),
             }
 
     def record_console_reset(self, *, observed_at, countdown_seconds, safety_seconds, source_url):
