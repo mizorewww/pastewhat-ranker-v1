@@ -1,0 +1,106 @@
+{
+  "version": "heldout-pi-resource-window-v1",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "started_under_hold": true,
+  "resource_supplement": {
+    "path": "configs/resource_supplement_swe2.json",
+    "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+  },
+  "retirement_record_sha256": "53260df3a61f3512e1ed5200a4fa8cdcdf3e9309cfe641838995cb0afd572bfa",
+  "preservation_snapshot_sha256": "75d0dbdc1278c20639dc437a7bee5ab531c5169cd7fddbeb62e300832ff65335",
+  "captured_at": "2026-09-21T07:36:03.934540+00:00",
+  "student_inference_used": false,
+  "human_validated": false,
+  "splits": {
+    "calibration": {
+      "workers": 2,
+      "producer_pid": 59548,
+      "producer_alive": true,
+      "retained_before": 220,
+      "retained_at_report": 269,
+      "complete_batches_after_restart": 5,
+      "first_two_batches_replayed": 2,
+      "first_two_accepted_rows_replayed": 19,
+      "native_budget_label_and_resource_provenance_passed": true,
+      "successful_cache_files_unchanged": 83,
+      "original_raw_accepted_rows_unchanged": 221,
+      "original_complete_batches_unchanged": 27,
+      "new_scheduled_audit_statuses": {
+        "success": 13,
+        "request_started": 2
+      },
+      "reported_local_caps": {
+        "12": 15
+      },
+      "new_observed_usage": {
+        "observed_completions": 13,
+        "known_responses": 13,
+        "prompt_tokens": 42258,
+        "completion_tokens": 23976,
+        "total_tokens": 66234,
+        "reported_reasoning_tokens": 0
+      },
+      "new_failure_attempts": {},
+      "in_flight_usage_not_yet_observed": 2
+    },
+    "test": {
+      "workers": 2,
+      "producer_pid": 59558,
+      "producer_alive": true,
+      "retained_before": 209,
+      "retained_at_report": 248,
+      "complete_batches_after_restart": 4,
+      "first_two_batches_replayed": 2,
+      "first_two_accepted_rows_replayed": 20,
+      "native_budget_label_and_resource_provenance_passed": true,
+      "successful_cache_files_unchanged": 84,
+      "original_raw_accepted_rows_unchanged": 218,
+      "original_complete_batches_unchanged": 25,
+      "new_scheduled_audit_statuses": {
+        "success": 14,
+        "request_started": 2
+      },
+      "reported_local_caps": {
+        "12": 16
+      },
+      "new_observed_usage": {
+        "observed_completions": 14,
+        "known_responses": 14,
+        "prompt_tokens": 37269,
+        "completion_tokens": 23605,
+        "total_tokens": 60874,
+        "reported_reasoning_tokens": 0
+      },
+      "new_failure_attempts": {},
+      "in_flight_usage_not_yet_observed": 2
+    }
+  },
+  "shared_account": {
+    "paused": false,
+    "in_flight": 12,
+    "max_in_flight": 12,
+    "pi_failure_counts": {
+      "transient_transport": 1
+    }
+  },
+  "resource_activation": {
+    "activated_max_in_flight": 12,
+    "at": 1789975763.1650848,
+    "operator_drain_token": "b29fc23519b94683a53e2bce170d1dce",
+    "previous_max_in_flight": 6,
+    "provider_cooldown_preserved": true,
+    "resource_supplement": {
+      "path": "configs/resource_supplement_swe2.json",
+      "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+    }
+  },
+  "fallback_record": null,
+  "evaluator": {
+    "pid": 59864,
+    "phase": "waiting_for_real_training_and_heldout",
+    "student_test_started": false
+  },
+  "limitations": "A bounded real scheduling window, not a server-capacity guarantee or model-quality result. Previously partial accepted rows can enter retained totals when their batch completes. In-flight requests are excluded from known completion usage; provider counters are not a billing estimate.",
+  "completed_at": "2026-09-21T07:36:05.613458+00:00"
+}
