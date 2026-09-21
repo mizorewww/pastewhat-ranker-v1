@@ -1,0 +1,26 @@
+{
+  "scope": "independent root-agent review of Train-only numeric-capture v4 probe; not a Test result",
+  "human_validated": false,
+  "input_sha256": "1f4e02d2971de55c43ae83ac54d00feffe1594266bb11040cac535784b65b4a9",
+  "reviewed": 1,
+  "approved": 0,
+  "requires_regeneration": 1,
+  "findings": [
+    {
+      "id": "train-main-v4-git_diff_selection-00008",
+      "visible_sha256": "75ab487b1c2395121da52674aa63010e1c9527a2b66ab3fc52ea192e953edb0e",
+      "content_sha256": "d02988606fb622e660950a391fecc057c391e76c65ba2ad96c41a84d34c52993",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2"
+        ],
+        "decision": "select"
+      },
+      "paste_position_valid": true,
+      "issue": "The visible comparison request does not explicitly specify old-to-new transformation direction or output constraints; a unique acceptable set containing only the forward diff is not sufficiently supported. Reverse diff also compares the same pair; git-show equivalence depends on unspecified parent structure/output requirements.",
+      "disposition": "Retain original label and provenance in quarantine. Regenerate a clearly constrained task or obtain independent agreement on the full interchangeable acceptable set; do not manually relabel.",
+      "label_certainty": "Unresolved acceptable-set completeness, not a claim that a specific alternative is always correct."
+    }
+  ]
+}
