@@ -294,6 +294,22 @@ class Generator:
                                   "failed_batches": sum(row["status"] != "accepted" for row in completed)}, ensure_ascii=False), flush=True)
         failures = [row["key"] for row in completed if row["status"] != "accepted"]
         episodes = sorted([episode for row in completed for episode in row.get("episodes", [])], key=lambda row: row["id"])
+        allowed_families = {family["id"] for family in families}
+        for episode in episodes:
+            if episode["family_id"] not in allowed_families:
+                raise ValueError("Episode crossed the frozen conceptual family partition")
+            validate_label(episode)
+            if any(not episode.get("teacher", {}).get(key) for key in
+                   ("generation_audit_id", "label_audit_id", "blind_label_audit_id", "review_audit_id")):
+                raise ValueError("Evaluator episode is missing a required teacher review gate")
+            prepared = self.preprocessor.prepare_episode(episode)
+            if prepared["context"] != episode["context"] or prepared["entries"] != episode["entries"]:
+                raise ValueError("Saved teacher input is not idempotent under production preprocessing")
+            if prepared["preprocessing"]["visible_sha256"] != episode["teacher"]["visible_sha256"]:
+                raise ValueError("Teacher-labeled visible content changed before freeze")
+            encoded = self.preprocessor.encode_episode(episode)
+            if not 1 <= len(encoded["input_ids"]) <= 20 or any(len(tokens) > 1024 for tokens in encoded["input_ids"]):
+                raise ValueError("Episode violated deployment candidate count or pair budget")
         visible_hashes = [content_fingerprint(row) for row in episodes]
         if len(visible_hashes) != len(set(visible_hashes)):
             raise ValueError("duplicate model-visible episodes in evaluator split")
