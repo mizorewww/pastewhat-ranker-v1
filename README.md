@@ -1,6 +1,6 @@
 # PasteWhat-Ranker-v1
 
-A candidate-aware clipboard ranker distilled from **`kimi-for-coding`** into the original, non-quantized **Laya-multilingual encoder**. It scores 1–20 existing clipboard entries and can abstain. It does not generate paste content or chain-of-thought targets.
+A candidate-aware clipboard ranker distilled into the original, non-quantized **Laya-multilingual encoder**. Data production now uses Pi's **`devin/swe-2`** under an explicit teacher transition; earlier valid **`kimi-for-coding`** data retain their original attribution. It scores 1–20 existing clipboard entries and can abstain. It does not generate paste content or chain-of-thought targets.
 
 **Training and data production are in progress. No trained, calibrated or accepted release is claimed yet.** The implemented model and passing engineering checks below establish that the pipeline runs, not that recommendation accuracy has improved. See [execution status](RUN_STATUS.md) for completed and remaining work.
 
@@ -56,7 +56,7 @@ uv run pastewhat-ranker-init --output checkpoints/initial
 
 Initialization resolves only the frozen upstream revision and checks weight/config/tokenizer hashes. If it is already cached locally, `--source /path/to/original/checkpoint` avoids a download. The initializer rejects rounded MLX exports as initialization sources.
 
-Teacher credentials are supplied through `KIMI_API_KEY` or the private local credential file described in [data production](docs/DATA_PRODUCTION.md). Never put keys in command-line arguments, this repository or dataset artifacts. Kimi requests retain the client's real identity. `kimi-for-coding` is the requested model ID; real responses and token usage are audited because the service behind an alias may change.
+New teacher calls use the existing Pi/Devin login through an isolated, single-completion bridge. [The teacher transition](docs/PI_TEACHER.md) documents the exact runtime/model mapping, retained Kimi data, per-role source attribution and token accounting. No workspace context or tools enter teacher requests. Kimi production was retired after the user's provider switch; its existing credentials and quota state are not used as an automatic fallback. Never put credentials in command-line arguments, this repository or dataset artifacts. Both teachers are rolling services; actual responses, model strings and observed token usage are audited.
 
 The first actual full-encoder engineering run has passed: 32 independently reviewed Train episodes were fitted in six epochs / 24 updates, with 32/32 correct decisions in both PyTorch and the converted MLX FP16 model. The maximum cross-backend score difference was 0.0282. This is **same-training-set fit**, not benchmark accuracy; the checkpoint is not a publishable ranker. [The complete report](reports/training/overfit-and-mlx-parity.json) includes counts, timings, hashes and per-episode conversion differences. The short-sample throughput measurement selected micro-batch 4 with effective batch 16; realistic training duration must be remeasured as full-length examples arrive.
 

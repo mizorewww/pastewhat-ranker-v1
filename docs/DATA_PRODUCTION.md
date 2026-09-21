@@ -1,5 +1,33 @@
 # Teacher decision-label distillation
 
+The current production run is `ranker-v1-efficient-20260921`, registered in
+[`configs/run_plan_efficient.json`](../configs/run_plan_efficient.json): 20,000
+Train, 2,000 Dev, 2,000 Calibration and 3,000 Test episodes, followed by 5,000
+accepted new hard examples mixed with 5,000 original Train examples. The 5k/10k
+pilots are nested subsets and are not counted as new data.
+
+Current protocol v7 uses batched authorship, the native Swift projection and
+student token budget, then compact independent blind labeling. Programmatic
+checks precede labeling. A preselected 10% sample and uncertainty-triggered cases
+receive an additional blind review; actual coverage is recorded per episode.
+All valid 1–20 candidates are retained. Disagreement is quarantined, and original
+labels are not edited to meet quotas or favor the student.
+
+The user switched future teacher calls to **Pi `devin/swe-2`** after Kimi's
+five-hour quota was exhausted on 2026-09-21. The existing 404 accepted v7 rows and
+valid cached author drafts retain their original provenance. New calls use the
+isolated bridge and existing Pi/Devin login described in
+[the transition protocol](PI_TEACHER.md). Author, primary labeler and additional
+reviewer sources are reported separately. The original plan, split partition,
+preprocessing and quality gates remain fixed.
+
+## Historical protocols and previous run
+
+The following records explain the earlier v1–v6 implementation and its cost and
+correctness findings. Its Kimi commands, four-pass label checks, smaller quotas
+and credentials are historical; they are not the current v7 production command
+or an instruction to resume Kimi calls.
+
 The registered first local run is `ranker-v1-local-20260921`: 1,000 Train,
 200 Dev, 400 Calibration and 600 Test episodes, with a 500-row Train pilot.
 `configs/run_plan.json` fixes these targets and its SHA before formal generation.

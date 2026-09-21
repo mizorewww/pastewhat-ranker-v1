@@ -99,6 +99,38 @@ def training_provenance_files(frozen: dict, plan, reference: Path, deployment: P
     return copies, index
 
 
+def teacher_provenance_files(frozen: dict, plan) -> tuple[list[tuple[Path, str]], dict]:
+    """Bundle only the public teacher policy that was fixed before final Test."""
+    policy_path = ROOT / "configs/teacher_transition_swe2.json"
+    if plan is None or not policy_path.is_file():
+        return [], {}
+    policy = read_json(policy_path)
+    if policy.get("run_id") != plan.run_id:
+        return [], {}
+    if (policy.get("version") != "pastewhat-teacher-transition-v1"
+            or policy.get("run_plan_sha256") != plan.sha256):
+        raise ValueError("Teacher transition belongs to a different run plan")
+    pins_path = ROOT / "provenance/pi-swe2-runtime.json"
+    runtime = policy.get("runtime", {})
+    if (runtime.get("pins_path") != str(pins_path.relative_to(ROOT))
+            or runtime.get("pins_sha256") != digest(pins_path)):
+        raise ValueError("Teacher runtime pins differ from the transition policy")
+    for source in (policy_path, pins_path):
+        if not any(Path(record.get("path", "")).resolve() == source.resolve()
+                   and record.get("sha256") == digest(source)
+                   for record in frozen["inputs"].values()):
+            raise ValueError("Public teacher provenance was not frozen before Test: " + source.name)
+    pins = read_json(pins_path)
+    index = {"version": "pastewhat-bundled-teacher-transition-v1",
+             "policy_sha256": digest(policy_path), "runtime_pins_sha256": digest(pins_path),
+             "previous_requested_model": policy["previous_teacher"]["requested_model"],
+             "transport": policy["transport"], "provider": policy["provider"],
+             "requested_model": policy["model"], "effective_model_mapping": pins["model_mapping"],
+             "source_counts": "See actual author/primary/reviewer distributions in data_manifest.json"}
+    return [(policy_path, "provenance/teacher-transition.json"),
+            (pins_path, "provenance/pi-swe2-runtime.json")], index
+
+
 def model_card(metrics: dict, release_status: str, release_commit: str, manifest: dict) -> str:
     current, previous = metrics["ranker"]["overall"], metrics["baseline"]["overall"]
     passed = release_status == "accepted_on_frozen_synthetic_benchmark"
@@ -113,6 +145,14 @@ def model_card(metrics: dict, release_status: str, release_commit: str, manifest
              + ("The pre-registered run plan and its measured cost rationale are bundled in `run_plan.json`. "
                 "These are the actual registered sizes, not a claim that the original suggested sizes were completed."
                 if manifest.get("run_plan_sha256") else "These are the original suggested split sizes."))
+    teacher = (
+        "The data retain the original `kimi-for-coding` examples and use Pi's `devin/swe-2` "
+        "for subsequent authorship, labeling and blind review under the user-authorized transition. "
+        "Cached original author drafts retain their Kimi attribution when later labels come from SWE-2. "
+        "The bundled `provenance/teacher-transition.json` and runtime pins document the change; "
+        "`data_manifest.json` reports actual teacher sources separately for each role."
+        if manifest.get("teacher_transition") else "The teacher is `kimi-for-coding`."
+    )
     return f"""---
 license: apache-2.0
 base_model: convaiinnovations/laya-multilingual
@@ -131,7 +171,7 @@ tags:
 
 This model scores **existing** clipboard candidates and may return `null`. It does not generate paste contents or chain-of-thought. The encoder is fully fine-tuned from the original non-quantized Laya-multilingual checkpoint at revision `{SOURCE_REVISION}`. Its original task heads and calibration are replaced with a candidate scoring head and a candidate-group-aware abstention head.
 
-The teacher is `kimi-for-coding`. Training targets are independently checked decision labels, not teacher logits or reasoning traces. All reported quality data are synthetic; agent and teacher review is **not independent human validation**, and these metrics do not establish real-user accuracy.
+{teacher} Training targets are decision labels with recorded validation and blind-review coverage, not teacher logits or reasoning traces. All reported quality data are synthetic; agent and teacher review is **not independent human validation**, and these metrics do not establish real-user accuracy.
 
 | Frozen Test metric | Existing PasteWhat workflow | This release |
 |---|---:|---:|
@@ -262,6 +302,7 @@ def assemble(args) -> dict:
         if split in ("calibration", "test") and record["sha256"] != frozen["inputs"][split]["sha256"]:
             raise ValueError(f"Data manifest {split} differs from the final freeze")
     training_files, training_index = training_provenance_files(frozen, plan, args.reference, args.deployment, data_manifest)
+    teacher_files, teacher_index = teacher_provenance_files(frozen, plan)
     release_status = "accepted_on_frozen_synthetic_benchmark" if accepted else "research_candidate_quality_targets_not_met"
     code_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -306,12 +347,15 @@ def assemble(args) -> dict:
             for source, destination in training_files:
                 copy_file(source, staging / destination)
             write_json(staging / "provenance/training/index.json", training_index)
+        for source, destination in teacher_files:
+            copy_file(source, staging / destination)
         manifest = {"version": "pastewhat-release-bundle-v1", "model_name": "PasteWhat-Ranker-v1",
                     "status": release_status, "created_at": datetime.now(timezone.utc).isoformat(),
                     "code_commit": code_commit, "freeze_sha256": freeze_hash,
                     "reference_weight_sha256": reference_hash, "mlx_weight_sha256": mlx_hash,
                     "synthetic_only": True, "human_validated": False, "split_targets": split_targets,
                     "training_handoff_sha256": training_index.get("training_handoff_sha256"),
+                    "teacher_transition": teacher_index,
                     **(plan.binding() if plan else {})}
         card = model_card(metrics, release_status, code_commit, manifest)
         (staging / "README.md").write_text(card)
