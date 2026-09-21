@@ -1,9 +1,12 @@
 {
   "repository": "https://github.com/mizorewww/pastewhat",
-  "commit": "64e8817",
+  "commit": "c0657c0ce0e667e8fe452cd3e6efa033e5c6ed2f",
+  "capture_format": "pastewhat-focus-v1",
   "sources": {
-    "RecommendationContext.swift": "0b72cd4c7e7c4859b68ed41ce3eed52b28f00557698b72a3a93bdf7a1f206561",
-    "ProjectSyntheticContext.swift": "5c0295c9ee8af565e0879733dee7702de62b2b142b91377de5eb7804594d23c2",
-    "Models.swift": "942e3f8b0a1538d3726309c9af2af2d076d4aec2cd6bad1e5a04e201535e7cf8"
-  }
+    "FocusText.swift": "2eb7a7baa337e311de003811460606e8f76ef2411e52c17327eac43bd428addd",
+    "Models.swift": "942e3f8b0a1538d3726309c9af2af2d076d4aec2cd6bad1e5a04e201535e7cf8",
+    "ProjectSyntheticContext.swift": "e4bef1145637f2cb9930b01c6be69f65b05536687f4bcbcda18d54d69292935f",
+    "RecommendationContext.swift": "0b72cd4c7e7c4859b68ed41ce3eed52b28f00557698b72a3a93bdf7a1f206561"
+  },
+  "capture_reader_sha256": "04f272ee664ba74fd0022019ba003c1f87bfa219f271f6cdbf6b2fc5f4466f4d"
 }

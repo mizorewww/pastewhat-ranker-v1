@@ -1,0 +1,32 @@
+{
+  "scope": "synthetic engineering verification, not recommendation accuracy",
+  "app_commit": "c0657c0ce0e667e8fe452cd3e6efa033e5c6ed2f",
+  "capture_format": "pastewhat-focus-v1",
+  "native_source_hashes": {
+    "FocusText.swift": "2eb7a7baa337e311de003811460606e8f76ef2411e52c17327eac43bd428addd",
+    "Models.swift": "942e3f8b0a1538d3726309c9af2af2d076d4aec2cd6bad1e5a04e201535e7cf8",
+    "ProjectSyntheticContext.swift": "e4bef1145637f2cb9930b01c6be69f65b05536687f4bcbcda18d54d69292935f",
+    "RecommendationContext.swift": "0b72cd4c7e7c4859b68ed41ce3eed52b28f00557698b72a3a93bdf7a1f206561"
+  },
+  "passed_checks": [
+    "known empty field plus actual static help",
+    "native input surface inference",
+    "already projected context idempotence",
+    "UTF-16 emoji selection round trip",
+    "JSON escaping and unknown selection representation"
+  ],
+  "rejected_inputs": [
+    "mismatched selected text",
+    "partially missing selection offsets",
+    "split UTF-16 surrogate pair",
+    "out of bounds selection",
+    "conflicting raw and projected context",
+    "capture without AX access",
+    "secure field capture content",
+    "oversized adjacent static text",
+    "extra intent field",
+    "boolean selection offset"
+  ],
+  "live_AX_permission_validation": false,
+  "temporary_test_files_retained": false
+}
