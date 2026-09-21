@@ -32,6 +32,16 @@ already excluded content. Teacher rationales are not requested and never enter
 student inputs. Source family and recipe are authoring/audit lineage, never
 evidence for a user's intention in a blind label request.
 
+Candidate count is a sampling target, not an exact-integer admission gate.
+Complete author arrays containing 1–20 entries are retained unchanged and
+labeled only after native projection/budgeting of that actual array. The record
+stores planned count, actual count and their difference; empty or over-20 arrays
+remain invalid. Previously unaccepted count/format failures may reuse their
+original successful author response for a new blind label, with a separate
+recovery record and no extra author call. Semantic rejections and existing
+accepted rows are excluded from this path. Actual count coverage and its
+relationship to action/language are reported.
+
 Within the unchanged 10% missing-intent quota, the initial plan assigns 40% to
 no accessibility and 20% to a generic field without task text. This means
 Calibration 80/40 and Test 120/60. The remaining slots use the standard view.

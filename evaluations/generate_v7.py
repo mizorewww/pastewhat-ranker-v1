@@ -72,6 +72,64 @@ def planned_batches(plan, partition: dict, split: str, batch_size: int) -> list[
     return batches
 
 
+def recover_cached_authors(record_path, *, client, preprocessor, claim, already_accepted):
+    """Relabel previously unaccepted native-valid drafts without another author.
+
+    Original records and labels remain unchanged. A semantic rejection is never
+    rescued by this structural recovery path.
+    """
+    from data_tools.v7 import prepare_author_batch, produce_batch
+    original = json.loads(record_path.read_text())
+    semantic_rejections = {row["id"] for row in original["rejected"] if "id" in row and "original_label" in row}
+    pending = {p["id"]: p for p in original["spec"]["plans"] if p["id"] not in already_accepted | semantic_rejections}
+    recovered = []
+    for identifier in original["audit_ids"]:
+        if not pending:
+            break
+        audit_path = client.audit_dir / (identifier + ".json")
+        audit = json.loads(audit_path.read_text())
+        if audit.get("phase") != "v7-author" or audit.get("status") != "success":
+            continue
+        author = TeacherClient._result(audit, cache_hit=True)
+        prepared, _ = prepare_author_batch(author.parsed, list(pending.values()), original["spec"]["profile"], preprocessor)
+        eligible = {row["id"] for row in prepared}
+        if not eligible:
+            continue
+        spec = {**original["spec"], "batch_id": original["spec"]["batch_id"] + "-cached-" + identifier[:12],
+                "plans": [p for p in pending.values() if p["id"] in eligible],
+                "cached_author_recovery": {"original_batch_path": str(record_path), "original_batch_sha256": sha256(record_path),
+                    "original_author_audit_id": identifier, "original_author_request_sha256": audit["request_sha256"],
+                    "original_labels_changed": False, "additional_author_calls_allowed": False}}
+        destination = record_path.parent / "recovery" / (spec["batch_id"] + ".json")
+        result = produce_batch(spec, client=client, preprocessor=preprocessor, destination=destination,
+                               claim=claim, cached_author=author)
+        recovered.append(result)
+        already_accepted.update(row["id"] for row in result["accepted"])
+        # This draft group gets one recovery label path. Do not try another
+        # author's version after a semantic disagreement or format failure.
+        for key in eligible:
+            pending.pop(key, None)
+    return recovered
+
+
+def original_author_cache(spec, client):
+    cache = {}
+    expected_ids = {plan["id"]: plan for plan in spec["plans"]}
+    for path in sorted(client.audit_dir.glob("*.json")):
+        audit = json.loads(path.read_text())
+        if audit.get("phase") != "v7-author" or audit.get("status") != "success":
+            continue
+        for attempt in (0, 1):
+            if audit.get("request_id") != spec["batch_id"] + f"-a{attempt}":
+                continue
+            request = json.loads(audit["request"]["messages"][1]["content"])
+            if (request.get("mother_task") != spec["mother_task"] or request.get("field_profile") != spec["profile"] or
+                    any(expected_ids.get(plan["id"]) != plan for plan in request.get("plans", []))):
+                raise ValueError("Cached author source does not match its original heldout plan")
+            cache.setdefault(attempt, TeacherClient._result(audit, cache_hit=True))
+    return cache
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-plan", type=Path, required=True)
@@ -79,6 +137,7 @@ def main():
     parser.add_argument("--max-batches", type=int, required=True, help="Explicit cost-check work limit; this command does not freeze a partial dataset")
     parser.add_argument("--batch-size", type=int, default=10, choices=(10, 20))
     parser.add_argument("--workers", type=int, default=1, choices=(1, 2))
+    parser.add_argument("--recover-cached", action="store_true", help="Reuse unaccepted author drafts after the authorized native count/label-format fix; no additional author calls")
     parser.add_argument("--tokenizer", type=Path, default=Path("../laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
     if args.max_batches < 1:
@@ -97,15 +156,22 @@ def main():
                       "shared_producer_sha256": sha256("data_tools/v7.py"),
                       "family_partition_sha256": sha256("data_tools/family_partition.json")}
     binding_path = directory / "owner-binding.json"
-    if binding_path.exists() and json.loads(binding_path.read_text()) != source_binding:
-        raise SystemExit("Heldout v7 owner sources changed after authoring began")
+    if binding_path.exists():
+        previous = json.loads(binding_path.read_text())
+        if ({key: value for key, value in previous.items() if key != "shared_producer_sha256"} !=
+                {key: value for key, value in source_binding.items() if key != "shared_producer_sha256"}):
+            raise SystemExit("Heldout v7 owner sources changed after authoring began")
+        if previous != source_binding:
+            atomic_json(directory / "producer-revisions" / (previous["shared_producer_sha256"] + ".json"), previous)
     atomic_json(binding_path, source_binding)
     client = TeacherClient(Path("local/teacher-v7") / plan.run_id / args.split)
     preprocessor = Preprocessor(args.tokenizer)
     content_ids = {}
-    for path in directory.glob(plan.run_id + "-*.json"):
+    already_accepted = set()
+    for path in directory.rglob(plan.run_id + "-*.json"):
         for row in json.loads(path.read_text()).get("accepted", []):
             content_ids.setdefault(content_fingerprint(row), row["id"])
+            already_accepted.add(row["id"])
     exclusion_path = Path("local/evaluator-quality-exclusions") / (args.split + ".json")
     excluded = set(json.loads(exclusion_path.read_text())["content_fingerprints"]) if exclusion_path.is_file() else set()
     content_lock = threading.Lock()
@@ -121,7 +187,8 @@ def main():
     totals = Counter()
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = [executor.submit(produce_batch, batch, client=client, preprocessor=preprocessor,
-                                   destination=directory / (batch["batch_id"] + ".json"), claim=claim) for batch in batches]
+                                   destination=directory / (batch["batch_id"] + ".json"), claim=claim,
+                                   author_cache=original_author_cache(batch, client)) for batch in batches]
         for future in as_completed(futures):
             result = future.result()
             totals["completed_batches"] += 1
@@ -135,6 +202,16 @@ def main():
                       "counts": dict(totals), "student_scoring_allowed": False}
             atomic_json(directory / "progress.json", report)
             print(json.dumps(report), flush=True)
+    if args.recover_cached:
+        for batch in batches:
+            path = directory / (batch["batch_id"] + ".json")
+            already_accepted.update(row["id"] for row in json.loads(path.read_text())["accepted"])
+        for batch in batches:
+            recover_cached_authors(directory / (batch["batch_id"] + ".json"), client=client,
+                                   preprocessor=preprocessor, claim=claim, already_accepted=already_accepted)
+        atomic_json(directory / "cached-recovery-progress.json", {**source_binding, "split": args.split,
+                    "retained_unique": len(already_accepted), "student_scoring_allowed": False,
+                    "recovery_additional_author_calls": 0})
     plan.verify_unchanged()
 
 
