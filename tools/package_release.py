@@ -295,6 +295,14 @@ def assemble(args) -> dict:
             copy_file(plan.path, staging / "run_plan.json")
             copy_file(ROOT / "run_contract.py", staging / "provenance/run_contract.py")
             copy_file(ROOT / "RUN_PLAN_FORMAT.md", staging / "provenance/RUN_PLAN_FORMAT.md")
+            # The plan binds these public aggregate reports by hash. Preserve
+            # their relative paths so the scale rationale remains reviewable
+            # in the downloaded bundle without any private teacher examples.
+            for record in plan.document["cost_evidence"]:
+                source = ROOT / record["path"]
+                if digest(source) != record["sha256"]:
+                    raise ValueError("Registered planning evidence changed during packaging")
+                copy_file(source, staging / record["path"])
             for source, destination in training_files:
                 copy_file(source, staging / destination)
             write_json(staging / "provenance/training/index.json", training_index)

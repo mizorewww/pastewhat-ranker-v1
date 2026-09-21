@@ -11,7 +11,7 @@ only the plan, fixed source contracts and bound aggregate cost reports; it never
 opens examples or labels. The original `data_tools/family_partition.json` stays
 unchanged so the completed engineering checks retain their provenance.
 
-A production plan has exactly these keys:
+A production plan has these required keys:
 
 - `version`: `pastewhat-run-plan-v1`
 - `run_id`: a new lowercase identifier, at most 64 letters, digits, `_` or `-`
@@ -29,6 +29,13 @@ A production plan has exactly these keys:
 - `registered_at`, `registration_reason`: timestamp and evidence-based decision
 - `cost_evidence`: one or more `{"path":"relative aggregate report","sha256":"..."}`
 - `quality_gates`: the unchanged quality requirements shown below
+
+The optional `diagnostic_episodes` field registers an intermediate Train subset
+strictly larger than the pilot and smaller than main Train. It uses the same
+seed and training hyperparameters as the pilot, starts from the same original
+initialization, and is compared on the same Dev snapshot. It does not add unique
+examples to the main Train count. Plans without this field preserve their prior
+behavior and hashes.
 
 ```json
 {
@@ -59,7 +66,7 @@ configuration; each formal run still starts its encoder from the original
 checkpoint rather than from that engineering checkpoint or the pilot.
 
 `data_path(stage)` provides stable paths under `data/frozen/<run_id>/` for
-`pilot`, `train`, `dev` and `hardening`. Heldout paths remain under
+`pilot`, `diagnostic`, `train`, `dev` and `hardening`. Heldout paths remain under
 `local/evaluator-heldout/<run_id>/`. `pipeline_directory`, `checkpoint_directory`
 and `report_directory` separate execution state and artifacts by run identity.
 These are repository-relative paths; the existing commands run from the repository
