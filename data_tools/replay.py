@@ -20,6 +20,9 @@ class ReplayVerifier:
         self.split = split
         self.preprocessor = preprocessor
         self.projection_sha = sha256((self.root / "tools/context_projection/provenance.json").read_bytes())
+        # Commit 40140cf predates only the explicit-fragment authoring adapter.
+        # It used the identical FocusText native formatter and remains replayable.
+        self.compatible_projection_shas = {self.projection_sha, "d9f70061a1a4348e41e2b58f9311b2011c4f8e94212c7ff8480cfd8e2867e3ab"}
 
     @functools.lru_cache(maxsize=256)
     def audit(self, identifier, phase="main"):
@@ -43,11 +46,12 @@ class ReplayVerifier:
         return matches[0]
 
     def verify(self, episode):
-        from data_tools.generate import validate_generated, validate_labels
+        from data_tools.generate import LABEL_SYSTEM, PARTITION_PATH, validate_generated, validate_labels
+        from data_tools.audit import AUDIT_SYSTEM
         from tools.project_context import project_context
 
         provenance = episode["provenance"]
-        if provenance.get("capture_format") != "pastewhat-focus-v1" or provenance.get("projection_provenance_sha256") != self.projection_sha:
+        if provenance.get("capture_format") != "pastewhat-focus-v1" or provenance.get("projection_provenance_sha256") not in self.compatible_projection_shas:
             raise ValueError("Formal data lacks the pinned native capture provenance")
         phase = provenance.get("generation_phase", "main")
         _, generated = self.audit(provenance["generation_audit_id"], phase)
@@ -64,6 +68,8 @@ class ReplayVerifier:
             raise ValueError("Raw authoring capture must stay out of the prepared dataset")
 
         first_audit, first_output = self.audit(provenance["label_audit_id"], phase)
+        if first_audit["request"]["messages"][0]["content"] != LABEL_SYSTEM:
+            raise ValueError("Original first teacher label used a different annotation protocol")
         first_input = self.visible_match(first_audit, episode)
         first_annotation = next(item for item in first_output["labels"] if item["id"] == first_input["id"])
         validate_labels({"labels": [first_annotation]}, [first_input], require_quoted=True)
@@ -71,6 +77,8 @@ class ReplayVerifier:
             raise ValueError("Stored decision label differs from the original teacher annotation")
 
         second_audit, second_output = self.audit(provenance["blind_label_audit_id"], phase)
+        if second_audit["request"]["messages"][0]["content"] != LABEL_SYSTEM:
+            raise ValueError("Original blind teacher label used a different annotation protocol")
         second_input = self.visible_match(second_audit, episode, ignore_order=True)
         second_annotation = next(item for item in second_output["labels"] if item["id"] == second_input["id"])
         validate_labels({"labels": [second_annotation]}, [second_input], require_quoted=True)
@@ -93,6 +101,11 @@ class ReplayVerifier:
             raise ValueError("Reason-agreement provenance differs from the teacher responses")
 
         family_audit, family_output = self.audit(provenance["family_review_audit_id"], phase)
+        family_request = json.loads(family_audit["request"]["messages"][1]["content"])
+        partition = json.loads(PARTITION_PATH.read_text())
+        expected_taxonomy = [item for families in partition["families"].values() for item in families]
+        if family_audit["request"]["messages"][0]["content"] != AUDIT_SYSTEM or family_request.get("operation_taxonomy") != expected_taxonomy or set(family_request) != {"operation_taxonomy", "episodes"}:
+            raise ValueError("Family review was not blind under the frozen complete taxonomy")
         family_input = self.visible_match(family_audit, episode)
         review = next(item for item in family_output["reviews"] if item["id"] == family_input["id"])
         if review.get("observed_family_id") != episode["family_id"] or review.get("secondary_family_ids") or review.get("deployment_visible") is not True or review.get("payload_metadata_consistent") is not True:

@@ -30,8 +30,8 @@ repeating a rolling teacher request will reproduce its completion.
    If an independently agreed label misses the planned sampling bucket, its
    original label stays in quarantine and that slot receives a newly authored
    example. The two ambiguity reasons may share the final 10% bucket.
-2. Authors supply a separate `capture` object containing the real focused-field
-   text window, exact UTF-16 selection range (or unknown), and bounded static
+2. Authors supply a separate `capture` object containing literal text before and
+   after the selected text (or an unknown-range text window), and bounded static
    sibling guidance. Raw `context.surroundingText` is empty. The pinned original
    PasteWhat Swift formatter renders `pastewhat-focus-v1` JSON with actual text
    before/after the selection and nearby static labels. Its real field metadata
@@ -39,6 +39,12 @@ repeating a rolling teacher request will reproduce its completion.
    imaginary selection, another editable field or an intent-based surface oracle.
    Capture offsets/content and impossible no-AX observations are rejected by
    the production Swift implementation. Raw capture never enters student input.
+   The shared convenience adapter calculates UTF-16 offsets from those explicit
+   strings; it never guesses a caret from the requested label. The original four
+   numeric capture keys remain supported for exact replay of already valid data.
+   First-probe numeric rows are reused only after native feature replay and
+   checking their original two label requests and blind family review under the
+   current annotation prompts. Their original labels and features remain intact.
 3. The shared student `Preprocessor` sanitizes and clips the episode. Metadata and
    special tokens have 64 tokens, visible context 448, and candidate text 512.
    All candidates are retained, and each final pair is at most 1,024 tokens.

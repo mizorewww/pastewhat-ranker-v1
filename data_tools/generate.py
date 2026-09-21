@@ -56,19 +56,22 @@ hasAccessibility=true whenever any field label, selected text, or surrounding te
 is present. With hasAccessibility=false those fields and fieldRole are empty.
 context.surroundingText MUST be empty in authoring. Actual surroundingText is
 computed by production Swift from the separate capture object, then budgeted.
-capture has EXACTLY textWindow, selectionLocation, selectionLength, nearbyText.
-textWindow is the real focused control's current text, at most 1700 characters.
-selectionLocation/selectionLength are nonnegative UTF-16 integer offsets within
-that window, or BOTH null if no range is observable. Its exact selected substring
-MUST equal context.selectedText. An empty field uses textWindow="", location=0,
-length=0, selectedText="". Prefer this simple real empty-field case. For a whole
-selection, location=0 and length is that string's UTF-16 length; do not invent or
-miscount offsets. Unknown selection requires empty selectedText.
-nearbyText is at most four actual static sibling labels/headings (each <=240
-characters, total <=600), not another editable field, whole document, or hidden
+For a KNOWN selection/caret, capture has EXACTLY beforeSelection, afterSelection,
+nearbyText. The current field text is beforeSelection + context.selectedText +
+afterSelection. These are literal strings at the real selection, not guesses.
+The production adapter computes UTF-16 offsets; DO NOT count or emit numeric
+selection offsets. An empty field uses beforeSelection="", afterSelection="",
+selectedText="". For a whole-field replacement before/after are both empty and
+selectedText is the exact current entire value. Prefer simple real empty fields.
+For an UNKNOWN selection, capture has EXACTLY textWindow, nearbyText and
+context.selectedText="". textWindow is the observable current field text.
+The assembled field window is at most1700 characters.
+nearbyText is at most FOUR actual static sibling labels/headings (each <=240
+characters, total <=600); prefer 1–2 short strings below150 characters each.
+It is not another editable field, whole document, terminal scrollback, or hidden
 user intention. It may contain realistic adjacent instructions in a form or task
 editor. Put deciding evidence in real selected/current field text or such nearby
-static guidance. With no accessibility, capture is empty with both offsets null.
+static guidance. With no accessibility, use {"textWindow":"","nearbyText":[]}.
 Never put ___, <cursor>, [cursor], or a guessed insertion marker into the window.
 For HTTP methods prefer a real empty method textbox beside request-editor help;
 for commands an empty command editor may have nearby visible task guidance.
@@ -249,6 +252,15 @@ def validate_generated(value, plans):
             raise ValueError("Secure contexts do not belong in supervised inference data")
         if episode["context"].get("inputSurface") not in SURFACES:
             raise ValueError("Unknown deployment input surface")
+        if episode["context"].get("surroundingText"):
+            raise ValueError("Raw surroundingText must be empty; author literal capture fragments instead")
+        nearby = episode.get("capture", {}).get("nearbyText")
+        if not isinstance(nearby, list) or any(not isinstance(value, str) for value in nearby):
+            raise ValueError("capture.nearbyText must be an array of strings")
+        if len(nearby) > 4:
+            raise ValueError(f"capture.nearbyText has {len(nearby)} strings; at most FOUR static sibling strings are obtainable")
+        if any(len(value) > 240 for value in nearby) or sum(len(value) for value in nearby) > 600:
+            raise ValueError("Static sibling guidance exceeds the 240-per-string or 600-total limit; author shorter genuine labels")
         if episode["context"].get("hasAccessibility") is not True and any(episode["context"].get(key) for key in ("fieldLabel", "fieldRole", "selectedText", "surroundingText")):
             raise ValueError("No accessibility context may expose field information")
         for entry in episode["entries"]:
@@ -349,20 +361,23 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
     if output_path.is_file():
         stored = json.loads(output_path.read_text())
         if stored.get("contract_sha256") != contract_hash:
-            raise ValueError("Cannot reuse batch under a changed generation/preprocessing contract")
-        if all(episode.get("provenance", {}).get("family_review_audit_id") and episode.get("provenance", {}).get("blind_label_audit_id") for episode in stored["episodes"]):
+            stored = migrate_authoring_cache(stored, batch, split, preprocessor, contract_hash, batch_dir)
+            atomic_json(output_path, stored)
+        complete = {episode["id"] for episode in stored["episodes"]} == {plan["id"] for plan in batch["plans"]}
+        if complete and all(episode.get("provenance", {}).get("family_review_audit_id") and episode.get("provenance", {}).get("blind_label_audit_id") for episode in stored["episodes"]):
             return stored
         usage.update(stored.get("usage", {}))
-        reviews = review_group(stored["episodes"], batch["family"], client)
-        for episode, review in zip(stored["episodes"], reviews, strict=True):
-            if review["accepted"]:
-                episode["provenance"]["family_review_audit_id"] = review["audit_id"]
-                accepted[episode["id"]] = episode
-            else:
-                rejected.append(review)
+        accepted.update({episode["id"]: episode for episode in stored["episodes"]})
+        rejected.extend(stored.get("rejected", []))
+        starting_attempt = stored.get("attempts_completed", 0)
+        atomic_json(output_path.with_suffix(".partial.json"), {**stored, "episodes": list(accepted.values())})
+        output_path.unlink()
     partial_path = output_path.with_suffix(".partial.json")
     if partial_path.is_file():
         partial = json.loads(partial_path.read_text())
+        if partial.get("contract_sha256") != contract_hash:
+            partial = migrate_authoring_cache(partial, batch, split, preprocessor, contract_hash, batch_dir)
+            atomic_json(partial_path, partial)
         if partial.get("contract_sha256") == contract_hash:
             accepted.update({episode["id"]: episode for episode in partial.get("episodes", [])})
             usage.update(partial.get("usage", {}))
@@ -486,6 +501,43 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
     record = {"contract_sha256": contract_hash, "batch_id": batch["batch_id"], "completed_at": utc_now(), "attempts_completed": repair + 1, "usage": usage, "rejected": rejected, "episodes": [accepted[plan["id"]] for plan in batch["plans"]]}
     atomic_json(output_path, record)
     partial_path.unlink(missing_ok=True)
+    return record
+
+
+def migrate_authoring_cache(record, batch, split, preprocessor, contract_hash, batch_dir):
+    """Reuse literal numeric captures after the equivalent fragment convenience update.
+
+    Source requests and episode labels/provenance remain unchanged. Each row must
+    replay exactly and match the current label and reviewer prompts; this cannot
+    silently grandfather weaker annotation rules or different native features.
+    """
+    from data_tools.replay import ReplayVerifier
+    verifier = ReplayVerifier(ROOT, split, preprocessor)
+    plans = {plan["id"]: plan for plan in batch["plans"]}
+    kept = []
+    for episode in record.get("episodes", []):
+        try:
+            plan = plans[episode["id"]]
+            if episode["family_id"] != batch["family"]["id"] or len(episode["entries"]) != plan["candidate_count"]:
+                raise ValueError("Cached slot does not match the current sampling plan")
+            label = episode["label"]
+            observed = label["decision"] if label["decision"] == "select" else label["abstain_reason"]
+            if observed != plan["scenario_type"] and {observed, plan["scenario_type"]} - {"ambiguous", "insufficient_context"}:
+                raise ValueError("Cached slot does not match its actual action quota")
+            verifier.verify(episode)
+            issue = placement_issue(episode)
+            if issue:
+                raise ValueError(issue)
+            kept.append(episode)
+        except (KeyError, ValueError, OSError) as exc:
+            finding = {"id": episode["id"], "type": "incompatible_cached_contract", "finding": str(exc), "content_sha256": content_fingerprint(episode)}
+            record.setdefault("rejected", []).append(finding)
+            atomic_json(batch_dir / "quarantine" / f"{episode['id']}-{finding['content_sha256']}.json", {"episode": episode, "review": finding, "quarantined_at": utc_now()})
+    previous = record.get("contract_sha256")
+    record.setdefault("previous_contract_sha256s", []).append(previous)
+    record["contract_sha256"] = contract_hash
+    record["episodes"] = kept
+    record["authoring_migration"] = "Exact native features and original two-label/blind-family responses replayed; no label or feature edits"
     return record
 
 

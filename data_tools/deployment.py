@@ -28,14 +28,15 @@ HTTP_METHOD_AUTHORING = (
     "fieldLabel='HTTP method', fieldRole='AXTextField', applicationCategory='development'. "
     "Raw context.surroundingText stays empty. Put actual static request-editor help in "
     "capture.nearbyText, not source code or a fill-in-the-blank quiz. The method field is empty "
-    "(capture.textWindow='', selectionLocation=0, selectionLength=0), or its entire "
+    "(capture.beforeSelection='', capture.afterSelection=''), or its entire "
     "current method token is selected. Bare method candidates are directly usable there. "
     "Do not use a code editor, ___, fabricated cursor markers, or unquoted JavaScript identifiers."
 )
 
 CODE_AUTHORING = (
-    "For code-editor SELECT scenarios, provide a real capture selection/caret with exact "
-    "UTF-16 offsets. An empty code input with actual nearby static task guidance is simplest. "
+    "For code-editor SELECT scenarios, author literal capture.beforeSelection/afterSelection "
+    "and exact context.selectedText; production code calculates UTF-16 offsets. "
+    "An empty code input with actual nearby static task guidance is simplest. "
     "Pasting literally yields beforeSelection+candidate+afterSelection. "
     "Do not show existing executable target code without selecting it and then propose "
     "its replacement. Do not invent ___, [cursor], <cursor>, or placeholder insertion positions. "
