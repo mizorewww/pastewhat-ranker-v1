@@ -1,0 +1,87 @@
+{
+  "version": "pastewhat-swe2-train-spot-review-v1",
+  "created_at": "2026-09-21T07:03:20.838322+00:00",
+  "run_id": "ranker-v1-efficient-20260921",
+  "reviewer": "root agent; not a human annotator",
+  "source_train_snapshot_sha256": "a83ecbe1c845412ad07cd5be6f71b3d654e18e4e1930ede90b0b2c5daed72c51",
+  "private_review_snapshot_sha256": "a27c7418c97d31470e03f669c7969621d6d56ffea84b9fb56bf6a7fff44349c2",
+  "seed": 202609210654,
+  "selection": "up to3 select and3 abstain from shuffled SWE-authored accepted Train; fill from remainder if needed; convenience review, not accuracy sample",
+  "source_train_episodes": 291,
+  "eligible_swe2_authored_episodes": 54,
+  "reviewed_episodes": 6,
+  "cases": [
+    {
+      "episode_id": "train-v7-spreadsheet_text_join-00008",
+      "family_id": "spreadsheet_text_join",
+      "decision": "select",
+      "candidate_count": 3,
+      "acceptable_count": 2,
+      "agent_assessment": "no_concrete_issue_identified",
+      "finding": "Visible requirement, complete candidate set and recorded select/abstain action were reviewed."
+    },
+    {
+      "episode_id": "train-v7-translation_target_language-00003",
+      "family_id": "translation_target_language",
+      "decision": "select",
+      "candidate_count": 14,
+      "acceptable_count": 3,
+      "agent_assessment": "translation_specificity_risk",
+      "finding": "One accepted Japanese alternative describes returning/going home while the English source only says leaving. This is a semantic nuance flag, not a manually changed gold label."
+    },
+    {
+      "episode_id": "train-v7-chat_polite_decline-00003",
+      "family_id": "chat_polite_decline",
+      "decision": "select",
+      "candidate_count": 12,
+      "acceptable_count": 3,
+      "agent_assessment": "no_concrete_issue_identified",
+      "finding": "Visible requirement, complete candidate set and recorded select/abstain action were reviewed."
+    },
+    {
+      "episode_id": "train-v7-spreadsheet_text_join-00000",
+      "family_id": "spreadsheet_text_join",
+      "decision": "abstain",
+      "candidate_count": 2,
+      "acceptable_count": 0,
+      "agent_assessment": "no_concrete_issue_identified",
+      "finding": "Visible requirement, complete candidate set and recorded select/abstain action were reviewed."
+    },
+    {
+      "episode_id": "train-v7-chat_polite_decline-00006",
+      "family_id": "chat_polite_decline",
+      "decision": "abstain",
+      "candidate_count": 3,
+      "acceptable_count": 0,
+      "agent_assessment": "no_concrete_issue_identified",
+      "finding": "Visible requirement, complete candidate set and recorded select/abstain action were reviewed."
+    },
+    {
+      "episode_id": "train-v7-spreadsheet_text_join-00001",
+      "family_id": "spreadsheet_text_join",
+      "decision": "abstain",
+      "candidate_count": 2,
+      "acceptable_count": 0,
+      "agent_assessment": "no_concrete_issue_identified",
+      "finding": "Visible requirement, complete candidate set and recorded select/abstain action were reviewed."
+    }
+  ],
+  "supplementary_blind_review": {
+    "path": "reports/data/swe2-translation-blind-review.json",
+    "sha256": "3773d8153ecdc8c7744b329782e63eb94120c0f48bdbf8265197429c6c49fd1c",
+    "reported_result": "One normal blind SWE-2 high review returned the same c1/c2/c3 acceptable set; no further attempts or label changes."
+  },
+  "disposition": "All six retained. Five have no concrete issue identified by this agent; one carries an explicit semantic specificity concern despite teacher agreement.",
+  "limitations": [
+    "Six convenience cases from three conceptual families are not an accuracy or label-error-rate estimate.",
+    "Several visible contexts explicitly state a task; this does not establish accuracy on ordinary chat without observable intent.",
+    "Teacher agreement and agent review do not establish independent human validation.",
+    "No Calibration/Test examples or labels were accessed."
+  ],
+  "additional_root_teacher_calls": 0,
+  "additional_data_owner_blind_review_calls": 1,
+  "student_gpu_calls": 0,
+  "human_validated": false,
+  "labels_rewritten": 0,
+  "temporary_scaffold_tests_retained": 0
+}
