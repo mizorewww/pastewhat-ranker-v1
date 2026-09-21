@@ -13,12 +13,13 @@ Completed foundations:
 - Actual full-encoder MPS training fitted those 32 examples in six epochs / 24 optimizer updates (62.49 seconds including evaluation/checkpoint work). The learned checkpoint's MLX FP16 decisions matched PyTorch on all 32. **This is a training-fit and conversion check, not generalization accuracy.** See `reports/training/overfit-and-mlx-parity.json`.
 - Real short-sample throughput selected micro-batch 4 with effective batch 16, approximately 0.127 seconds per episode. The measured MPS driver allocation was about 8.25 GB of unified memory; full-dataset throughput remains to be measured.
 - Separate untrained initialization snapshots for seeds 42/43/44: all 134 encoder tensors match exactly, while new-head weights differ. Each formal run will independently vary head initialization, episode shuffle and dropout.
-- Native Swift context projection shared with the generator. Teacher labeling uses the same budgeted representation as the student.
+- Native Swift context projection shared with the generator. It now preserves actual UTF-16 insertion boundaries and bounded adjacent static text (`pastewhat-focus-v1`); synthetic authoring can use explicit before/selected/after fragments, compiled without changing any text. Teacher labeling sees only the same budgeted representation as the student. See `tools/context_projection/README.md` and `reports/engineering/context-projection.json`.
+- An independent evaluator separately checked the trained engineering checkpoint on 16 fixed, unlabeled conversion inputs: all raw decisions agreed, maximum absolute score difference 0.0228583, mean difference 0.00283274. Permutation, padding, mixed-candidate masking and reload checks passed. Final deployment weights must repeat this verification; this remains an engineering check, not Test accuracy.
 - Real Jev API integration in [PasteWhat](https://github.com/mizorewww/pastewhat), with a documented 120-case synthetic regression; it is separate from this model's final Test.
 
 Currently executing:
 
-- Native Kimi episode generation, production projection/truncation, independent decision labeling, permutation verification and task-family review. Initial teacher errors were identified and quarantined before release to training.
+- Version 4 native Kimi generation is being verified before sustained production. It uses explicit capture evidence, literal paste-usability checks, independently shuffled language/candidate-count/label schedules, post-budget blind labels and task-family review. Earlier unreleased data contained unselected-placeholder assumptions and sampling shortcuts and has been excluded from formal training. The 32-row engineering set predates this capture revision and remains an isolated engineering fixture, not part of the formal 20,000-row corpus.
 - Full Train/Dev data production and release. The persistent training pipeline has passed the small-sample gate and is waiting for the frozen 5,000-episode pilot and 1,000-episode Dev snapshots before beginning the next stage.
 - Independent Calibration/Test creation and benchmark tooling. No final Test model scores have been inspected.
 
