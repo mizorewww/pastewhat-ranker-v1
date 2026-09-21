@@ -16,12 +16,13 @@ from pathlib import Path
 import re
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 
 from evaluations.freeze import directory_hashes, verify_freeze
 from run_contract import load_run_plan
-from tools.package_release import assemble, digest, read_json
+from tools.package_release import digest, read_json
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "aac6fef/PasteWhat-Ranker-v1"
@@ -336,7 +337,13 @@ def main():
             source_ready()
             bundle = ROOT / "artifacts/PasteWhat-Ranker-v1"
             if not bundle.exists():
-                assemble(argparse.Namespace(**paths, output=bundle, allow_diagnostic=True))
+                # The waiter can outlive implementation work. Load the assembler
+                # only after the completed handoff and committed source checks.
+                command = [sys.executable, "-m", "tools.package_release"]
+                for name, path in paths.items():
+                    command.extend(["--" + name.replace("_", "-"), str(path)])
+                command.extend(["--output", str(bundle), "--allow-diagnostic"])
+                subprocess.run(command, cwd=ROOT, check=True)
             manifest = verify_bundle(bundle, plan, paths["freeze"])
             smoke = None
             if read_json(bundle / "mlx/calibrator.json")["status"] == "observed_precision_target_met":
