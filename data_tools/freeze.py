@@ -12,6 +12,7 @@ import random
 from data_tools.generate import PARTITION_PATH, ROOT, validate_labels
 from data_tools.content import content_fingerprint
 from data_tools.deployment import placement_issue
+from data_tools.replay import ReplayVerifier
 from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 from pastewhat_ranker.preprocess import Preprocessor
 
@@ -82,6 +83,7 @@ def main():
         raise SystemExit(f"Need {args.count} accepted episodes, found {len(episodes)}")
     allowed_families = {family["id"] for family in json.loads(PARTITION_PATH.read_text())["families"][args.split]}
     preprocessor = Preprocessor(args.tokenizer)
+    replay = None if args.overfit else ReplayVerifier(ROOT, args.split, preprocessor)
     hashes = set()
     for episode in episodes:
         if episode["family_id"] not in allowed_families:
@@ -93,6 +95,8 @@ def main():
             raise ValueError("An episode has not passed all teacher review gates")
         if not args.overfit and (episode["provenance"].get("family_review_protocol") != "blind-68-operation-classification" or episode["provenance"].get("observed_family_id") != episode["family_id"]):
             raise ValueError("Production data requires a blind observed-family match")
+        if replay is not None:
+            replay.verify(episode)
         prepared = preprocessor.prepare_episode(episode)
         if prepared["preprocessing"]["visible_sha256"] != episode["provenance"]["label_visible_sha256"]:
             raise ValueError("Teacher and student visible input differs")

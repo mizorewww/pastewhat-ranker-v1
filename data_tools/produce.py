@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 
-from data_tools.generate import PARTITION_PATH, PROMPT_VERSION, ROOT
+from data_tools.generate import CACHE_VERSION, PARTITION_PATH, PROMPT_VERSION, ROOT
 from data_tools.deployment import placement_issue
 from data_tools.freeze import publish_bytes
 from data_tools.rate_limit import AccountCoordinator
@@ -34,7 +34,7 @@ class Progress:
 
     def read(self):
         episodes, rejections, batch_count = {}, 0, 0
-        directory = ROOT / "local/generated" / self.split / "main-v3"
+        directory = ROOT / "local/generated" / self.split / ("main-" + CACHE_VERSION)
         for path in directory.glob("*.json"):
             if path.name == "failures.json":
                 continue
@@ -116,7 +116,7 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.train_workers <= 8 or not 1 <= args.dev_workers <= 4:
         raise SystemExit("Worker allocation must remain within the measured concurrency limits")
-    run_dir = ROOT / "local/production-v3"
+    run_dir = ROOT / ("local/production-" + CACHE_VERSION)
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = (run_dir / ".supervisor.lock").open("a")
     try:

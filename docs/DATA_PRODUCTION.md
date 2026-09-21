@@ -30,9 +30,15 @@ repeating a rolling teacher request will reproduce its completion.
    If an independently agreed label misses the planned sampling bucket, its
    original label stays in quarantine and that slot receives a newly authored
    example. The two ambiguity reasons may share the final 10% bucket.
-2. The actual pinned PasteWhat Swift projection determines the input surface from
-   field metadata. The generation model cannot provide an intent-based surface
-   oracle. Impossible no-AX contexts containing captured field data are rejected.
+2. Authors supply a separate `capture` object containing the real focused-field
+   text window, exact UTF-16 selection range (or unknown), and bounded static
+   sibling guidance. Raw `context.surroundingText` is empty. The pinned original
+   PasteWhat Swift formatter renders `pastewhat-focus-v1` JSON with actual text
+   before/after the selection and nearby static labels. Its real field metadata
+   also determines input surface. The generator cannot invent a cursor marker,
+   imaginary selection, another editable field or an intent-based surface oracle.
+   Capture offsets/content and impossible no-AX observations are rejected by
+   the production Swift implementation. Raw capture never enters student input.
 3. The shared student `Preprocessor` sanitizes and clips the episode. Metadata and
    special tokens have 64 tokens, visible context 448, and candidate text 512.
    All candidates are retained, and each final pair is at most 1,024 tokens.
@@ -68,8 +74,8 @@ operations and impossible field metadata. The v2 probe additionally exposed
 equivalent candidates omitted from positive sets, unusable replacement ranges,
 authoring contamination from negative operation lists and expected-family reviewer
 agreement bias. Those main-data probes are isolated in ignored
-`local/initial-v1-unreleased/` and `local/initial-v2-unreleased/`. Production v3 is
-`teacher-episodes-v3-visible-evidence`; it uses the four calls above, replacing
+`local/initial-v1-unreleased/` and `local/initial-v2-unreleased/`. The unreleased v3
+protocol `teacher-episodes-v3-visible-evidence` used four calls, replacing
 confirmatory family review with blind classification. Authors receive only the
 positive target operation, while reviewers retain the complete taxonomy.
 
@@ -90,7 +96,17 @@ findings are in `data/train_dev.placement_review.json`; raw original episodes
 remain in ignored quarantine. Frozen production snapshots reject these contents
 even if their IDs or candidate order change. Their four teacher passes had
 agreed, illustrating why teacher consensus alone is not a correctness guarantee.
-The already independently reviewed engineering seed is unchanged.
+The already independently reviewed engineering seed is unchanged. Formal v4 is
+`teacher-episodes-v4-native-capture`, pinned to the `pastewhat-focus-v1` capture
+contract and native source manifest. Old v3 main data is not released for formal
+training. Its index-based language schedule and candidate-count schedule were
+also found to correlate with action buckets. V4 independently seeds and shuffles
+the complete per-family action, 1–20 candidate-count and language schedules.
+`data/train_dev.sampling_plan.json` records planned distributions and hashes,
+clearly separate from accepted dataset counts. A one-candidate ambiguity plan
+becomes insufficient-context in the same ABSTAIN bucket; candidate count itself
+is never changed to fit a label. Multi-positive requests require at least two
+candidates.
 
 ## Running and auditing
 
@@ -107,7 +123,7 @@ uv run python -m data_tools.provenance --split dev --write
 The supervisor persists the full 20,000/1,000 targets, restarts failed work with
 backoff, reports accepted/rejected counts, actual request usage and observed-rate
 ETA, and freezes the 5k pilot, 20k Train and 1k Dev snapshots as each becomes ready.
-It does not stop at the pilot quota. `local/production-v3/progress.json` is the
+It does not stop at the pilot quota. `local/production-v4/progress.json` is the
 latest aggregate status; JSONL progress and process logs retain its history.
 Completed, fully reviewed slots from partial batches enter a separate
 `data/train.accepted.jsonl` or `data/dev.accepted.jsonl` pool, so an unfinished
@@ -163,3 +179,11 @@ defines `thinking.type=disabled`. Actual API probes confirmed generation can use
 that mode with temperature 0.6, while the default reasoning mode accepts 1.0.
 Labeling, blind verification and semantic review keep reasoning enabled. API
 errors and mode probes are recorded rather than silently substituted.
+After observed scenario drift in authoring, repair requests also retain Kimi
+reasoning at temperature 1.0; only the first authoring attempt uses disabled
+thinking at 0.6. Independent labelers still receive no requested action bucket.
+Before any formal snapshot is published, `data_tools.replay.ReplayVerifier`
+replays the raw authoring capture through the pinned Swift formatter and student
+budget, verifies both original teacher request views and returned action sets,
+and checks the blind family/deployment response. This replay makes no API calls
+and never reads Calibration/Test data.

@@ -1,0 +1,297 @@
+{
+  "independence": "full-family label, language and candidate-count schedules use separate hash-derived RNG streams",
+  "protocol": "sampling-v4",
+  "seed": 42,
+  "single_candidate_rule": "ambiguous becomes insufficient_context in the same ABSTAIN bucket; multiple-positive requests disabled, never change candidate count",
+  "splits": {
+    "dev": {
+      "candidate_count_by_action": {
+        "1": {
+          "missing_context": 4,
+          "no_match": 9,
+          "select": 37
+        },
+        "10": {
+          "missing_context": 11,
+          "no_match": 10,
+          "select": 31
+        },
+        "11": {
+          "missing_context": 3,
+          "no_match": 11,
+          "select": 35
+        },
+        "12": {
+          "missing_context": 4,
+          "no_match": 11,
+          "select": 33
+        },
+        "13": {
+          "missing_context": 5,
+          "no_match": 4,
+          "select": 40
+        },
+        "14": {
+          "missing_context": 2,
+          "no_match": 14,
+          "select": 35
+        },
+        "15": {
+          "missing_context": 2,
+          "no_match": 8,
+          "select": 39
+        },
+        "16": {
+          "missing_context": 2,
+          "no_match": 11,
+          "select": 35
+        },
+        "17": {
+          "missing_context": 6,
+          "no_match": 5,
+          "select": 38
+        },
+        "18": {
+          "missing_context": 4,
+          "no_match": 8,
+          "select": 37
+        },
+        "19": {
+          "missing_context": 9,
+          "no_match": 8,
+          "select": 35
+        },
+        "2": {
+          "missing_context": 4,
+          "no_match": 12,
+          "select": 33
+        },
+        "20": {
+          "missing_context": 7,
+          "no_match": 12,
+          "select": 32
+        },
+        "3": {
+          "missing_context": 4,
+          "no_match": 12,
+          "select": 34
+        },
+        "4": {
+          "missing_context": 8,
+          "no_match": 13,
+          "select": 30
+        },
+        "5": {
+          "missing_context": 5,
+          "no_match": 10,
+          "select": 38
+        },
+        "6": {
+          "missing_context": 3,
+          "no_match": 12,
+          "select": 35
+        },
+        "7": {
+          "missing_context": 8,
+          "no_match": 11,
+          "select": 32
+        },
+        "8": {
+          "missing_context": 2,
+          "no_match": 15,
+          "select": 34
+        },
+        "9": {
+          "missing_context": 7,
+          "no_match": 4,
+          "select": 37
+        }
+      },
+      "conceptual_families": 8,
+      "language_by_action": {
+        "English": {
+          "missing_context": 63,
+          "no_match": 119,
+          "select": 418
+        },
+        "French": {
+          "missing_context": 2,
+          "no_match": 3,
+          "select": 19
+        },
+        "German": {
+          "missing_context": 4,
+          "no_match": 3,
+          "select": 17
+        },
+        "Japanese": {
+          "missing_context": 3,
+          "no_match": 1,
+          "select": 20
+        },
+        "Simplified Chinese": {
+          "missing_context": 23,
+          "no_match": 70,
+          "select": 211
+        },
+        "Spanish": {
+          "missing_context": 5,
+          "no_match": 4,
+          "select": 15
+        }
+      },
+      "plan_sha256": "7fea0121ffd66c66a1615c59bcbaf80006cb76ddb59c996836139c68e8f3c248",
+      "planned_episodes": 1000,
+      "target_action_counts": {
+        "missing_context": 100,
+        "no_match": 200,
+        "select": 700
+      }
+    },
+    "train": {
+      "candidate_count_by_action": {
+        "1": {
+          "missing_context": 112,
+          "no_match": 169,
+          "select": 719
+        },
+        "10": {
+          "missing_context": 94,
+          "no_match": 194,
+          "select": 712
+        },
+        "11": {
+          "missing_context": 93,
+          "no_match": 188,
+          "select": 719
+        },
+        "12": {
+          "missing_context": 108,
+          "no_match": 197,
+          "select": 695
+        },
+        "13": {
+          "missing_context": 107,
+          "no_match": 193,
+          "select": 700
+        },
+        "14": {
+          "missing_context": 117,
+          "no_match": 206,
+          "select": 677
+        },
+        "15": {
+          "missing_context": 104,
+          "no_match": 205,
+          "select": 691
+        },
+        "16": {
+          "missing_context": 95,
+          "no_match": 200,
+          "select": 705
+        },
+        "17": {
+          "missing_context": 97,
+          "no_match": 203,
+          "select": 700
+        },
+        "18": {
+          "missing_context": 97,
+          "no_match": 209,
+          "select": 694
+        },
+        "19": {
+          "missing_context": 112,
+          "no_match": 207,
+          "select": 681
+        },
+        "2": {
+          "missing_context": 99,
+          "no_match": 201,
+          "select": 700
+        },
+        "20": {
+          "missing_context": 95,
+          "no_match": 227,
+          "select": 678
+        },
+        "3": {
+          "missing_context": 104,
+          "no_match": 206,
+          "select": 690
+        },
+        "4": {
+          "missing_context": 94,
+          "no_match": 215,
+          "select": 691
+        },
+        "5": {
+          "missing_context": 109,
+          "no_match": 193,
+          "select": 698
+        },
+        "6": {
+          "missing_context": 84,
+          "no_match": 210,
+          "select": 706
+        },
+        "7": {
+          "missing_context": 99,
+          "no_match": 194,
+          "select": 707
+        },
+        "8": {
+          "missing_context": 100,
+          "no_match": 190,
+          "select": 710
+        },
+        "9": {
+          "missing_context": 80,
+          "no_match": 193,
+          "select": 727
+        }
+      },
+      "conceptual_families": 40,
+      "language_by_action": {
+        "English": {
+          "missing_context": 1215,
+          "no_match": 2350,
+          "select": 8435
+        },
+        "French": {
+          "missing_context": 49,
+          "no_match": 105,
+          "select": 326
+        },
+        "German": {
+          "missing_context": 34,
+          "no_match": 111,
+          "select": 335
+        },
+        "Japanese": {
+          "missing_context": 54,
+          "no_match": 108,
+          "select": 358
+        },
+        "Simplified Chinese": {
+          "missing_context": 596,
+          "no_match": 1215,
+          "select": 4189
+        },
+        "Spanish": {
+          "missing_context": 52,
+          "no_match": 111,
+          "select": 357
+        }
+      },
+      "plan_sha256": "a216f813701f5f5011e55f213161997a4784cfcbf68d0498881f780c8c567927",
+      "planned_episodes": 20000,
+      "target_action_counts": {
+        "missing_context": 2000,
+        "no_match": 4000,
+        "select": 14000
+      }
+    }
+  },
+  "status": "planned_not_generated"
+}

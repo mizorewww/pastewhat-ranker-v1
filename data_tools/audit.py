@@ -43,6 +43,13 @@ candidates merely inspect diffs. No labels are supplied: do not infer or emit th
 deployment_visible means only realistic focused-field information, user-selected
 or surrounding text, app CATEGORY, observable candidate text and actual payload
 metadata are used. No synthetic hidden-goal field, answer key, or secret fact.
+surroundingText is production pastewhat-focus-v1 JSON. beforeSelection and
+afterSelection are the actual unmodified sides of the paste; only selectedText
+is replaced. nearbyText contains bounded static sibling guidance, not field text.
+Unknown selection cannot be treated as a known caret. Do not silently move a
+caret, replace unselected blanks, supply quotes/escapes, or normalize newlines.
+Nearby guidance must plausibly be a static label beside this field, not an
+invented hidden request or the contents of another editable control.
 payload_metadata_consistent means text describing a file is not falsely given a
 file payload, plain strings are not images, image summaries do not claim unseen
 semantic contents. Genuine file payloads and observable image dimensions are valid.
