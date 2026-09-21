@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -117,17 +118,22 @@ def main():
     parser.add_argument("--deployment-manifest", type=Path, required=True)
     parser.add_argument("--weights", type=Path, required=True, help="The actual final deployment precision weights")
     parser.add_argument("--preprocess", type=Path, required=True, help="The production preprocessing manifest")
+    parser.add_argument("--partition", type=Path, default=Path(__file__).with_name("calibration-family-partition.json"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit("Refusing to overwrite a calibration run")
     episodes, predictions = load_jsonl(args.data), load_jsonl(args.scores)
+    fixed_partition = json.loads(args.partition.read_text())
+    if partition_families(episodes) != fixed_partition["families"]:
+        raise SystemExit("Calibration families differ from their pre-scoring allocation")
     if any(row.get("split") not in (None, "calibration") for row in episodes):
         raise SystemExit("Only Calibration may fit the final calibrator")
     calibrator, report = fit_calibrator(episodes, predictions)
     calibrator["weightsSHA"] = sha256(args.weights)
     calibrator["preprocessSHA"] = sha256(args.preprocess)
     provenance = {"dataset_sha256": sha256(args.data), "scores_sha256": sha256(args.scores),
+                  "calibration_partition_sha256": sha256(args.partition),
                   "deployment_manifest_sha256": sha256(args.deployment_manifest)}
     calibrator["provenance"] = provenance
     report["provenance"] = provenance

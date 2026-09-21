@@ -1,0 +1,24 @@
+{
+  "version": "pastewhat-calibration-family-partition-v1",
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "algorithm": "sort sha256(pastewhat-calibration-v1: + family_id), first half fit, second half threshold",
+  "families": {
+    "fit": [
+      "archive_extract",
+      "calendar_rsvp_status",
+      "url_fragment_anchor",
+      "contact_international_dial"
+    ],
+    "threshold": [
+      "sql_group_having",
+      "translation_formal_tone",
+      "chmod_octal_permission",
+      "spreadsheet_distinct_count"
+    ]
+  },
+  "expected_episodes": {
+    "fit": 500,
+    "threshold": 500
+  },
+  "model_scores_observed": false
+}
