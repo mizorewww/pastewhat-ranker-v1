@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "purpose": "Independent agent review of replacement Train-only engineering seed episodes; not human validation",
+  "source_sha256": "33a6ae76ed2edd83ea8253b897396572b602e7f6e956703c597ea260f84c0244",
+  "previous_review": "reports/data/train-seed-independent-review.json",
+  "reviewer": "root agent, separate from synthesis/labeling agent",
+  "label_edits": 0,
+  "accepted_count": 6,
+  "rejected_count": 0,
+  "decision": "Accept these six plus the previous 26 accepted episodes for the 32-example engineering overfit check",
+  "reviews": [
+    {
+      "id": "train-overfit-repair-design_color_syntax-00000",
+      "status": "accept_for_engineering_seed",
+      "reason": "Case-insensitive six-digit pure red: both lowercase and uppercase candidates are acceptable."
+    },
+    {
+      "id": "train-overfit-repair-design_color_syntax-00001",
+      "status": "accept_for_engineering_seed",
+      "reason": "All twenty candidates use rgb/rgba syntax; none can be pasted into the explicitly Hex-only field."
+    },
+    {
+      "id": "train-overfit-repair-design_color_syntax-00002",
+      "status": "accept_for_engineering_seed",
+      "reason": "Exactly one rgba candidate has the explicitly requested channels and alpha 0.4."
+    },
+    {
+      "id": "train-overfit-repair-design_color_syntax-00003",
+      "status": "accept_for_engineering_seed",
+      "reason": "The brand direction is explicitly undecided; visible context cannot choose a final color."
+    },
+    {
+      "id": "train-overfit-repair-design_color_syntax-00004",
+      "status": "accept_for_engineering_seed",
+      "reason": "The only candidate is RGB syntax, incompatible with the stated six-digit Hex input."
+    },
+    {
+      "id": "train-overfit-repair-design_color_syntax-00005",
+      "status": "accept_for_engineering_seed",
+      "reason": "Exactly one candidate has the requested channels and alpha 0.25."
+    }
+  ]
+}
