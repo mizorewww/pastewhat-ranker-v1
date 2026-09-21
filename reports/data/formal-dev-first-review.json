@@ -1,0 +1,38 @@
+{
+  "difficulty_profile_at_review": {
+    "candidate_count_distribution": {
+      "1": 1,
+      "5": 1
+    },
+    "counts": {},
+    "definition": "Exact case-sensitive complete positive plaintext occurring within one actual visible text field; no whitespace, case or URL normalization. Native JSON field names/app categories/source metadata excluded. File/image summaries excluded from plaintext overlap.",
+    "limits": "Direct overlap describes an easy lexical cue, not measured model accuracy; lack of an exact match does not prove semantic difficulty. Same-kind negatives use the actual coarse deployed classifier.",
+    "per_family": {},
+    "same_kind_negative_fraction_of_select": null,
+    "select_episode_exact_literal_overlap_fraction": null
+  },
+  "findings": [
+    {
+      "action": "keep original teacher label",
+      "content_sha256": "5a13217c332a7e1130520407e285a42bc11444258ea5454d4e5cb3a6b9b6e68c",
+      "id": "dev-main-v6-ranker-v1-local-20260921-python_exception-00000",
+      "review": "Only candidate handles FileNotFoundError instead of visible json.JSONDecodeError; fallback also differs from DEFAULTS. No-match follows directly from observable code."
+    },
+    {
+      "action": "keep original teacher label",
+      "content_sha256": "81ad976c446469c8019c47a670ebc95e161abf0310fc8785163d1aae4d6d8163",
+      "id": "dev-main-v6-ranker-v1-local-20260921-python_exception-00002",
+      "review": "Visible policy leaves local recovery vs propagation unresolved. Candidate snippets embody distinct behaviors; abstention is justified. Context explicitly states this missing policy, so this is an easy synthetic abstention cue, not evidence of realism across real application UIs."
+    }
+  ],
+  "human_validated": false,
+  "label_edits": 0,
+  "reviewed_at": "2026-09-21T03:41:25.301146+00:00",
+  "reviewed_episodes": 2,
+  "reviewer": "data-agent independent semantic review",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "sampling": "Convenience first accepted Dev cases, not random correctness estimation",
+  "source_sha256_at_review": "030f7a093abcdd77350570162a5ccd7c478f4a954aa5aad5e9ad69242031e916",
+  "student_scores_viewed": false
+}

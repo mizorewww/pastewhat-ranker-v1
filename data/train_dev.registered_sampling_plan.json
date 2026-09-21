@@ -1,0 +1,238 @@
+{
+  "actual_accepted_episodes_claimed": false,
+  "batch_size": 5,
+  "dataset_protocol": "teacher-episodes-v6-compact-verdicts",
+  "generated_at": "2026-09-21T03:37:08.729977+00:00",
+  "independence": "Candidate count, language and action use independent frozen RNG schedules. Execution priority only permutes unchanged batches.",
+  "protocol": "registered-sampling-v6-independent-family-spaces",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "seed": 42,
+  "splits": {
+    "dev": {
+      "candidate_count_by_action": {
+        "1": {
+          "no_match": 5,
+          "select": 5
+        },
+        "10": {
+          "no_match": 2,
+          "select": 7
+        },
+        "11": {
+          "no_match": 1,
+          "select": 9
+        },
+        "12": {
+          "no_match": 4,
+          "select": 6
+        },
+        "13": {
+          "missing_intent": 2,
+          "no_match": 1,
+          "select": 6
+        },
+        "14": {
+          "missing_intent": 2,
+          "no_match": 2,
+          "select": 9
+        },
+        "15": {
+          "missing_intent": 1,
+          "no_match": 2,
+          "select": 6
+        },
+        "16": {
+          "no_match": 1,
+          "select": 10
+        },
+        "17": {
+          "missing_intent": 3,
+          "no_match": 2,
+          "select": 6
+        },
+        "18": {
+          "missing_intent": 1,
+          "no_match": 2,
+          "select": 7
+        },
+        "19": {
+          "missing_intent": 3,
+          "select": 8
+        },
+        "2": {
+          "missing_intent": 1,
+          "no_match": 2,
+          "select": 7
+        },
+        "20": {
+          "missing_intent": 1,
+          "no_match": 2,
+          "select": 6
+        },
+        "3": {
+          "no_match": 3,
+          "select": 9
+        },
+        "4": {
+          "missing_intent": 1,
+          "no_match": 2,
+          "select": 6
+        },
+        "5": {
+          "missing_intent": 3,
+          "no_match": 1,
+          "select": 5
+        },
+        "6": {
+          "missing_intent": 2,
+          "select": 7
+        },
+        "7": {
+          "no_match": 3,
+          "select": 7
+        },
+        "8": {
+          "no_match": 3,
+          "select": 8
+        },
+        "9": {
+          "no_match": 2,
+          "select": 6
+        }
+      },
+      "conceptual_families": 8,
+      "language_counts": {
+        "English": 120,
+        "Japanese": 8,
+        "Simplified Chinese": 64,
+        "Spanish": 8
+      },
+      "plan_sha256": "77068c96badd613a89ea5187943a6a73ab8b620e9bcfcd534908eabafac09e14",
+      "planned_episodes": 200,
+      "target_action_counts": {
+        "missing_intent": 20,
+        "no_match": 40,
+        "select": 140
+      }
+    },
+    "train": {
+      "candidate_count_by_action": {
+        "1": {
+          "missing_intent": 10,
+          "no_match": 9,
+          "select": 44
+        },
+        "10": {
+          "missing_intent": 4,
+          "no_match": 11,
+          "select": 34
+        },
+        "11": {
+          "missing_intent": 6,
+          "no_match": 14,
+          "select": 31
+        },
+        "12": {
+          "missing_intent": 1,
+          "no_match": 12,
+          "select": 33
+        },
+        "13": {
+          "missing_intent": 3,
+          "no_match": 14,
+          "select": 31
+        },
+        "14": {
+          "missing_intent": 5,
+          "no_match": 11,
+          "select": 33
+        },
+        "15": {
+          "missing_intent": 6,
+          "no_match": 8,
+          "select": 30
+        },
+        "16": {
+          "missing_intent": 4,
+          "no_match": 7,
+          "select": 33
+        },
+        "17": {
+          "missing_intent": 7,
+          "no_match": 9,
+          "select": 36
+        },
+        "18": {
+          "missing_intent": 5,
+          "no_match": 6,
+          "select": 33
+        },
+        "19": {
+          "missing_intent": 1,
+          "no_match": 9,
+          "select": 36
+        },
+        "2": {
+          "missing_intent": 2,
+          "no_match": 12,
+          "select": 43
+        },
+        "20": {
+          "missing_intent": 5,
+          "no_match": 8,
+          "select": 38
+        },
+        "3": {
+          "missing_intent": 6,
+          "no_match": 19,
+          "select": 35
+        },
+        "4": {
+          "missing_intent": 8,
+          "no_match": 8,
+          "select": 44
+        },
+        "5": {
+          "missing_intent": 4,
+          "no_match": 8,
+          "select": 35
+        },
+        "6": {
+          "missing_intent": 4,
+          "no_match": 6,
+          "select": 38
+        },
+        "7": {
+          "missing_intent": 6,
+          "no_match": 11,
+          "select": 28
+        },
+        "8": {
+          "missing_intent": 7,
+          "no_match": 6,
+          "select": 33
+        },
+        "9": {
+          "missing_intent": 6,
+          "no_match": 12,
+          "select": 32
+        }
+      },
+      "conceptual_families": 40,
+      "language_counts": {
+        "English": 600,
+        "Japanese": 40,
+        "Simplified Chinese": 320,
+        "Spanish": 40
+      },
+      "plan_sha256": "37657d76b058a564258a224344ffb6ad1c915df819e652d236bafb1bf77e52a7",
+      "planned_episodes": 1000,
+      "target_action_counts": {
+        "missing_intent": 100,
+        "no_match": 200,
+        "select": 700
+      }
+    }
+  }
+}

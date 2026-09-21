@@ -1,6 +1,11 @@
 # Teacher decision-label distillation
 
-The targets are 20,000 Train, 1,000 Dev, 1,000 Calibration and 2,000 Test episodes.
+The registered first local run is `ranker-v1-local-20260921`: 1,000 Train,
+200 Dev, 400 Calibration and 600 Test episodes, with a 500-row Train pilot.
+`configs/run_plan.json` fixes these targets and its SHA before formal generation.
+The original suggested 20,000/1,000/1,000/2,000 scale was not completed. Real v6
+authoring, exhaustive annotation and independent review costs motivated the
+explicit smaller plan; the quality and partition gates remain unchanged.
 These are quotas, not completed-data claims. The actual accepted count, label
 distribution, family count, candidate-count distribution and SHA-256 are recorded
 in each data manifest. Train/Dev are authored by the data agent; a separate
@@ -70,8 +75,8 @@ repeating a rolling teacher request will reproduce its completion.
    candidate counts, native projection, preprocessing idempotence, visible hashes
    and label membership are also checked by the production tools.
 7. Only accepted episodes enter the current Train/Dev JSONL. Training uses frozen
-   snapshots, never a file that the generator is still updating. The 5,000 pilot
-   rows must be a recorded subset of the final 20,000 Train rows. Any hard-case
+   snapshots, never a file that the generator is still updating. The 500 pilot
+   rows must be a recorded subset of the final 1,000 Train rows. Any hard-case
    augmentation is restricted to new examples from Train operation families and
    requires a frozen ranker-v0; Test is never an error-mining source.
 
@@ -121,20 +126,21 @@ non-quantized Laya-multilingual tokenizer, and a local Mac Swift toolchain is us
 to compile the original context projection once.
 
 ```sh
-uv run python -m data_tools.produce --train-workers 4 --dev-workers 2
-uv run python -m data_tools.provenance --split train --write
-uv run python -m data_tools.provenance --split dev --write
+uv run python -m data_tools.produce --run-plan configs/run_plan.json --train-workers 3 --dev-workers 1 --batch-size 5
+uv run python -m data_tools.hardening --run-plan configs/run_plan.json --workers 2 --batch-size 5
+uv run python -m data_tools.provenance --run-plan configs/run_plan.json --split train --write
+uv run python -m data_tools.provenance --run-plan configs/run_plan.json --split dev --write
 ```
 
-The supervisor persists the full 20,000/1,000 targets, restarts failed work with
+The supervisor persists the registered 1,000/200 targets, restarts failed work with
 backoff, reports accepted/rejected counts, actual request usage and observed-rate
-ETA, and freezes the 5k pilot, 20k Train and 1k Dev snapshots as each becomes ready.
-It does not stop at the pilot quota. `local/production-v4/progress.json` is the
+ETA, and freezes the 500-row pilot, 1,000 Train and 200 Dev snapshots as each becomes ready.
+It does not stop at the pilot quota. `local/production-v6/<run_id>/progress.json` is the
 latest aggregate status; JSONL progress and process logs retain its history.
 Completed, fully reviewed slots from partial batches enter a separate
-`data/train.accepted.jsonl` or `data/dev.accepted.jsonl` pool, so an unfinished
-peer does not delay their availability. The pilot selects exactly 3,500 select,
-1,000 no-match and 500 missing-context/ambiguity episodes, spreads selection
+`local/data-production/<run_id>/train.accepted.jsonl` or `dev.accepted.jsonl` pool,
+so an unfinished peer does not delay their availability. The pilot selects
+exactly 350 select, 100 no-match and 50 missing-context/ambiguity episodes, spreads selection
 across the 40 Train families and checks that all families occur. Frozen
 production snapshots require at least half of selectable cases to have a
 same-kind negative; their observed 70/20/10 fractions must be within 2.5
@@ -286,3 +292,43 @@ teacher's internal reasoning and every verdict; formal label calls reserve16k
 completion tokens rather than silently truncating candidates or accepting a
 length-truncated response. This is a ceiling, not a target usage or a new student
 input budget.
+
+`data/train_dev.registered_sampling_plan.json` records the actual formal schedule;
+the earlier `sampling_plan.json` remains historical planning evidence. A pilot
+scheduler permutes only complete, unchanged author batches. It keeps previously
+dispatched work first and then prioritizes the registered pilot family/action
+deficits. The cold schedule calculation reduces slots needed to satisfy all
+pilot strata from 885 to 600 if every slot passes; this is not a measured speedup
+or a guarantee about acceptance. The one live handoff used an explicitly bounded
+local maintenance pause, let all active HTTP calls finish, preserved successful
+full-body response caches and kept the Dev worker running. It did not increase
+concurrency or alter provider quota state. A pre-existing evaluator request with
+unobserved completion stayed explicitly unknown in the audit.
+
+Progress attributes costs to this registered run through current cache references,
+author plan namespaces or observed owner PIDs. Unbound historical calls are
+reported separately. A timeout has unknown server usage, even after the local
+connection closes. Retry outcomes are persisted before another rate-limit wait,
+so maintenance does not leave a completed local attempt falsely marked in flight.
+
+After a Dev-selected v0 exists and training explicitly waits for hardening data,
+the hardening coordinator authors a new 500-row Train-only pool, deduplicated
+against the original corpus. The frozen v0 ranks that pool and nominates 400
+examples. Student disagreements are review priorities, never replacement labels.
+Two new blind, independently permuted exhaustive verdict calls must preserve the
+original action set. Rejected examples retain their original labels; repeated
+semantic review cannot turn a disagreement into a preferred answer. Up to three
+response-format retries are separately audited. At least 250 accepted new
+examples are required; a shortfall is reported and needs fresh training examples.
+The final hardening snapshot combines 250 reviewed new rows with 250 exact original
+Train rows, publishes its bound manifest before its JSONL, and lets the training
+pipeline perform the registered one-epoch continuation and Dev decision.
+
+Frozen manifests include candidate-count distributions, multiple-positive counts,
+same-kind negative counts and the fraction of selectable episodes whose complete
+positive plaintext literally appears in an actual visible context field. Exact
+overlap is an easy lexical cue, not an accuracy measurement; absence of a literal
+match does not prove semantic difficulty. Native file/image summaries are excluded
+from plaintext overlap. Agent checks and executable temporary-fixture reviews are
+reported with their actual convenience sample sizes; they are not human review or
+a random estimate of dataset correctness.

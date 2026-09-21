@@ -12,6 +12,7 @@ import random
 from data_tools.generate import PARTITION_PATH, ROOT, validate_labels
 from data_tools.content import content_fingerprint
 from data_tools.deployment import placement_issue
+from data_tools.difficulty import describe_difficulty
 from data_tools.replay import ReplayVerifier
 from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 from pastewhat_ranker.preprocess import Preprocessor
@@ -210,6 +211,7 @@ def main():
     fingerprint_path = output.with_suffix(".fingerprints.jsonl")
     publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {**(run_plan.binding() if run_plan else {}), "split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
+    manifest["difficulty_profile"] = describe_difficulty(chosen)
     manifest["source_path"] = str(source.relative_to(ROOT))
     manifest["select_with_same_kind_negative"] = with_same_kind_negative
     manifest["context_coverage"] = {"no_accessibility": sum(not episode["context"]["hasAccessibility"] for episode in chosen), "with_selection": sum(bool(episode["context"]["selectedText"]) for episode in chosen), "application_categories": dict(Counter(episode["context"]["applicationCategory"] for episode in chosen)), "input_surfaces": dict(Counter(episode["context"]["inputSurface"] for episode in chosen))}
