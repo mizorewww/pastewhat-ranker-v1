@@ -1,0 +1,56 @@
+{
+  "version": "pastewhat-root-training-review-v1",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "reviewed_at": "2026-09-21T03:14:12.830076+00:00",
+  "scope": "Formal Train only; first five accepted rows observed by root. No Dev, Calibration or Test examples inspected.",
+  "source_snapshot_sha256": "6c1d07e7b02ab7f1801ea08968ad1fd51d7488a76e082efeb86aee8ed46f287b",
+  "reviewer": "root agent",
+  "human_validated": false,
+  "reviewed": 5,
+  "approved": 5,
+  "quarantined": 0,
+  "label_edits": 0,
+  "student_inference_calls": 0,
+  "limitations": [
+    "A small early convenience sample from two families, not a random audit or an estimate of dataset-wide label accuracy.",
+    "The four HTTP examples explicitly name the required method; correctness here does not establish harder semantic-intent coverage."
+  ],
+  "reviews": [
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-design_color_syntax-00004",
+      "family_id": "design_color_syntax",
+      "reviewed_record_sha256": "194667bda9a4e2089578c54c69521cdfa19951a9193f377a8cf789ca852af9b7",
+      "disposition": "approved",
+      "reason": "The visible field requires the literal rgba(r, g, b, a) spelling with fractional alpha. None of the seven candidates matches that explicit syntax; RGB aliases and alternate color notations do not satisfy the stated format."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-http_method-00000",
+      "family_id": "http_method",
+      "reviewed_record_sha256": "0d39c41ca8c8a61e752e22028592630f41a1675bdf43f731f3583ea91ec8229d",
+      "disposition": "approved",
+      "reason": "The visible instruction explicitly requests GET; only c1 supplies it."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-http_method-00001",
+      "family_id": "http_method",
+      "reviewed_record_sha256": "5db43ebb6d192b03e0528d14720876b4e36292dfd5662e3bd049d20ebd40b040",
+      "disposition": "approved",
+      "reason": "The visible instruction explicitly requests POST; only c3 supplies it."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-http_method-00002",
+      "family_id": "http_method",
+      "reviewed_record_sha256": "0330a3e62cd8df966c57e3697d83c8e0c1b9dc777efe5ba3806d3da52baab9ec",
+      "disposition": "approved",
+      "reason": "The visible instruction explicitly requests PUT for full replacement; only c2 supplies it."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-http_method-00003",
+      "family_id": "http_method",
+      "reviewed_record_sha256": "d610758154031b02e0be0005ec661bd5899b63f43dfd4d6051506d4a9b120b03",
+      "disposition": "approved",
+      "reason": "The visible instruction explicitly requests DELETE; the single candidate c1 supplies it."
+    }
+  ]
+}
