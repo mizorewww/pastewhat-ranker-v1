@@ -62,6 +62,7 @@ def main():
             if cold.get("error"):
                 raise RuntimeError("Performance cold inference failed: " + cold["error"])
             latencies, process_latencies, memory = [], [], []
+            reported_memory = [cold.get("memory", {})]
             for repeat in range(args.repeats):
                 value = {**request, "id": f"performance-{count}-{repeat}"}
                 response = normalize_response(value, worker.request(value), "ranker")
@@ -69,6 +70,7 @@ def main():
                     raise RuntimeError("Performance warm inference failed: " + response["error"])
                 latencies.append(float(response["latencyMS"]))
                 process_latencies.append(float(response["roundTripMS"]))
+                reported_memory.append(response.get("memory", {}))
                 rss = process_rss_bytes(worker.process.pid)
                 if rss is not None:
                     memory.append(rss)
@@ -77,6 +79,9 @@ def main():
                             "warm_inference_ms_p50": statistics.median(latencies), "warm_inference_ms_p95": percentile(latencies, 95),
                             "warm_roundtrip_ms_p50": statistics.median(process_latencies), "warm_roundtrip_ms_p95": percentile(process_latencies, 95),
                             "observed_max_rss_bytes": max(memory) if memory else None,
+                            "process_peak_rss_bytes": max((row.get("processPeakRSSBytes", 0) for row in reported_memory), default=0) or None,
+                            "mlx_peak_allocated_bytes": max((row.get("mlxPeakAllocatedBytes", 0) or 0 for row in reported_memory), default=0) or None,
+                            "mlx_max_active_allocated_bytes": max((row.get("mlxActiveAllocatedBytes", 0) or 0 for row in reported_memory), default=0) or None,
                             "warm_inference_ms": latencies, "warm_roundtrip_ms": process_latencies,
                             "runtime": cold.get("runtime"), "repeats": args.repeats})
         finally:
@@ -85,7 +90,7 @@ def main():
     report = {"platform": platform.platform(), "machine": platform.machine(), "command": command,
               "preprocessing": preprocessor.manifest(), "deployment_manifest_sha256": sha256(args.deployment_manifest),
               "gpu_exclusive_confirmation": args.gpu_exclusive_confirmation, "results": results,
-              "memory_measurement": "maximum post-inference macOS process RSS; not isolated GPU memory and not a continuous peak sampler",
+              "memory_measurement": "Each candidate-count run uses a fresh process. Worker reports process-lifetime ru_maxrss and synchronized MLX allocator peak/active counts; MLX uses unified memory, not independent VRAM. The separate observed RSS value samples after inference only.",
               "child_peak_rss_platform_units": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,
               "scope": "worker inference only; excludes AppKit window, AX capture, and clipboard collection"}
     write_json(args.output / "performance.json", report)
