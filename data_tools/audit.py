@@ -53,6 +53,12 @@ invented hidden request or the contents of another editable control.
 payload_metadata_consistent means text describing a file is not falsely given a
 file payload, plain strings are not images, image summaries do not claim unseen
 semantic contents. Genuine file payloads and observable image dimensions are valid.
+Candidate text, kind and capabilities were computed from real synthetic payload
+bytes by the deployed native classifier. Its kind categories are deliberately
+coarse: a single-line Python expression, bare mode string or rgb() value may
+legitimately have kind=text. Do not reject that because its topic resembles code
+or a color. Audit contradictions in visible evidence or claimed payload support;
+do not supply semantic image contents that the native summary does not expose.
 Do not return chain-of-thought. Short reason is a finding for audit, not training.
 """
 

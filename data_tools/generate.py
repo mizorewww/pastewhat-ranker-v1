@@ -27,9 +27,9 @@ from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonic
 
 ROOT = Path(__file__).resolve().parents[1]
 PARTITION_PATH = Path(__file__).with_name("family_partition.json")
-PROMPT_VERSION = "teacher-episodes-v4-native-capture"
-CACHE_VERSION = "v4"
-KINDS = {"text", "url", "email", "code", "command", "phone", "file", "image", "color"}
+PROMPT_VERSION = "teacher-episodes-v5-native-payload"
+CACHE_VERSION = "v5"
+CANDIDATE_PROJECTION_PATH = ROOT / "tools/context_projection/provenance.json"
 SURFACES = {"recipient", "address_bar", "search", "shell_prompt", "code_editor", "chat_composer", "color", "file_path", "text", "unknown"}
 
 GENERATOR_SYSTEM = """You are the synthetic-data author for PasteWhat, an AppKit clipboard manager.
@@ -99,13 +99,24 @@ output, or equivalent formatting. Such variants may be genuine multi-positives.
 The requested operation is the task. Vary examples WITHIN that operation; do not
 turn unrelated or excluded operations into the question or contrastive examples.
 
-Each candidate has exactly id,text,kind,capabilities,sourceCategory. IDs are c1,c2,
-etc. kind is text,url,email,code,command,phone,file,image,color. capabilities is a
-nonempty list drawn from text,image,file,richText and represents actual clipboard
-payloads. Rich text also has text. A filename-only string is text, not a file
-payload. Image/file summaries must state only observable filename/dimensions,
-never imaginary unseen image contents. Do not mark text as a file to make it fit.
-Candidate bodies are usually 5–250 characters; vary length naturally. They are
+Each candidate has EXACTLY id,sourceCategory,payload. IDs are c1,c2,etc.
+Never declare kind, capabilities or a separate summary text. Production native
+code derives all three from actual synthetic payload bytes. payload is exactly
+one of these forms:
+{"type":"text","text":"literal clipboard body"}
+{"type":"file","names":["fictional-document.pdf"]}
+{"type":"image","width":640,"height":480}
+Text payloads include code, commands, URLs, email, phone, color strings and
+ordinary prose. A literal filename is still a text payload. File payload names
+are 1–20 safe fictional basenames, not paths, URLs, directories or real documents.
+Image payloads produce genuine PNG fixtures; dimensions are integers 1–8192
+with width*height at most16,777,216 pixels.
+Do not give image captions, descriptions, inferred contents or labels. Only its
+native observable dimensions and image capability can support a decision. Do not
+assume an image contains a person, logo or any other unobserved subject. No RTF,
+HTML representation, real file reads, base64 or user-provided bytes are allowed.
+Do not duplicate the exact same payload in an episode; clipboard history would
+deduplicate it. Text bodies are usually 5–250 characters; vary length naturally. They are
 already complete material that can be pasted as-is. Never rely on editing a
 candidate or combining multiple candidates. All candidates fit the same requested
 operation family, except a minority of realistic unrelated distractors.
@@ -229,7 +240,7 @@ def build_plan(split, limit, batch_size, phase, *, target_override=None):
             for index in range(offset, min(offset + batch_size, counts[family["id"]])):
                 if emitted >= limit:
                     break
-                identifier = f"{split}-{phase}-v4-{family['id']}-{index:05d}"
+                identifier = f"{split}-{phase}-{CACHE_VERSION}-{family['id']}-{index:05d}"
                 plans.append({"id": identifier, **schedules[family["id"]][index], "variant_number": index})
                 emitted += 1
             if plans:
@@ -271,15 +282,23 @@ def validate_generated(value, plans):
             raise ValueError("Static sibling guidance exceeds the 240-per-string or 600-total limit; author shorter genuine labels")
         if episode["context"].get("hasAccessibility") is not True and any(episode["context"].get(key) for key in ("fieldLabel", "fieldRole", "selectedText", "surroundingText")):
             raise ValueError("No accessibility context may expose field information")
+        seen_payloads = set()
         for entry in episode["entries"]:
-            if set(entry) != {"id", "text", "kind", "capabilities", "sourceCategory"}:
-                raise ValueError("Generator introduced non-input candidate fields")
-            if entry["kind"] not in KINDS:
-                raise ValueError("Unknown deployment candidate kind")
-            if not isinstance(entry["text"], str) or len(entry["text"]) > 20000:
-                raise ValueError("Invalid candidate text")
-            if "richText" in entry["capabilities"] and "text" not in entry["capabilities"]:
-                raise ValueError("Rich text requires a text representation")
+            if set(entry) != {"id", "payload", "sourceCategory"}:
+                raise ValueError("Author candidates must contain only id, sourceCategory and payload; native code derives text/kind/capabilities")
+            payload = entry["payload"]
+            if not isinstance(payload, dict) or payload.get("type") not in ("text", "file", "image"):
+                raise ValueError("Candidate payload must be text, file or image")
+            signature = canonical_bytes(payload)
+            if signature in seen_payloads:
+                raise ValueError("Identical synthetic payloads cannot occupy two clipboard-history slots")
+            seen_payloads.add(signature)
+            if payload["type"] == "text" and (set(payload) != {"type", "text"} or not isinstance(payload["text"], str) or not 1 <= len(payload["text"]) <= 20000):
+                raise ValueError("Text payload must declare only a nonempty literal body")
+            if payload["type"] == "file" and (set(payload) != {"type", "names"} or not isinstance(payload["names"], list) or not 1 <= len(payload["names"]) <= 20):
+                raise ValueError("File payload must contain 1–20 synthetic basenames")
+            if payload["type"] == "image" and (set(payload) != {"type", "width", "height"} or any(type(payload[key]) is not int or not 1 <= payload[key] <= 8192 for key in ("width", "height")) or payload['width'] * payload['height'] > 16_777_216):
+                raise ValueError("Image payload must contain only bounded integer width/height")
         # Counter positional shortcuts independently of what the generator did.
         rng = random.Random(int(hashlib.sha256(episode["id"].encode()).hexdigest()[:16], 16))
         rng.shuffle(episode["entries"])
@@ -364,7 +383,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
     from data_tools.audit import AUDIT_SYSTEM, review_group
 
     output_path = batch_dir / f"{batch['batch_id']}.json"
-    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch}))
+    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "candidate_projection_provenance": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch}))
     accepted, usage, rejected, starting_attempt = {}, {}, [], 0
     if output_path.is_file():
         stored = json.loads(output_path.read_text())
@@ -406,6 +425,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             raw = generation.parsed.get("episodes", [])
             generated_by_id = {episode.get("id"): episode for episode in raw}
             prepared = []
+            payload_hashes = {}
             findings = []
             for plan in pending:
                 try:
@@ -415,7 +435,10 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                     episode = validate_generated({"episodes": [episode]}, [plan])[0]
                     episode["family_id"] = batch["family"]["id"]
                     from tools.project_context import project_context
+                    from tools.project_candidates import project_candidates
                     episode["context"] = project_context(episode["context"], capture=episode["capture"])
+                    payload_hashes[episode["id"]] = sha256(canonical_bytes(episode["entries"]))
+                    episode["entries"] = project_candidates(episode["entries"])
                     episode = preprocessor.prepare_episode(episode)
                     issue = placement_issue(episode)
                     if issue:
@@ -471,6 +494,9 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                 episode["provenance"] = {
                     "teacher": "kimi-for-coding",
                     "capture_format": "pastewhat-focus-v1",
+                    "candidate_payload_protocol": "native-synthetic-payload-v1",
+                    "candidate_fixture_authoring_sha256": payload_hashes[episode["id"]],
+                    "candidate_projection_provenance_sha256": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()),
                     "projection_provenance_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()),
                     "sampling_protocol": "sampling-v4-independent-schedules",
                     "generation_audit_id": generation.audit_id,
@@ -643,7 +669,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--batch-size", type=int, default=10)
+    parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--phase", choices=("main", "hard-pool"), default="main")
     parser.add_argument("--v0-ready", help="Required frozen Dev-selected v0 handoff for a new Train mining pool")

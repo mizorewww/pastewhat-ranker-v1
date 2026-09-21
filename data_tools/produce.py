@@ -91,9 +91,9 @@ class Progress:
         atomic_json(manifest_path, {"split": self.split, "episodes": len(episodes), "sha256": digest, "prompt_version": PROMPT_VERSION, "labels": dict(labels), "families": dict(Counter(episode["family_id"] for episode in episodes)), "partial_batch_slots_included": True, "created_at": utc_now(), "human_validated": False})
 
 
-def launch(split, workers, run_dir):
+def launch(split, workers, run_dir, batch_size):
     output = (run_dir / f"{split}.log").open("a", buffering=1)
-    command = [sys.executable, "-m", "data_tools.generate", "--split", split, "--workers", str(workers)]
+    command = [sys.executable, "-m", "data_tools.generate", "--split", split, "--workers", str(workers), "--batch-size", str(batch_size)]
     output.write(json.dumps({"event": "launch", "time": utc_now(), "command": command, "prompt_version": PROMPT_VERSION}) + "\n")
     process = subprocess.Popen(command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT)
     return process, output
@@ -123,9 +123,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train-workers", type=int, default=4)
     parser.add_argument("--dev-workers", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--monitor-seconds", type=float, default=30)
     args = parser.parse_args()
-    if not 1 <= args.train_workers <= 8 or not 1 <= args.dev_workers <= 4:
+    if not 1 <= args.train_workers <= 8 or not 1 <= args.dev_workers <= 4 or not 1 <= args.batch_size <= 20:
         raise SystemExit("Worker allocation must remain within the measured concurrency limits")
     run_dir = ROOT / ("local/production-" + CACHE_VERSION)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -134,14 +135,14 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         raise SystemExit("A Train/Dev production supervisor is already running")
-    atomic_json(run_dir / "process.json", {"pid": os.getpid(), "started_at": utc_now(), "prompt_version": PROMPT_VERSION, "train_workers": args.train_workers, "dev_workers": args.dev_workers, "targets": {"train": 20000, "dev": 1000}})
+    atomic_json(run_dir / "process.json", {"pid": os.getpid(), "started_at": utc_now(), "prompt_version": PROMPT_VERSION, "train_workers": args.train_workers, "dev_workers": args.dev_workers, "batch_size": args.batch_size, "targets": {"train": 20000, "dev": 1000}})
     workers = {"train": args.train_workers, "dev": args.dev_workers}
     targets = {"train": 20000, "dev": 1000}
     trackers = {split: Progress(split) for split in workers}
     coordinator = AccountCoordinator()
     account_status = coordinator.status()
     gate = production_gate()
-    children = {split: launch(split, amount, run_dir) if not account_status["paused"] and gate["ready"] else (None, None) for split, amount in workers.items()}
+    children = {split: launch(split, amount, run_dir, args.batch_size) if not account_status["paused"] and gate["ready"] else (None, None) for split, amount in workers.items()}
     restarts = Counter()
     next_restart = {split: 0.0 for split in workers}
     started = time.monotonic()
@@ -179,7 +180,7 @@ def main():
                 # Accepted slots and attempt counters persist; retries do not
                 # reuse a permanently failed prompt or conceal incomplete work.
                 next_restart[split] = time.monotonic() + min(900, 30 * (2 ** min(restarts[split], 5)))
-                children[split] = launch(split, workers[split], run_dir)
+                children[split] = launch(split, workers[split], run_dir, args.batch_size)
         snapshots = {
             "pilot": freeze_if_ready("train", 5000, "pilot-train-5000.jsonl", run_dir),
             "train": freeze_if_ready("train", 20000, "train-20000.jsonl", run_dir),

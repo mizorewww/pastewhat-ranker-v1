@@ -46,13 +46,16 @@ class ReplayVerifier:
         return matches[0]
 
     def verify(self, episode):
-        from data_tools.generate import LABEL_SYSTEM, PARTITION_PATH, validate_generated, validate_labels
+        from data_tools.generate import CANDIDATE_PROJECTION_PATH, LABEL_SYSTEM, PARTITION_PATH, validate_generated, validate_labels
         from data_tools.audit import AUDIT_SYSTEM
         from tools.project_context import project_context
+        from tools.project_candidates import project_candidates
 
         provenance = episode["provenance"]
         if provenance.get("capture_format") != "pastewhat-focus-v1" or provenance.get("projection_provenance_sha256") not in self.compatible_projection_shas:
             raise ValueError("Formal data lacks the pinned native capture provenance")
+        if provenance.get("candidate_payload_protocol") != "native-synthetic-payload-v1" or provenance.get("candidate_projection_provenance_sha256") != sha256(CANDIDATE_PROJECTION_PATH.read_bytes()):
+            raise ValueError("Formal data lacks the current native candidate-payload provenance")
         phase = provenance.get("generation_phase", "main")
         _, generated = self.audit(provenance["generation_audit_id"], phase)
         raw = next((copy.deepcopy(item) for item in generated["episodes"] if item["id"] == episode["id"]), None)
@@ -61,6 +64,9 @@ class ReplayVerifier:
         raw = validate_generated({"episodes": [raw]}, [{"id": episode["id"], "candidate_count": len(episode["entries"])}])[0]
         raw["family_id"] = episode["family_id"]
         raw["context"] = project_context(raw["context"], capture=raw["capture"])
+        if sha256(canonical_bytes(raw["entries"])) != provenance.get("candidate_fixture_authoring_sha256"):
+            raise ValueError("Authoring payload fixture specification differs from recorded provenance")
+        raw["entries"] = project_candidates(raw["entries"])
         replayed = self.preprocessor.prepare_episode(raw)
         if replayed["context"] != episode["context"] or replayed["entries"] != episode["entries"] or replayed["preprocessing"]["visible_sha256"] != provenance["label_visible_sha256"]:
             raise ValueError("Raw native capture does not replay to the labeled student input")

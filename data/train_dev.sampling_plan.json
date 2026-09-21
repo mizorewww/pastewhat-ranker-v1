@@ -1,6 +1,8 @@
 {
+  "batch_size": 5,
+  "dataset_protocol": "teacher-episodes-v5-native-payload",
   "independence": "full-family label, language and candidate-count schedules use separate hash-derived RNG streams",
-  "protocol": "sampling-v4",
+  "protocol": "sampling-v4-independent-schedules",
   "seed": 42,
   "single_candidate_rule": "ambiguous becomes insufficient_context in the same ABSTAIN bucket; multiple-positive requests disabled, never change candidate count",
   "splits": {
@@ -140,7 +142,7 @@
           "select": 15
         }
       },
-      "plan_sha256": "7fea0121ffd66c66a1615c59bcbaf80006cb76ddb59c996836139c68e8f3c248",
+      "plan_sha256": "3805a1e43a9c4743f86e4edb0349d1e1d6c7d0b2fec369d2cf6b5b307e68b769",
       "planned_episodes": 1000,
       "target_action_counts": {
         "missing_context": 100,
@@ -284,7 +286,7 @@
           "select": 357
         }
       },
-      "plan_sha256": "a216f813701f5f5011e55f213161997a4784cfcbf68d0498881f780c8c567927",
+      "plan_sha256": "3af046bc431b7587fac4a4b330eac009f655e93d945d5d3fc12fab3a0cf212d0",
       "planned_episodes": 20000,
       "target_action_counts": {
         "missing_context": 2000,

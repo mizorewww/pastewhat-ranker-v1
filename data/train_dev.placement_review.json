@@ -268,7 +268,41 @@
       "reason": "Data agent review: the selected try/except contains return outside any visible enclosing function in an empty editor; literal paste fails Python compile. Original label is preserved and rejected, not changed to abstain.",
       "reviewer": "data-agent",
       "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "2f40dd1cc7a30b5425de929f5f64b1d62f6c2c65fdc2ff4f5106266fa07898a3",
+      "family_id": "git_diff_selection",
+      "id": "train-main-v5-git_diff_selection-00000",
+      "original_generation_audit_id": "f5e848144b242b8045a39e4a3fbbe935ad833344202e9bd561ae6842a1c854b0",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c8"
+        ],
+        "decision": "select"
+      },
+      "reason": "Independent root and training agents: visible task does not require patch format, so excluding other unstaged-diff display formats lacks evidence; original singleton positive set is disputed.",
+      "reviewer": "root-agent and training-agent independent review",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "dae4eebefdb4f0cb44c7cd656bc9ffe473f798af94a2a19f075545ec1175ad33",
+      "family_id": "git_diff_selection",
+      "id": "train-main-v5-git_diff_selection-00004",
+      "original_generation_audit_id": "f5e848144b242b8045a39e4a3fbbe935ad833344202e9bd561ae6842a1c854b0",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c8"
+        ],
+        "decision": "select"
+      },
+      "reason": "Independent root and training agents: --exit-code preserves the requested standalone diff patch output; context does not constrain exit status. The original acceptable set omits an equivalent usable candidate.",
+      "reviewer": "root-agent and training-agent independent review",
+      "split": "train"
     }
   ],
-  "reviewed_at": "2026-09-21T01:54:43.357101+00:00"
+  "reviewed_at": "2026-09-21T02:29:59.259728+00:00"
 }
