@@ -1,0 +1,68 @@
+{
+  "purpose": "Independent agent deployment audit of the first accepted v3 Train batch; not a benchmark or human validation",
+  "sampling": "First available http_method batch, not a representative random sample",
+  "prompt_version": "teacher-episodes-v3-visible-evidence",
+  "reviewer": "root agent",
+  "decision": "quarantine_and_regenerate_without_editing_existing_labels",
+  "finding": "A Code editor contains an unselected ___ placeholder while the chosen candidate is a bare HTTP method. Real pasting would not replace the placeholder; a JavaScript method string usually also requires quotes. Use an actual standalone HTTP method input field or a fully specified selected replacement range.",
+  "label_edits": 0,
+  "affected_count": 8,
+  "records": [
+    {
+      "id": "train-main-http_method-00001",
+      "record_sha256": "274135dcf7d15fc65848a23d977c8aeacb29334fc1ecfd939592763443a001c4",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00002",
+      "record_sha256": "7d7eccd2008c8050557b3eb558f16db816986380a012237ab0643897b6611c0f",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00003",
+      "record_sha256": "949e4894c6d5aba337d604de7383465898fd08751f11d163443435554300e5e7",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00004",
+      "record_sha256": "a1bc30aa58a6967f4ed84b4985013b5dbea393b5e9b14d3099f33b849f9ee676",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00005",
+      "record_sha256": "3942aded0d5f7498eaa6e437335072d01da1e036a5eee869c04d4d9d5566665d",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00006",
+      "record_sha256": "4a71f3fbca2ea76e37ae21cc9d6404ff9eb7845d3f6a17765a2ed7a4c57073e2",
+      "label_decision": "select",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00007",
+      "record_sha256": "55686ef0f187eaa8ca4aa5a39c706ad79f25ff3ac274c8deaa6aa1e281127949",
+      "label_decision": "abstain",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    },
+    {
+      "id": "train-main-http_method-00008",
+      "record_sha256": "19e9f867d6b463f112cb43711544d8b269179fc7c9d5b642bf80c4d0464c9705",
+      "label_decision": "abstain",
+      "generation_audit_id": "a18b6e3cfe8be575278f21164d5f1028cbf2dcc9bc76b5fde63fc72a121b3484",
+      "label_audit_id": "c5fa55d15c63542f43a2a78ad9a3d579b8e0d656bb418f9ea65ff5fb269e878b"
+    }
+  ]
+}
