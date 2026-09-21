@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import os
 from pathlib import Path
 import random
 
@@ -17,6 +18,15 @@ def content_fingerprint(episode):
     entries = [{key: value for key, value in entry.items() if key != "id"} for entry in episode["entries"]]
     entries.sort(key=canonical_bytes)
     return sha256(canonical_bytes({"context": episode["context"], "entries": entries}))
+
+
+def publish_bytes(path, payload):
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temporary.open("wb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(path)
 
 
 def main():
@@ -82,12 +92,14 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.is_file() and output.read_bytes() != data:
         raise ValueError("Immutable snapshot already exists with different data")
-    output.write_bytes(data)
     fingerprints = [{"id": episode["id"], "family_id": episode["family_id"], "content_sha256": content_fingerprint(episode)} for episode in chosen]
     fingerprint_path = output.with_suffix(".fingerprints.jsonl")
-    fingerprint_path.write_bytes(b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
+    publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {"split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
-    atomic_json(output.with_suffix(".manifest.json"), manifest)
+    publish_bytes(output.with_suffix(".manifest.json"), json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2).encode() + b"\n")
+    # JSONL existence is the training pipeline's readiness signal. Its complete
+    # sidecars are visible first, then the fsynced snapshot is renamed atomically.
+    publish_bytes(output, data)
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
 
