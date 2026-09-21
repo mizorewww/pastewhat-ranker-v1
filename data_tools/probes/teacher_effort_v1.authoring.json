@@ -42,7 +42,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgb(161,178,195)"
         },
@@ -91,7 +91,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgba(20, 40, 60, 0.05)"
         },
@@ -100,7 +100,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgba(20,40,60,0.5)"
         },
@@ -109,7 +109,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgba(20,40,60,1)"
         }
@@ -148,7 +148,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "red"
         },
@@ -157,7 +157,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgb(255,0,0)"
         },
@@ -258,7 +258,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgb(128,64,32)"
         },
@@ -267,7 +267,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgb(128,32,64)"
         },
@@ -276,7 +276,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "color",
+          "kind": "text",
           "sourceCategory": "writing",
           "text": "rgb(128, 64, 32)"
         }
@@ -998,7 +998,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "list(set(items))"
         },
@@ -1007,7 +1007,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "list(dict.fromkeys(items))"
         },
@@ -1016,7 +1016,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "sorted(set(items))"
         }
@@ -1055,7 +1055,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "list(dict.fromkeys(items))"
         },
@@ -1064,7 +1064,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "set(items)"
         },
@@ -1073,7 +1073,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "list(items)"
         }
@@ -1112,7 +1112,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "items.get(key, 0)"
         },
@@ -1121,7 +1121,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "items[key]"
         },
@@ -1130,7 +1130,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "items.get(key)"
         },
@@ -1139,7 +1139,7 @@
             "text"
           ],
           "id": "c4",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "items.setdefault(key, 0)"
         }
@@ -1178,7 +1178,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "list(items)"
         },
@@ -1187,7 +1187,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "set(items)"
         },
@@ -1196,7 +1196,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "tuple(items)"
         }
@@ -1233,7 +1233,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"rb\""
         },
@@ -1242,7 +1242,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"r\""
         },
@@ -1251,7 +1251,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"wb\""
         },
@@ -1260,7 +1260,7 @@
             "text"
           ],
           "id": "c4",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"r+b\""
         }
@@ -1299,7 +1299,7 @@
             "text"
           ],
           "id": "c1",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"w\""
         },
@@ -1308,7 +1308,7 @@
             "text"
           ],
           "id": "c2",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"r\""
         },
@@ -1317,7 +1317,7 @@
             "text"
           ],
           "id": "c3",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"xb\""
         },
@@ -1326,7 +1326,7 @@
             "text"
           ],
           "id": "c4",
-          "kind": "code",
+          "kind": "text",
           "sourceCategory": "development",
           "text": "\"rb\""
         }
@@ -1341,5 +1341,6 @@
     }
   ],
   "human_validated": false,
-  "purpose": "Train-only agent-authored engineering probe for reasoning effort; excluded from formal data"
+  "purpose": "Train-only agent-authored engineering probe for reasoning effort; excluded from formal data",
+  "revision_note": "Before teacher requests: candidate kind corrected to production plaintext classifier; expected labels unchanged."
 }
