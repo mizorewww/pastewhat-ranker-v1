@@ -43,6 +43,24 @@ def slices(episodes: list[dict], predictions: list[dict]) -> dict:
     return {key: summarize_outcomes(value) for key, value in sorted(groups.items())}
 
 
+def key_group_verdict(groups: dict) -> dict:
+    sufficient = [name for name, row in groups.items() if row["sufficient_for_gate"] and row["top1_delta"] is not None]
+    insufficient = sorted(set(groups) - set(sufficient))
+    regressed = sorted(name for name in sufficient if groups[name]["material_regression"])
+    if regressed:
+        status = "failed"
+    elif not groups or insufficient:
+        status = "inconclusive"
+    else:
+        status = "passed"
+    return {"status": status, "required_critical_groups": len(groups),
+            "sufficient_critical_groups": len(sufficient),
+            "insufficient_critical_groups": insufficient,
+            "materially_regressed_groups": regressed,
+            "minimum_answerable_per_group": 30,
+            "rule": "Every preregistered critical family needs at least 30 answerable cases; missing evidence cannot establish no regression."}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, required=True)
@@ -84,9 +102,10 @@ def main():
         groups[group] = {"answerable": current["answerable"], "top1_delta": delta,
                          "sufficient_for_gate": eligible,
                          "material_regression": eligible and delta is not None and delta < -0.05}
+    group_verdict = key_group_verdict(groups)
     criteria = {
         "answerable_top1_improves_five_points": paired["answerable_top1_delta"] is not None and paired["answerable_top1_delta"] >= 0.05,
-        "no_material_key_group_regression": not any(row["material_regression"] for row in groups.values()),
+        "no_material_key_group_regression": group_verdict["status"] == "passed",
         "calibration_observed_precision_target_met": calibrator["status"] == "observed_precision_target_met",
         "no_inference_failures": ranker_summary["overall"]["failure"] == 0 and baseline_summary["overall"]["failure"] == 0,
     }
@@ -94,7 +113,8 @@ def main():
         "scope": "independently held-out synthetic conceptual families; no real-user or human-validation claim",
         "baseline": baseline_summary, "ranker": ranker_summary, "paired": paired,
         "slices": {"baseline": slices(episodes, baseline), "ranker": slices(episodes, decisions)},
-        "key_group_gates": groups, "acceptance": {"passed": all(criteria.values()), "criteria": criteria},
+        "key_group_gates": groups, "key_group_verdict": group_verdict,
+        "acceptance": {"passed": all(criteria.values()), "criteria": criteria},
         "provenance": {"freeze_sha256": sha256(args.freeze), "data_sha256": sha256(args.data),
                        "baseline_scores_sha256": sha256(args.baseline), "ranker_scores_sha256": sha256(args.ranker_scores),
                        "calibrator_sha256": sha256(args.calibrator), "report_code_sha256": sha256(__file__)},

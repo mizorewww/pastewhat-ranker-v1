@@ -169,7 +169,11 @@ Top-1 over the production baseline. This is the fraction of selectable episodes
 actually recommended with an acceptable ID; abstaining on a selectable episode
 is a miss. All predetermined conceptual families are key groups. A material
 group regression is a decline greater than 5 percentage points on a group with
-at least 30 selectable examples. Report all smaller groups without claiming
+at least 30 selectable examples. The no-regression gate passes only when every
+preregistered critical family has enough evidence and none materially regresses.
+An empty set of sufficient groups, or any insufficient critical group without an
+observed regression, is `inconclusive` and cannot qualify a release. Report all
+smaller groups without claiming
 that low counts establish parity. Also report:
 
 - Raw ranking Top-1, separately labeled and never substituted for actual
