@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "purpose": "Independent agent review of Train-only engineering overfit seed; not human validation or benchmark acceptance",
+  "source_path": "local/train_overfit_candidate32.jsonl",
+  "source_sha256": "f39277cbf360975cca0c06c83b180d662d7b7e6588b6504560798da61cd3ad71",
+  "reviewer": "root agent, separate from synthesis/labeling agent",
+  "label_edits": 0,
+  "decision": "replace flagged episodes before freeze",
+  "accepted_count": 26,
+  "replace_count": 6,
+  "reviews": [
+    {
+      "id": "train-main-design_color_syntax-00001",
+      "ordinal": 1,
+      "status": "accept_for_engineering_seed",
+      "reason": "Explicit rgba() syntax and alpha=1 select c4; all other candidates violate syntax or opacity."
+    },
+    {
+      "id": "train-main-design_color_syntax-00003",
+      "ordinal": 2,
+      "status": "accept_for_engineering_seed",
+      "reason": "Pure blue in hex without alpha selects c8."
+    },
+    {
+      "id": "train-main-design_color_syntax-00008",
+      "ordinal": 3,
+      "status": "accept_for_engineering_seed",
+      "reason": "No candidate is rgba() with alpha=0.3."
+    },
+    {
+      "id": "train-main-design_color_syntax-00009",
+      "ordinal": 4,
+      "status": "accept_for_engineering_seed",
+      "reason": "No evidence chooses opaque versus translucent accent color."
+    },
+    {
+      "id": "train-main-disk_usage-00004",
+      "ordinal": 5,
+      "status": "accept_for_engineering_seed",
+      "reason": "df -h queries available space on the filesystem holding the named path."
+    },
+    {
+      "id": "train-main-disk_usage-00005",
+      "ordinal": 6,
+      "status": "accept_for_engineering_seed",
+      "reason": "Both compound commands provide directory total and filesystem free space; the order is unconstrained."
+    },
+    {
+      "id": "train-main-disk_usage-00006",
+      "ordinal": 7,
+      "status": "accept_for_engineering_seed",
+      "reason": "The requested one-level directory breakdown, human-readable sizes and single filesystem are jointly expressed only by c1."
+    },
+    {
+      "id": "train-main-disk_usage-00008",
+      "ordinal": 8,
+      "status": "accept_for_engineering_seed",
+      "reason": "No candidate queries free filesystem space with the requested presentation."
+    },
+    {
+      "id": "train-main-disk_usage-00009",
+      "ordinal": 9,
+      "status": "accept_for_engineering_seed",
+      "reason": "The broad investigation request does not resolve directory totals versus subdirectory breakdown versus free filesystem space."
+    },
+    {
+      "id": "train-main-file_copy_destination-00002",
+      "ordinal": 10,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c1 copies the full directory to the external drive without archiving."
+    },
+    {
+      "id": "train-main-file_copy_destination-00005",
+      "ordinal": 11,
+      "status": "accept_for_engineering_seed",
+      "reason": "Both explicit SVG filenames and the matching glob copy the shown SVG set to the target; neither moves originals."
+    },
+    {
+      "id": "train-main-file_copy_destination-00006",
+      "ordinal": 12,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c4 copies the enclosing report directory into the local shared folder."
+    },
+    {
+      "id": "train-main-file_copy_destination-00007",
+      "ordinal": 13,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c1 copies both named directory trees locally while retaining sources."
+    },
+    {
+      "id": "train-main-file_copy_destination-00008",
+      "ordinal": 14,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c16 copies all three videos to the destination directory."
+    },
+    {
+      "id": "train-main-git_diff_selection-00000",
+      "ordinal": 15,
+      "status": "accept_for_engineering_seed",
+      "reason": "Unstaged-only worktree-versus-index diff selects git diff."
+    },
+    {
+      "id": "train-main-git_diff_selection-00001",
+      "ordinal": 16,
+      "status": "accept_for_engineering_seed",
+      "reason": "Staged-only diff selects git diff --cached."
+    },
+    {
+      "id": "train-main-git_diff_selection-00002",
+      "ordinal": 17,
+      "status": "replace",
+      "reason": "Synthetic git log contains non-hexadecimal object IDs. Replace this engineering fixture with a plausible independently labeled episode."
+    },
+    {
+      "id": "train-main-git_diff_selection-00003",
+      "ordinal": 18,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c4 supplies function-level context for unstaged changes under src/."
+    },
+    {
+      "id": "train-main-git_diff_selection-00004",
+      "ordinal": 19,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only c4 compares the requested tag against HEAD."
+    },
+    {
+      "id": "train-main-git_diff_selection-00005",
+      "ordinal": 20,
+      "status": "accept_for_engineering_seed",
+      "reason": "--cached and --staged are equivalent and both are labeled acceptable."
+    },
+    {
+      "id": "train-main-git_diff_selection-00006",
+      "ordinal": 21,
+      "status": "accept_for_engineering_seed",
+      "reason": "Only git diff compares worktree with index without commit or staged-only comparison."
+    },
+    {
+      "id": "train-main-git_diff_selection-00007",
+      "ordinal": 22,
+      "status": "accept_for_engineering_seed",
+      "reason": "None supplies the requested worktree-versus-index diff; HEAD comparison may include staged changes."
+    },
+    {
+      "id": "train-main-git_diff_selection-00008",
+      "ordinal": 23,
+      "status": "accept_for_engineering_seed",
+      "reason": "None explicitly compares two commits; the context also omits their identities, so no recommendation is justified."
+    },
+    {
+      "id": "train-main-git_diff_selection-00009",
+      "ordinal": 24,
+      "status": "accept_for_engineering_seed",
+      "reason": "Viewing the log alone does not resolve whether the requested diff concerns commits, worktree or index."
+    },
+    {
+      "id": "train-main-http_authentication-00009",
+      "ordinal": 25,
+      "status": "accept_for_engineering_seed",
+      "reason": "The context explicitly leaves the authentication scheme unconfirmed."
+    },
+    {
+      "id": "train-main-http_method-00001",
+      "ordinal": 26,
+      "status": "accept_for_engineering_seed",
+      "reason": "Read-only retrieval of the resource body selects GET."
+    },
+    {
+      "id": "train-main-http_method-00002",
+      "ordinal": 27,
+      "status": "replace",
+      "reason": "The generated context contains an explicit prohibition copied from held-out-family exclusions. Replace it using the positive-only generation protocol."
+    },
+    {
+      "id": "train-main-http_method-00003",
+      "ordinal": 28,
+      "status": "accept_for_engineering_seed",
+      "reason": "Complete replacement of the document at a known URI selects PUT."
+    },
+    {
+      "id": "train-main-http_method-00004",
+      "ordinal": 29,
+      "status": "replace",
+      "reason": "selectedText spans the entire TODO and fetch block, while the chosen candidate is just POST. Pasting it would replace the whole selected code instead of the method value."
+    },
+    {
+      "id": "train-main-http_method-00007",
+      "ordinal": 30,
+      "status": "replace",
+      "reason": "Context still contains the forbidden-family PATCH cue and does not establish an insertion point for a method plus relative path candidate."
+    },
+    {
+      "id": "train-main-http_method-00008",
+      "ordinal": 31,
+      "status": "replace",
+      "reason": "Context still contains the forbidden-family PATCH cue and does not establish an insertion point for a method plus relative path candidate."
+    },
+    {
+      "id": "train-main-http_method-00009",
+      "ordinal": 32,
+      "status": "replace",
+      "reason": "The surrounding text already contains a full request URL, but the chosen candidate is a method plus relative path with no selected replacement range or clear insertion field. Exclude from the deliberately unambiguous engineering seed."
+    }
+  ]
+}
