@@ -11,7 +11,7 @@ import subprocess
 import time
 
 from evaluations.common import percentile, sha256, write_json
-from evaluations.score import Worker, normalize_response
+from evaluations.score import Worker, normalize_response, command_artifacts
 from pastewhat_ranker.preprocess import Preprocessor
 
 
@@ -50,6 +50,7 @@ def main():
         raise SystemExit("Refusing to overwrite a performance run")
     args.output.mkdir(parents=True)
     command = json.loads(args.command_json)
+    artifacts = command_artifacts(command, "ranker", None)
     preprocessor = Preprocessor(args.tokenizer)
     results = []
     for count in (1, 5, 10, 20):
@@ -87,7 +88,9 @@ def main():
         finally:
             worker.close()
         print(json.dumps({key: value for key, value in results[-1].items() if key not in {"warm_inference_ms", "warm_roundtrip_ms", "pair_token_lengths"}}), flush=True)
-    report = {"platform": platform.platform(), "machine": platform.machine(), "command": command,
+    if command_artifacts(command, "ranker", None) != artifacts:
+        raise ValueError("Deployment artifacts changed during the performance run")
+    report = {"platform": platform.platform(), "machine": platform.machine(), "command": command, "artifacts": artifacts,
               "preprocessing": preprocessor.manifest(), "deployment_manifest_sha256": sha256(args.deployment_manifest),
               "gpu_exclusive_confirmation": args.gpu_exclusive_confirmation, "results": results,
               "memory_measurement": "Each candidate-count run uses a fresh process. Worker reports process-lifetime ru_maxrss and synchronized MLX allocator peak/active counts; MLX uses unified memory, not independent VRAM. The separate observed RSS value samples after inference only.",

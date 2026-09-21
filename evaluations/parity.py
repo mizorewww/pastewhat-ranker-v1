@@ -17,6 +17,8 @@ import subprocess
 import sys
 
 from evaluations.common import calibrated_decision, load_jsonl, sha256, write_json, write_jsonl
+from evaluations.freeze import directory_hashes
+from pastewhat_ranker.calibration import load_calibrator
 from pastewhat_ranker.preprocess import Preprocessor
 
 PARITY_VERSION = "pastewhat-export-regression-v1"
@@ -141,14 +143,27 @@ def run_backend(args):
     write_jsonl(args.output / (args.backend + "-regression.jsonl"), outputs)
 
 
+def artifact_signature(args):
+    return {"reference_files": directory_hashes(args.reference),
+            "mlx_files": directory_hashes(args.mlx),
+            "runtime_code": directory_hashes(Path("src/pastewhat_ranker")),
+            "regression_inputs_sha256": sha256(args.inputs),
+            "parity_code_sha256": sha256(__file__)}
+
+
 def compare(args):
+    signature = artifact_signature(args)
+    recorded = json.loads((args.output / "run-artifacts.json").read_text())
+    if signature != recorded:
+        raise ValueError("Regression artifacts or runtime changed after numerical inference")
     episodes = load_jsonl(args.inputs)
     reference = {row["id"]: row for row in load_jsonl(args.output / "torch-regression.jsonl")}
     deployment = {row["id"]: row for row in load_jsonl(args.output / "mlx-regression.jsonl")}
     if set(reference) != {row["id"] for row in episodes} or set(deployment) != set(reference):
         raise ValueError("Backend regression coverage mismatch")
     differences, rows = [], []
-    calibrator = json.loads(args.calibrator.read_text()) if args.calibrator else None
+    calibrator = load_calibrator(args.calibrator, weights_path=args.mlx / "model.safetensors",
+                                 preprocess_path=args.mlx / "preprocess.json") if args.calibrator else None
     for episode in episodes:
         left, right = reference[episode["id"]], deployment[episode["id"]]
         left_scores, right_scores = score_values(left["regular"]), score_values(right["regular"])
@@ -185,6 +200,9 @@ def compare(args):
               "mlx_weight_sha256": sha256(args.mlx / "model.safetensors"),
               "preprocess_sha256": sha256(args.mlx / "preprocess.json"),
               "regression_inputs_sha256": sha256(args.inputs), "calibrator_sha256": sha256(args.calibrator) if args.calibrator else None,
+              "run_artifacts_sha256": sha256(args.output / "run-artifacts.json"),
+              "reference_scores_sha256": sha256(args.output / "torch-regression.jsonl"),
+              "mlx_scores_sha256": sha256(args.output / "mlx-regression.jsonl"),
               "checks": checks, "tolerances": TOLERANCES, "cases": len(rows), "compared_scores": len(differences),
               "max_absolute_score_difference": max(differences), "mean_absolute_score_difference": sum(differences) / len(differences),
               "invariants": invariants, "rows": rows, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -219,6 +237,7 @@ def main():
         if args.output.exists():
             raise SystemExit("Refusing to overwrite a numerical regression run")
         args.output.mkdir(parents=True)
+        write_json(args.output / "run-artifacts.json", artifact_signature(args))
         for backend, model in (("torch", args.reference), ("mlx", args.mlx)):
             subprocess.run([sys.executable, "-m", "evaluations.parity", "--backend", backend,
                             "--model", str(model), "--device", args.device, "--inputs", str(args.inputs),
