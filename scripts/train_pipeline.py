@@ -90,10 +90,18 @@ def main():
     if pilot_metrics["coverage"] == 0 or pilot_metrics["answerable_top1"] == 0:
         raise RuntimeError("Pilot learned no usable candidate selections; diagnose before scaling")
     wait_for_snapshot("data/frozen/train-20000.jsonl", 20000, state_path, "main_preparation")
+    seed_report = Path("reports/training/seed-initializations.json")
+    initialization_command = [sys.executable, "scripts/freeze_seed_initializations.py", "--output", str(seed_report)]
+    local_source = Path("../laya-mlx/models/laya-multilingual")
+    if (local_source / "model.safetensors").exists():
+        initialization_command += ["--source", str(local_source)]
+    subprocess.run(initialization_command, check=True)
+    initializations = {row["seed"]: row for row in json.loads(seed_report.read_text())["seeds"]}
     runs = []
     for seed in (42, 43, 44):
         run = train_stage(f"main-seed-{seed}", "configs/main.yaml", f"checkpoints/main-seed-{seed}",
-                          {"seed": seed, "micro_batch_episodes": micro}, state_path, local)
+                          {"seed": seed, "initial_model": initializations[seed]["initial_model"],
+                           "micro_batch_episodes": micro}, state_path, local)
         runs.append({"seed": seed, **run})
     selected = max(runs, key=lambda run: run["best_dev_key"])
     v0 = Path("checkpoints/ranker-v0-selected")

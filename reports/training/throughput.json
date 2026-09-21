@@ -1,0 +1,193 @@
+{
+  "training_data": "data/frozen/overfit-train-32.jsonl",
+  "candidate_counts": [
+    6,
+    2,
+    1,
+    4,
+    10,
+    5,
+    3,
+    2,
+    12,
+    5,
+    3,
+    12,
+    2,
+    10,
+    16,
+    4
+  ],
+  "pair_token_lengths": [
+    [
+      97,
+      97,
+      97,
+      97,
+      97,
+      97
+    ],
+    [
+      84,
+      84
+    ],
+    [
+      55
+    ],
+    [
+      105,
+      105,
+      105,
+      105
+    ],
+    [
+      82,
+      82,
+      82,
+      82,
+      82,
+      82,
+      82,
+      82,
+      82,
+      82
+    ],
+    [
+      62,
+      65,
+      54,
+      65,
+      67
+    ],
+    [
+      49,
+      50,
+      52
+    ],
+    [
+      60,
+      58
+    ],
+    [
+      63,
+      73,
+      70,
+      67,
+      65,
+      65,
+      66,
+      68,
+      67,
+      64,
+      66,
+      67
+    ],
+    [
+      54,
+      56,
+      63,
+      60,
+      67
+    ],
+    [
+      69,
+      79,
+      79
+    ],
+    [
+      81,
+      85,
+      78,
+      84,
+      88,
+      88,
+      93,
+      83,
+      79,
+      96,
+      81,
+      83
+    ],
+    [
+      72,
+      59
+    ],
+    [
+      59,
+      57,
+      58,
+      57,
+      58,
+      57,
+      57,
+      58,
+      59,
+      56
+    ],
+    [
+      96,
+      88,
+      79,
+      76,
+      93,
+      86,
+      102,
+      107,
+      90,
+      104,
+      85,
+      96,
+      77,
+      98,
+      97,
+      93
+    ],
+    [
+      108,
+      110,
+      111,
+      113
+    ]
+  ],
+  "precision": "BF16 autocast, FP32 parameters/Adam moments",
+  "gradient_checkpointing": true,
+  "trials": [
+    {
+      "micro_batch_episodes": 1,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        9.008350999998584,
+        2.870236750000913,
+        2.848517582999193
+      ],
+      "warm_seconds_per_episode": 0.17871107290625332,
+      "mps_allocated_bytes": 4958149888,
+      "mps_driver_bytes": 7603929088
+    },
+    {
+      "micro_batch_episodes": 2,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        3.4644553330017516,
+        2.262384583000312,
+        2.261803667001004
+      ],
+      "warm_seconds_per_episode": 0.14138088281254113,
+      "mps_allocated_bytes": 4957019136,
+      "mps_driver_bytes": 7728840704
+    },
+    {
+      "micro_batch_episodes": 4,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        2.4299382499993953,
+        2.0466451659995073,
+        2.0297702080006275
+      ],
+      "warm_seconds_per_episode": 0.1273879804375042,
+      "mps_allocated_bytes": 4956114176,
+      "mps_driver_bytes": 8245788672
+    }
+  ],
+  "selected_micro_batch": 4
+}

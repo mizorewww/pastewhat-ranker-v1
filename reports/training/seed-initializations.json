@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "source_repo": "convaiinnovations/laya-multilingual",
+  "source_revision": "052592a15d198d9ad47da779604259b10b47b7aa",
+  "selection": "The published seed is chosen only by Dev after the same main-training schedule",
+  "pilot_and_main_seed42_share_identical_untrained_initialization": true,
+  "seeds": [
+    {
+      "seed": 42,
+      "initial_model": "checkpoints/initial",
+      "model_sha256": "67bb9aa364d6630ad09483e7bd7a186bd0b9b365ca5876196b3967e454a21e8d",
+      "head_sha256": "b9b6abde1ffdaa269df94aa252d9ac9fcc8f3e6bd5928f4ff5ad9f62ac21268f",
+      "encoder_tensors_compared": 134,
+      "encoder_tensor_equality_to_seed42": true,
+      "initialization_seed": 42,
+      "training_seed": 42,
+      "randomness_scope": [
+        "new_task_head_initialization",
+        "training_episode_shuffle",
+        "training_head_dropout"
+      ]
+    },
+    {
+      "seed": 43,
+      "initial_model": "checkpoints/initial-seed-43",
+      "model_sha256": "c2843c83481021aabb2de7664eee88243b560ed5e82f41cc79961f0472507b0b",
+      "head_sha256": "6c1161bddc239a4ed13c1d5f987d95332b125eb4708bdd5e3b178f49731fc86b",
+      "encoder_tensors_compared": 134,
+      "encoder_tensor_equality_to_seed42": true,
+      "initialization_seed": 43,
+      "training_seed": 43,
+      "randomness_scope": [
+        "new_task_head_initialization",
+        "training_episode_shuffle",
+        "training_head_dropout"
+      ]
+    },
+    {
+      "seed": 44,
+      "initial_model": "checkpoints/initial-seed-44",
+      "model_sha256": "b88af3b464c81dec343619c735ef68e135c63a49e05afc2695d6e76de788756c",
+      "head_sha256": "734db106ce4a9f85637e997f5cb482bc029ddeb177671e349f6e74b5a4ecc64c",
+      "encoder_tensors_compared": 134,
+      "encoder_tensor_equality_to_seed42": true,
+      "initialization_seed": 44,
+      "training_seed": 44,
+      "randomness_scope": [
+        "new_task_head_initialization",
+        "training_episode_shuffle",
+        "training_head_dropout"
+      ]
+    }
+  ]
+}
