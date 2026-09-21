@@ -107,6 +107,29 @@ The model uses application **category**, focused-field metadata, selected/surrou
 
 Use the [uv-locked runtime and inference protocol](https://github.com/mizorewww/pastewhat-ranker-v1/tree/{release_commit}) from this exact release commit. The `mlx/` directory is the FP16 deployment model. The root `model.safetensors` is the PyTorch reference model. The supplied calibrator is bound by hashes to the MLX precision and preprocessing and must not be reused with altered weights. The AppKit adapter only enables a policy that met the registered calibration target.
 
+After downloading the complete model snapshot and installing that source revision with `uv sync --extra eval`, the shared inference API is:
+
+```python
+import json
+from pathlib import Path
+from pastewhat_ranker.worker import RankerScorer
+from pastewhat_ranker.calibration import apply_calibration, load_calibrator
+
+model = Path("/path/to/downloaded/PasteWhat-Ranker-v1/mlx")
+episode = json.loads(Path("episode.json").read_text())
+calibrator = load_calibrator(
+    model / "calibrator.json",
+    weights_path=model / "model.safetensors",
+    preprocess_path=model / "preprocess.json",
+    require_accepted=True,
+)
+scorer = RankerScorer(model, backend="mlx")
+result = apply_calibration(episode, scorer.score(episode), calibrator)
+print(json.dumps(result, ensure_ascii=False))
+```
+
+`episode.json` contains `context` and the complete `entries` list under the documented input contract, without teacher labels. The result preserves each candidate ID and score, adds the group abstention score, and returns `recommendedID` as an original ID or `null`. This checked example requires a policy that met the registered calibration target. For a diagnostic bundle that missed that target, `RankerScorer.score` still exposes raw scores for research; those raw scores are not calibrated recommendations.
+
 `data_manifest.json` gives actual split counts, conceptual-family partitioning, provenance and hashes. Train, Dev, Calibration and Test have separate roles. The final Test was opened for scoring only after the deployment weights, preprocessing and policy were frozen. No real clipboard history or user contexts were used.
 
 {scale}
