@@ -69,6 +69,19 @@ def main():
         if digest in hashes:
             raise ValueError("Duplicate visible content, ignoring candidate IDs and order")
         hashes.add(digest)
+    pilot_proof = None
+    pilot_path = ROOT / "data/frozen/pilot-train-5000.jsonl"
+    if args.split == "train" and args.count == 20000:
+        if not pilot_path.is_file():
+            raise ValueError("Freeze the 5,000-row pilot before the full 20,000-row training set")
+        pilot_bytes = pilot_path.read_bytes()
+        pilot = [json.loads(line) for line in pilot_bytes.splitlines()]
+        if len(pilot) != 5000:
+            raise ValueError("Pilot snapshot has the wrong episode count")
+        full_by_id = {episode["id"]: canonical_bytes(episode) for episode in episodes}
+        if any(full_by_id.get(episode["id"]) != canonical_bytes(episode) for episode in pilot):
+            raise ValueError("The pilot is not an unchanged subset of the full training pool")
+        pilot_proof = {"path": str(pilot_path.relative_to(ROOT)), "episodes": len(pilot), "sha256": sha256(pilot_bytes), "unchanged_subset": True}
     episodes.sort(key=lambda episode: sha256(episode["id"].encode()))
     chosen = []
     if args.overfit:
@@ -96,6 +109,8 @@ def main():
     fingerprint_path = output.with_suffix(".fingerprints.jsonl")
     publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {"split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
+    if pilot_proof:
+        manifest["pilot_subset"] = pilot_proof
     publish_bytes(output.with_suffix(".manifest.json"), json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2).encode() + b"\n")
     # JSONL existence is the training pipeline's readiness signal. Its complete
     # sidecars are visible first, then the fsynced snapshot is renamed atomically.
