@@ -192,6 +192,7 @@ class TeacherClient:
                     "request_id": request_id,
                     "started_at": started,
                     "completed_at": utc_now(),
+                    "pid": os.getpid(),
                     "endpoint": self.endpoint,
                     "request": body,
                     "request_sha256": sha256(request_bytes),
@@ -225,12 +226,17 @@ class TeacherClient:
                 classification = self.coordinator.record_http_failure(exc.code, safe_error, exc.headers, delay)
                 detail = {"attempt": attempt + 1, "http_status": exc.code, "classification": classification, "response_sha256": sha256(raw_error), "message": safe_error, "elapsed_seconds": time.monotonic() - before, "retry_after_seconds": server_delay}
                 attempts.append(detail)
+                # A later acquire may wait for quota/operator maintenance. Save
+                # this observed response before that wait, rather than leaving
+                # the completed attempt falsely marked as still in flight.
+                atomic_json(path, {"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": True, "last_attempt_usage_known": False})
                 if not retryable or attempt + 1 == self.max_attempts:
                     atomic_json(path, {"status": "http_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi HTTP {exc.code}; audit {audit_id}; no response accepted") from None
                 time.sleep(delay)
             except (URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as exc:
                 attempts.append({"attempt": attempt + 1, "error_type": type(exc).__name__, "elapsed_seconds": time.monotonic() - before})
+                atomic_json(path, {"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": False, "last_attempt_usage_known": False})
                 if attempt + 1 == self.max_attempts:
                     atomic_json(path, {"status": "transport_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi transport error; audit {audit_id}; no response accepted") from None

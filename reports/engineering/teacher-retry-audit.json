@@ -1,0 +1,12 @@
+{
+  "checks": {
+    "finishing_operator_pause_preserves_newer_provider_cooldown": true,
+    "timeout_before_paused_retry_persists_observed_local_failure": true,
+    "unknown_server_completion_and_usage_remain_explicit": true
+  },
+  "credential_read": false,
+  "external_HTTP_requests": 0,
+  "scope": "Post-implementation local failure injection; no teacher quality claim and no permanent scaffold tests.",
+  "temporary_artifacts_removed": true,
+  "verified_at": "2026-09-21T03:39:16.724016+00:00"
+}

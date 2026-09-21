@@ -157,6 +157,48 @@ class AccountCoordinator:
             state["reset_source"] = "official_console_countdown_with_safety_margin"
             return evidence
 
+    def begin_operator_drain(self, *, seconds=600, reason="prioritize unchanged pilot batches"):
+        """Pause new starts for an explicit local scheduler handoff, not quota.
+
+        Existing leases finish normally. This cannot replace a provider pause,
+        change the local cap or extend any account entitlement.
+        """
+        if not 60 <= seconds <= 900:
+            raise ValueError("An operator drain must be bounded to1–15 minutes")
+        with self._state() as state:
+            now = time.time()
+            if state.get("blocked_reason") or state.get("cooldown_until", 0) > now:
+                raise ValueError("Provider/account pause already active; cannot begin an operator drain")
+            record = {"token": uuid.uuid4().hex, "started_at": now, "deadline": now + seconds,
+                      "reason": reason, "operator_action": True,
+                      "previous": {key: state.get(key) for key in ("cooldown_until", "pause_reason", "reset_source")},
+                      "leases_at_start": {key: dict(value) for key, value in state["leases"].items()},
+                      "http_error_counts_at_start": dict(state["http_error_counts"])}
+            state["operator_drain"] = record
+            state["cooldown_until"] = record["deadline"]
+            state["pause_reason"] = "operator_scheduler_drain"
+            state["reset_source"] = "bounded_local_scheduler_maintenance"
+            return record
+
+    def finish_operator_drain(self, token):
+        """Release only this operator's pause, preserving newer provider limits."""
+        with self._state() as state:
+            record = state.get("operator_drain")
+            if not record or record.get("token") != token:
+                raise ValueError("Operator drain ownership does not match")
+            owned = state.get("pause_reason") == "operator_scheduler_drain" and state.get("cooldown_until") == record["deadline"] and not state.get("blocked_reason")
+            event = {**record, "finished_at": time.time(), "released_own_pause": owned,
+                     "remaining_leases": len(state["leases"]), "http_error_counts_at_finish": dict(state["http_error_counts"])}
+            if owned:
+                for key, value in record["previous"].items():
+                    if value is None:
+                        state.pop(key, None)
+                    else:
+                        state[key] = value
+            state.setdefault("operator_drain_history", []).append(event)
+            state.pop("operator_drain", None)
+            return event
+
     def acquire(self, request_timeout):
         identifier = f"{os.getpid()}-{threading.get_ident()}-{uuid.uuid4().hex}"
         while True:
