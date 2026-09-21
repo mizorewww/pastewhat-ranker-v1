@@ -26,6 +26,8 @@ data/frozen/train-20000.jsonl
 data/frozen/dev.jsonl
 data/frozen/hardening-train-10000.jsonl
 data/frozen/*/
+# Generated heldout provenance is verified and bundled from its final freeze.
+data/evaluator-manifests/ranker-v1-efficient-20260921/
 *.egg-info/
 dist/
 build/
