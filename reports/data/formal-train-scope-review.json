@@ -1,0 +1,105 @@
+{
+  "version": "pastewhat-root-training-review-v1",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "reviewed_at": "2026-09-21T03:31:43.971584+00:00",
+  "scope": "Second convenience sample of formal Train only; no heldout examples or model scores used.",
+  "source_snapshot_sha256": "a935dd09a00569ff0b8f36fddc8860f9cbb18f429ea1d4b8a6d592fe00032dd6",
+  "reviewer": "root agent",
+  "human_validated": false,
+  "reviewed": 11,
+  "approved": 10,
+  "quarantined": 1,
+  "label_edits": 0,
+  "student_inference_calls": 0,
+  "verification": {
+    "path": "reports/engineering/file-copy-destination-review.json",
+    "sha256": "294a017884dccbe9b47d384c4abaf3f3a405913923c9b418961e28f2faa2fce2"
+  },
+  "not_fully_reviewed_ids": [
+    "train-main-v6-ranker-v1-local-20260921-file_copy_destination-00002"
+  ],
+  "limitations": [
+    "Convenience sample, not an unbiased estimate of label accuracy.",
+    "The remaining file-copy case has several implementations with different attribute behavior and is not counted as root-approved."
+  ],
+  "reviews": [
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00000",
+      "family_id": "git_diff_selection",
+      "reviewed_record_sha256": "b271d20b2a98ea517f93bc28ae4eb4b563784dd2e779d2e4b73cc5ace5e63299",
+      "disposition": "approved",
+      "reason": "A single git diff directly requests unstaged changes against the index."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00001",
+      "family_id": "git_diff_selection",
+      "reviewed_record_sha256": "e854e5156000dbe843c6dedba3441a0d63ca728bf87e100af490527208cd213b",
+      "disposition": "approved",
+      "reason": "No candidate specifies the two visible commit endpoints; name-only output without those endpoints is not the requested comparison."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00002",
+      "family_id": "git_diff_selection",
+      "reviewed_record_sha256": "e248ea3b370fe34a649019d56359d0f7be74f89145d17f7f34fe584e1795de86",
+      "disposition": "approved",
+      "reason": "Only c2 combines the stated old/new endpoints with file-path-only output."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00003",
+      "family_id": "git_diff_selection",
+      "reviewed_record_sha256": "17c876f67619606bfaeaf21d968933d45b7d46a5d49816762e8d998aa035c5b5",
+      "disposition": "approved",
+      "reason": "Both default patch output and explicit --patch compare the specified endpoints in the required direction."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-git_diff_selection-00004",
+      "family_id": "git_diff_selection",
+      "reviewed_record_sha256": "0c89b6c00778131ac859ee37711c8791c0606077b9d0e535df185640da0a77ef",
+      "disposition": "approved",
+      "reason": "The single --cached command requests index versus HEAD."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00001",
+      "family_id": "url_scheme_port",
+      "reviewed_record_sha256": "84f80438703a1680b8b18c563d248d009f5a05ddaa2b5597675ec4d98d27f0f0",
+      "disposition": "approved",
+      "reason": "The visible task specifies URL syntax and explicit port, without requiring a particular host/path; all and only candidates meeting that stated format are accepted."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00002",
+      "family_id": "url_scheme_port",
+      "reviewed_record_sha256": "8cee00ef0d6089401d6048f9624db065cccea8877ad807d41ae6f96a9848efb1",
+      "disposition": "approved",
+      "reason": "The visible task specifies URL syntax and explicit port, without requiring a particular host/path; all and only candidates meeting that stated format are accepted."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00003",
+      "family_id": "url_scheme_port",
+      "reviewed_record_sha256": "ad6ff3a9851136d2497364925a6985b84bb7949799ddbe73cd648851a35eace2",
+      "disposition": "approved",
+      "reason": "The visible task specifies URL syntax and explicit port, without requiring a particular host/path; all and only candidates meeting that stated format are accepted."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-url_scheme_port-00004",
+      "family_id": "url_scheme_port",
+      "reviewed_record_sha256": "beb4199690206516fcf219f40493318a26333508d4bfca6aad5f23aa4fbdc7ed",
+      "disposition": "approved",
+      "reason": "The visible task specifies URL syntax and explicit port, without requiring a particular host/path; all and only candidates meeting that stated format are accepted."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-file_copy_destination-00000",
+      "family_id": "file_copy_destination",
+      "reviewed_record_sha256": "bc8d71e296caa75299c9cd54bf01858c062d40769328b189017887155812d0a4",
+      "disposition": "quarantine",
+      "reason": "The accepted c1/c11 create an extra reports nesting when the child destination already exists, a state not resolved by the visible input. Native temporary-layout verification disproves interchangeability."
+    },
+    {
+      "id": "train-main-v6-ranker-v1-local-20260921-file_copy_destination-00001",
+      "family_id": "file_copy_destination",
+      "reviewed_record_sha256": "46cbd4b3e731a7c9a734679106bef2a07a4e68ca207630b0c20649e5f9c76a9b",
+      "disposition": "approved",
+      "reason": "The destination is said to come from a prior step that is absent; neither distinct candidate destination is justified."
+    }
+  ]
+}

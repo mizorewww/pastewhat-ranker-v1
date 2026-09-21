@@ -1,0 +1,97 @@
+{
+  "version": "pastewhat-native-copy-review-v1",
+  "observed_at": "2026-09-21T03:30:17.873705+00:00",
+  "scope": "Formal Train file_copy_destination-00000 only. Independently constructed temporary filesystem layouts; no user source or destination path accessed.",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "utility": "/bin/cp",
+  "documentation": [
+    "local macOS cp(1) manual, read before verification",
+    "https://www.gnu.org/software/coreutils/manual/html_node/cp-invocation.html"
+  ],
+  "checks": 8,
+  "results": [
+    {
+      "candidate_id": "c1",
+      "destination_reports_already_exists": false,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c3",
+      "destination_reports_already_exists": false,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c5",
+      "destination_reports_already_exists": false,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c11",
+      "destination_reports_already_exists": false,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c1",
+      "destination_reports_already_exists": true,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": false
+    },
+    {
+      "candidate_id": "c3",
+      "destination_reports_already_exists": true,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c5",
+      "destination_reports_already_exists": true,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": true
+    },
+    {
+      "candidate_id": "c11",
+      "destination_reports_already_exists": true,
+      "exit_code": 0,
+      "copied_relative_paths": [
+        "reports/reports/report.txt"
+      ],
+      "required_relative_path": "reports/report.txt",
+      "matches_requested_destination": false
+    }
+  ],
+  "finding": "c1 and c11 change the output nesting when archive/reports already exists; c3 and c5 retain the requested archive/reports/report.txt location in both tested states. The visible context does not establish whether the child destination exists, so the teacher positive set is not fully justified.",
+  "temporary_fixtures_removed": true,
+  "real_clipboard_or_user_files_accessed": false
+}
