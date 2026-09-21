@@ -5,6 +5,7 @@ import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import os
 from pathlib import Path
 import random
 import time
@@ -13,6 +14,7 @@ from data_tools.authoring import candidate_space, owned_profile
 from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.freeze import publish_bytes
 from data_tools.teacher import TeacherClient, atomic_json, canonical_bytes, sha256, utc_now
+from data_tools.rate_limit import AccountCoordinator
 from data_tools.v7 import PROTOCOL, produce_batch
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import action_quotas, family_quotas, load_run_plan
@@ -62,7 +64,9 @@ def make_specs(plan, split, batch_size=10):
 
 def usage_summary(directory):
     totals, phases, statuses, models = Counter(), {}, Counter(), Counter()
-    unknown = 0
+    transport_unknown, http_without_usage, started = 0, 0, Counter()
+    with AccountCoordinator()._state() as state:
+        leases = dict(state["leases"])
     for path in directory.glob("*.json"):
         audit = json.loads(path.read_text())
         statuses[audit.get("status", "unknown")] += 1
@@ -76,8 +80,19 @@ def usage_summary(directory):
             totals["reported_reasoning_tokens"] += reasoning
             phase["reported_reasoning_tokens"] += reasoning
             models[(audit.get("response") or {}).get("model", "unknown")] += 1
-        unknown += sum("error" in attempt and not attempt.get("http_status") for attempt in audit.get("attempts", []))
-    return {"request_records": sum(statuses.values()), "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": unknown}
+        transport_unknown += sum("error_type" in attempt and not attempt.get("http_status") for attempt in audit.get("attempts", []))
+        http_without_usage += sum(bool(attempt.get("http_status")) for attempt in audit.get("attempts", []))
+        if audit.get("status") == "request_started":
+            if audit.get("lease_id") in leases:
+                started["in_flight_observed"] += 1
+            else:
+                try:
+                    os.kill(audit.get("pid", -1), 0)
+                    alive = True
+                except (ProcessLookupError, PermissionError):
+                    alive = False
+                started["live_process_completion_pending" if alive else "orphaned_started_unknown_usage"] += 1
+    return {"request_records": sum(statuses.values()), "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": transport_unknown, "http_error_attempts_without_usage": http_without_usage, "unfinished_started_requests": dict(started)}
 
 
 def publish_pool(base, split, plan, started):

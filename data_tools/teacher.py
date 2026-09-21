@@ -176,7 +176,7 @@ class TeacherClient:
             # Persist the exact sanitized request before opening the connection.
             # If a worker is interrupted, its unknown response/usage remains
             # visible instead of disappearing from the production history.
-            atomic_json(path, {"status": "request_started", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "attempt_started_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
+            atomic_json(path, {"status": "request_started", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "attempt_started_at": utc_now(), "pid": os.getpid(), "lease_id": lease, "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
             try:
                 try:
                     with urlopen(request, timeout=self.timeout) as response:
