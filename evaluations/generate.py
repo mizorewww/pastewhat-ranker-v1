@@ -516,6 +516,10 @@ class Generator:
         return state
 
     def run(self):
+        try:
+            self.args.output.resolve().relative_to(Path("local").resolve())
+        except ValueError:
+            raise SystemExit("Held-out JSONL must remain in ignored local storage until frozen Test acceptance")
         if self.args.output.exists():
             raise SystemExit("Refusing to overwrite a frozen evaluator dataset")
         families = self.partition["families"][self.args.split]
@@ -591,10 +595,16 @@ class Generator:
                     "native_projection_sources": {str(path): sha256(path) for path in sorted(Path("tools/context_projection").glob("*.swift"))},
                     "frozen_at": utc_now(), "human_validated": False, "student_results_seen": False}
         write_json(self.args.output.with_suffix(".manifest.json"), manifest)
-        write_json(self.args.output.with_suffix(".fingerprints.json"), {
+        fingerprints = {
             "algorithm": "sha256(canonical_json(context, sorted candidate records without IDs)); candidate-order independent",
             "dataset_sha256": manifest["sha256"], "fingerprints": sorted(visible_hashes),
-        })
+        }
+        write_json(self.args.output.with_suffix(".fingerprints.json"), fingerprints)
+        if self.args.per_family is None:
+            # Only aggregate provenance and opaque hashes may enter Git before
+            # final Test has been frozen and evaluated by this independent role.
+            write_json(Path("data") / (self.args.split + ".manifest.json"), manifest)
+            write_json(Path("data") / (self.args.split + ".fingerprints.json"), fingerprints)
         print(json.dumps({"frozen": True, "split": self.args.split, "episodes": len(episodes), "sha256": manifest["sha256"],
                           "label_counts": dict(histogram)}, ensure_ascii=False), flush=True)
 

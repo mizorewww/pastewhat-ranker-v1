@@ -23,6 +23,7 @@ from evaluations.generate import passed_current_gates
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "local/evaluator-generation-v4"
+HELDOUT = ROOT / "local/evaluator-heldout-v4"
 
 
 def progress(split: str) -> dict:
@@ -48,7 +49,7 @@ def progress(split: str) -> dict:
 def launch(split: str, workers: int, directory: Path):
     log = (directory / (split + ".log")).open("a", buffering=1)
     command = [sys.executable, "-m", "evaluations.generate", "--split", split,
-               "--batch-size", "6", "--workers", str(workers), "--output", "data/" + split + ".jsonl"]
+               "--batch-size", "6", "--workers", str(workers), "--output", str(HELDOUT / (split + ".jsonl"))]
     log.write(json.dumps({"event": "launch", "time": utc_now(), "command": command}) + "\n")
     return subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT), log
 
@@ -98,7 +99,7 @@ def main():
             exit_code = child.poll() if child else None
             gained = current["accepted_with_all_current_gates"] - initial[split]
             rate = gained / elapsed if gained > 0 else 0.0
-            data = ROOT / "data" / (split + ".jsonl")
+            data = HELDOUT / (split + ".jsonl")
             current.update(target=target, child_pid=child.pid if child else None, child_exit_code=exit_code,
                            supervisor_restarts=restarts[split], accepted_per_hour=round(rate * 3600, 2),
                            estimated_remaining_seconds=round((target - current["accepted_with_all_current_gates"]) / rate) if rate else None)
