@@ -389,8 +389,28 @@
       "review_source": "reports/engineering/file-copy-destination-review.json",
       "reviewer": "root-agent independent review and temporary filesystem execution",
       "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "dbd0eca045cdfa5fb6567837de7238bbb4c20165acb59f2d75db72701983d621",
+      "family_id": "python_exception",
+      "id": "dev-main-v6-ranker-v1-local-20260921-python_exception-00004",
+      "original_generation_audit_id": "c808de12df2c4caec0924ae6522640738b40b25c51118116d06e04968b0c9c1a",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c7",
+          "c11",
+          "c15"
+        ],
+        "decision": "select"
+      },
+      "reason": "Independent data-agent review: c13 performs the same ValueError-only bounded conversion/retry, propagates other exceptions and prints the requested fixed phrase in finally. It also prints the phrase before conversion, but the visible input does not forbid extra logging or require exactly one print. The original acceptable set silently excludes this otherwise usable variant. Do not add a no-extra-output restriction to the old labeled context.",
+      "reviewer": "data-agent independent exhaustive-candidate semantic review; no student scores used",
+      "split": "dev"
     }
   ],
   "reviewed_at": "2026-09-21T02:29:59.259728+00:00",
-  "updated_at": "2026-09-21T03:35:31.107126+00:00"
+  "updated_at": "2026-09-21T03:46:55.062973+00:00"
 }

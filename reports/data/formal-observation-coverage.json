@@ -1,0 +1,48 @@
+{
+  "finding": "Current compact profiles structurally exclude missing observed context. Explicit undecided-policy guidance is not equivalent to missing AX observations.",
+  "human_validated": false,
+  "observed_at": "2026-09-21T03:46:20.738092+00:00",
+  "proposal_only_no_changes": "Pre-register no-AX and observable-but-empty variants only for unissued missing-intent slots. Preserve all fixed candidate counts, language and action quotas. Reproject before both new independent labels. Family lineage still needs separate blind validation; do not waive unknown/foreign family checks.",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "scope": "Owned Train/Dev aggregate coverage and unissued-plan inspection only; no Calibration/Test examples or labels read.",
+  "splits": {
+    "dev": {
+      "accepted_pool_sha256": "71d4cb535c8702d7f8507a477cb60dd51e06ba0d92c5288b69475f73ab2ea8e1",
+      "compiler_AX_flag": "always true",
+      "current": {
+        "accepted": 4,
+        "empty_fieldLabel": 0,
+        "empty_selection": 4,
+        "missing_context_feature_1": 0,
+        "no_AX": 0
+      },
+      "ever_dispatched_author_slots": 5,
+      "fixed_profiles": 8,
+      "profiles_with_empty_fieldLabel": 0,
+      "remaining_plan_missing_context_feature_can_be_1": false,
+      "total_fixed_slots": 200,
+      "unissued_missing_intent_slots": 19,
+      "unissued_slots": 195
+    },
+    "train": {
+      "accepted_pool_sha256": "83282e51eb0e42708e8a74a4fc4301982111253208ca34018c86d0db14803854",
+      "compiler_AX_flag": "always true",
+      "current": {
+        "accepted": 31,
+        "empty_fieldLabel": 0,
+        "empty_selection": 31,
+        "missing_context_feature_1": 0,
+        "no_AX": 0
+      },
+      "ever_dispatched_author_slots": 45,
+      "fixed_profiles": 40,
+      "profiles_with_empty_fieldLabel": 0,
+      "remaining_plan_missing_context_feature_can_be_1": false,
+      "total_fixed_slots": 1000,
+      "unissued_missing_intent_slots": 96,
+      "unissued_slots": 955
+    }
+  },
+  "student_scores_viewed": false
+}
