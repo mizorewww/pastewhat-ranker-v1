@@ -1,0 +1,439 @@
+{
+  "version": "pastewhat-v1-scale-registration-evidence-v1",
+  "registered_at": "2026-09-21T03:04:29.114097+00:00",
+  "scope": "Unscored staging cost and authoring quality; no model Test predictions or heldout examples were used",
+  "limitations": [
+    "Small staging batches, including failed and partially observed requests, do not provide a stable completion-time forecast.",
+    "The latest JSON-object request mode has passed compatibility checks but was not yet represented by a completed large production batch.",
+    "The scale is a resource-aware initial model release, not a claim that the original 20,000-episode suggestion was completed."
+  ],
+  "observations": [
+    {
+      "source_report": "data/train_dev.v5_staging.report.json",
+      "source_sha256": "a75a67615cfec64affcb2b7059d70128dcffe9e08e0c391b538b80a18dcdd7c5",
+      "snapshot": {
+        "created_at": "2026-09-21T02:35:17.475593+00:00",
+        "dataset_protocol": "teacher-episodes-v5-native-payload",
+        "final_state": "Stopped after observed authoring and incomplete-positive-set failures; no formal training snapshot published.",
+        "independent_train_review": {
+          "approved": 3,
+          "human_validated": false,
+          "quarantined": 2,
+          "report": "reports/engineering/git-diff-label-review.json",
+          "reviewed": 5
+        },
+        "interrupted_requests_have_unknown_usage": true,
+        "limits": "Small initial staging only. Token costs include observed failed attempts; unfinished-request usage is unknown. ETA is a linear scenario at observed acceptance, not a promised completion time. No held-out examples are accessed.",
+        "splits": {
+          "dev": {
+            "accepted_candidate_counts": {
+              "11": 1,
+              "13": 1,
+              "14": 1,
+              "15": 1,
+              "2": 1,
+              "20": 1,
+              "3": 1,
+              "6": 2
+            },
+            "accepted_episodes": 9,
+            "accepted_families": {
+              "markdown_link": 5,
+              "python_exception": 4
+            },
+            "accepted_fraction_of_requested_slots": 0.9,
+            "accepted_ids": [
+              "dev-main-v5-markdown_link-00000",
+              "dev-main-v5-markdown_link-00001",
+              "dev-main-v5-markdown_link-00002",
+              "dev-main-v5-markdown_link-00003",
+              "dev-main-v5-markdown_link-00004",
+              "dev-main-v5-python_exception-00001",
+              "dev-main-v5-python_exception-00002",
+              "dev-main-v5-python_exception-00003",
+              "dev-main-v5-python_exception-00004"
+            ],
+            "accepted_labels": {
+              "ambiguous": 1,
+              "no_match": 1,
+              "select": 7
+            },
+            "accepted_per_hour": 33.9576582964854,
+            "candidate_counts_per_author_attempt": {
+              "11": 3,
+              "13": 2,
+              "14": 7,
+              "15": 2,
+              "2": 7,
+              "20": 3,
+              "3": 1,
+              "6": 6
+            },
+            "distinct_requested_slots": 10,
+            "elapsed_seconds": 954.129396,
+            "estimated_seconds_for_full_target_at_observed_rate": 106014.37733333334,
+            "estimated_total_tokens_for_full_target_at_observed_cost": 16256888.888888888,
+            "known_api_tokens": {
+              "cached_tokens": 43718,
+              "completion_tokens": 57126,
+              "prompt_tokens": 89186,
+              "total_tokens": 146312
+            },
+            "known_total_tokens_per_accepted_episode": 16256.888888888889,
+            "rejection_event_types": {
+              "author_scenario_drift": 6,
+              "batch_validation": 2,
+              "blind_label_disagreement": 3,
+              "generated_schema_or_visibility": 2
+            },
+            "rejection_findings": {
+              "Candidate count differs from plan": 2,
+              "Teacher completion was not valid JSON": 2,
+              "author_scenario_drift": 6,
+              "blind_label_disagreement": 3
+            },
+            "request_phases": {
+              "blind-family-and-deployment-review": {
+                "completed_observed": 8,
+                "median_seconds": 5.205252686999302,
+                "sum_seconds": 55.845945500004746
+              },
+              "dev-main-blind-label": {
+                "completed_observed": 8,
+                "median_seconds": 9.327250520500456,
+                "sum_seconds": 196.24297808500705
+              },
+              "dev-main-generate": {
+                "completed_observed": 10,
+                "median_seconds": 65.88798566649893,
+                "sum_seconds": 835.0967144589922
+              },
+              "dev-main-label": {
+                "completed_observed": 8,
+                "median_seconds": 12.434276646001308,
+                "sum_seconds": 282.3586188330046
+              }
+            },
+            "request_statuses": {
+              "invalid_response": 2,
+              "request_started": 1,
+              "success": 32
+            },
+            "split": "dev",
+            "started_at": "2026-09-21T02:19:23.397167+00:00"
+          },
+          "train": {
+            "accepted_candidate_counts": {
+              "13": 1,
+              "4": 1,
+              "5": 1,
+              "8": 1,
+              "9": 1
+            },
+            "accepted_episodes": 5,
+            "accepted_families": {
+              "file_copy_destination": 2,
+              "git_diff_selection": 3
+            },
+            "accepted_fraction_of_requested_slots": 0.5,
+            "accepted_ids": [
+              "train-main-v5-file_copy_destination-00001",
+              "train-main-v5-file_copy_destination-00002",
+              "train-main-v5-git_diff_selection-00001",
+              "train-main-v5-git_diff_selection-00002",
+              "train-main-v5-git_diff_selection-00003"
+            ],
+            "accepted_labels": {
+              "insufficient_context": 2,
+              "select": 3
+            },
+            "accepted_per_hour": 18.842423500451478,
+            "candidate_counts_per_author_attempt": {
+              "11": 4,
+              "13": 2,
+              "16": 1,
+              "18": 8,
+              "4": 2,
+              "5": 2,
+              "8": 2,
+              "9": 1
+            },
+            "distinct_requested_slots": 10,
+            "elapsed_seconds": 955.291128,
+            "estimated_seconds_for_full_target_at_observed_rate": 3821164.5119999996,
+            "estimated_total_tokens_for_full_target_at_observed_cost": 395996000.0,
+            "known_api_tokens": {
+              "cached_tokens": 19200,
+              "completion_tokens": 46612,
+              "prompt_tokens": 52387,
+              "total_tokens": 98999
+            },
+            "known_total_tokens_per_accepted_episode": 19799.8,
+            "rejection_event_types": {
+              "author_scenario_drift": 2,
+              "blind_family_or_deployment_review": 2,
+              "blind_label_disagreement": 2,
+              "generated_schema_or_visibility": 6
+            },
+            "rejection_findings": {
+              "Primary decision is copying top-level regular files to /srv/inbox/exports; excluding symlinks also requires symlink-handling reasoning.": 1,
+              "Primary decision is recursive tree copying to /var/www/site/static; the no-follow-symlinks constraint also requires symlink-dereference reasoning.": 1,
+              "Static sibling guidance exceeds the 240-per-string or 600-total limit; author shorter genuine labels": 3,
+              "author_scenario_drift": 2,
+              "blind_label_disagreement": 2,
+              "capture.nearbyText has 6 strings; at most FOUR static sibling strings are obtainable": 2,
+              "capture.nearbyText has 8 strings; at most FOUR static sibling strings are obtainable": 1
+            },
+            "request_phases": {
+              "blind-family-and-deployment-review": {
+                "completed_observed": 4,
+                "median_seconds": 11.805937249499038,
+                "sum_seconds": 77.59056187500028
+              },
+              "train-main-blind-label": {
+                "completed_observed": 4,
+                "median_seconds": 48.96448702099951,
+                "sum_seconds": 219.51749533299517
+              },
+              "train-main-generate": {
+                "completed_observed": 6,
+                "median_seconds": 104.26766587499878,
+                "sum_seconds": 645.0618424589993
+              },
+              "train-main-label": {
+                "completed_observed": 4,
+                "median_seconds": 36.689034062001156,
+                "sum_seconds": 151.94462324900087
+              }
+            },
+            "request_statuses": {
+              "request_started": 1,
+              "success": 18
+            },
+            "split": "train",
+            "started_at": "2026-09-21T02:19:22.218185+00:00"
+          }
+        }
+      }
+    },
+    {
+      "source_report": "data/train_dev.v6_staging_interim.report.json",
+      "source_sha256": "1122fcaf4976b31999a0790a2c3699482dd85867c2333eff3dd39ea12a731fe7",
+      "snapshot": {
+        "created_at": "2026-09-21T02:53:36.693904+00:00",
+        "dataset_protocol": "teacher-episodes-v6-compact-verdicts",
+        "limits": "Preliminary staging; live repairs continue. Teacher gates do not guarantee semantically correct labels. Malformed JSON and disagreement remain counted.",
+        "splits": {
+          "dev": {
+            "accepted_candidate_counts": {},
+            "accepted_episodes": 0,
+            "accepted_families": {},
+            "accepted_fraction_of_requested_slots": 0.0,
+            "accepted_ids": [],
+            "accepted_labels": {},
+            "accepted_per_hour": 0.0,
+            "candidate_counts_per_author_attempt": {
+              "1": 4,
+              "3": 3,
+              "5": 3,
+              "6": 3,
+              "8": 1,
+              "9": 1,
+              "13": 1,
+              "14": 3,
+              "17": 1
+            },
+            "distinct_requested_slots": 10,
+            "elapsed_seconds": 244.905148,
+            "estimated_seconds_for_full_target_at_observed_rate": null,
+            "estimated_total_tokens_for_full_target_at_observed_cost": null,
+            "known_api_tokens": {
+              "cached_tokens": 1536,
+              "completion_tokens": 17664,
+              "prompt_tokens": 11396,
+              "total_tokens": 29060
+            },
+            "known_total_tokens_per_accepted_episode": null,
+            "rejection_event_types": {
+              "batch_validation": 2
+            },
+            "rejection_findings": {
+              "Teacher completion was not valid JSON": 2
+            },
+            "request_phases": {
+              "dev-main-generate": {
+                "completed_observed": 3,
+                "median_seconds": 31.055139332998806,
+                "sum_seconds": 158.65531024899974
+              },
+              "dev-main-label": {
+                "completed_observed": 2,
+                "median_seconds": 130.17838329199913,
+                "sum_seconds": 260.35676658399825
+              }
+            },
+            "request_statuses": {
+              "invalid_response": 2,
+              "request_started": 2,
+              "success": 3
+            },
+            "split": "dev",
+            "started_at": "2026-09-21T02:49:31.843764+00:00"
+          },
+          "train": {
+            "accepted_candidate_counts": {
+              "4": 1,
+              "8": 1,
+              "12": 1
+            },
+            "accepted_episodes": 3,
+            "accepted_families": {
+              "git_diff_selection": 3
+            },
+            "accepted_fraction_of_requested_slots": 0.3,
+            "accepted_ids": [
+              "train-main-v6-git_diff_selection-00001",
+              "train-main-v6-git_diff_selection-00002",
+              "train-main-v6-git_diff_selection-00003"
+            ],
+            "accepted_labels": {
+              "no_match": 2,
+              "select": 1
+            },
+            "accepted_per_hour": 43.885182514329365,
+            "candidate_counts_per_author_attempt": {
+              "4": 1,
+              "5": 1,
+              "8": 1,
+              "10": 1,
+              "11": 1,
+              "12": 1,
+              "14": 3,
+              "18": 2,
+              "19": 1
+            },
+            "distinct_requested_slots": 10,
+            "elapsed_seconds": 246.096732,
+            "estimated_seconds_for_full_target_at_observed_rate": 1640644.8800000001,
+            "estimated_total_tokens_for_full_target_at_observed_cost": 166406666.6666667,
+            "known_api_tokens": {
+              "cached_tokens": 1792,
+              "completion_tokens": 9567,
+              "prompt_tokens": 15394,
+              "total_tokens": 24961
+            },
+            "known_total_tokens_per_accepted_episode": 8320.333333333334,
+            "rejection_event_types": {
+              "blind_label_disagreement": 2
+            },
+            "rejection_findings": {
+              "blind_label_disagreement": 2
+            },
+            "request_phases": {
+              "blind-family-and-deployment-review": {
+                "completed_observed": 1,
+                "median_seconds": 12.915659792000952,
+                "sum_seconds": 12.915659792000952
+              },
+              "train-main-blind-label": {
+                "completed_observed": 1,
+                "median_seconds": 66.11554274999799,
+                "sum_seconds": 66.11554274999799
+              },
+              "train-main-generate": {
+                "completed_observed": 2,
+                "median_seconds": 17.67021554150051,
+                "sum_seconds": 35.34043108300102
+              },
+              "train-main-label": {
+                "completed_observed": 1,
+                "median_seconds": 73.58415520900235,
+                "sum_seconds": 73.58415520900235
+              }
+            },
+            "request_statuses": {
+              "request_started": 2,
+              "success": 5
+            },
+            "split": "train",
+            "started_at": "2026-09-21T02:49:30.633744+00:00"
+          }
+        },
+        "status": "first_completed_four_gate_batch_interim"
+      }
+    },
+    {
+      "source_report": "reports/data/heldout-v5-first-batch.json",
+      "source_sha256": "ad58545d58c88ee68f87c6a170ff5f37de666ac436df14799b2741a7c1fae85a",
+      "snapshot": {
+        "schema": "pastewhat-heldout-first-batch-v5",
+        "created_at": "2026-09-21T02:36:06.212410+00:00",
+        "scope": "Small synthetic data-authoring acceptance; not model accuracy",
+        "wall_seconds": 814.212909,
+        "splits": {
+          "calibration": {
+            "requested_slots": 6,
+            "generated_attempt_rows": 11,
+            "teacher_gate_accepted": 5,
+            "independently_quarantined_missing_positives": 1,
+            "provisionally_retained": 4,
+            "retained_per_generated_attempt_row": 0.36363636363636365,
+            "actual_labels": {
+              "select": 3,
+              "ambiguous": 1
+            },
+            "exact_native_and_audit_replay_passed": true,
+            "teacher_requests": 13,
+            "request_statuses": {
+              "success": 13
+            }
+          },
+          "test": {
+            "requested_slots": 6,
+            "generated_attempt_rows": 12,
+            "teacher_gate_accepted": 6,
+            "independently_quarantined_missing_positives": 1,
+            "provisionally_retained": 5,
+            "retained_per_generated_attempt_row": 0.4166666666666667,
+            "actual_labels": {
+              "select": 3,
+              "no_match": 2
+            },
+            "exact_native_and_audit_replay_passed": true,
+            "teacher_requests": 16,
+            "request_statuses": {
+              "success": 16
+            }
+          }
+        },
+        "native_projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+        "teacher_effort": "high",
+        "teacher_parameter_probe_sha256": "c132d7a6b8abe7cd863bc67de9f28b3a623b781486f5c55753234cf06e8996fa",
+        "formal_production_started": false,
+        "next_required_step": "Adopt candidate-by-candidate annotation protocol validated only on Train before further production",
+        "human_validated": false,
+        "student_inference_used": false,
+        "limitations": [
+          "Teacher agreement missed equivalent positive alternatives in two rows; original labels retained privately instead of silently corrected",
+          "Numbers describe two early conceptual families and do not estimate quality across the full heldout allocation"
+        ]
+      }
+    }
+  ],
+  "quality_review_refs": [
+    "reports/data/train-v6-initial-review.json",
+    "reports/data/train-v6-review-addendum.json"
+  ],
+  "decision": {
+    "main_train": 1000,
+    "dev": 200,
+    "calibration": 400,
+    "test": 600,
+    "pilot": 500,
+    "new_pool": 500,
+    "review_nominations": 400,
+    "accepted_hard_new": 250,
+    "retained_old": 250
+  },
+  "human_validated": false
+}

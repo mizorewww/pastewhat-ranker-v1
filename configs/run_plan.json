@@ -1,0 +1,48 @@
+{
+  "version": "pastewhat-run-plan-v1",
+  "run_id": "ranker-v1-local-20260921",
+  "split_targets": {
+    "train": 1000,
+    "dev": 200,
+    "calibration": 400,
+    "test": 600
+  },
+  "pilot_episodes": 500,
+  "hardening": {
+    "pool_episodes": 500,
+    "review_nominations": 400,
+    "accepted_new": 250,
+    "retained_original": 250
+  },
+  "training_seeds": [
+    42,
+    43,
+    44
+  ],
+  "epochs": {
+    "pilot": 2,
+    "main": 2,
+    "hardening": 1
+  },
+  "head_warmup_steps": 200,
+  "effective_batch_episodes": 16,
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "teacher_contract_version": "teacher-episodes-v6-compact-verdicts",
+  "registration_reason": "Measured unscored staging yield and teacher cost make the originally suggested corpus impractical for an initial local run. Register an explicit smaller first release, preserving every conceptual family, independent splits, full encoder fine-tuning, three seeds, a new hard-example round, MLX parity, calibration, unchanged quality gates and one final frozen Test. Test 600 yields 50 episodes per family and an exact scheduled 35 selectable episodes per family; insufficient actual evidence remains inconclusive.",
+  "registered_at": "2026-09-21T03:04:29.114097+00:00",
+  "cost_evidence": [
+    {
+      "path": "reports/data/v1-registration-cost.json",
+      "sha256": "54bd365e63fdc01b54377059055995d5559ca05c873c751744bc1f2c04f2662c"
+    }
+  ],
+  "quality_gates": {
+    "recommendation_precision": 0.95,
+    "minimum_calibration_recommendations": 25,
+    "top1_improvement": 0.05,
+    "maximum_group_regression": 0.05,
+    "minimum_answerable_per_test_family": 30,
+    "minimum_dev_group_episodes": 20
+  }
+}
