@@ -1,0 +1,244 @@
+{
+  "version": "heldout-pi-transition-verification-v1",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "captured_at": "2026-09-21T07:03:58.894553+00:00",
+  "teacher_transition": {
+    "path": "configs/teacher_transition_swe2.json",
+    "sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
+  },
+  "producer_commit": "023c33b",
+  "evaluator_commit": "7e43654",
+  "preservation_snapshot_sha256": "2a490b78fe9ba24ef9ee4de71c7e786500949f6de4f74c5d83d99e5b7482e599",
+  "prior_raw_rows_snapshot_sha256": "0f680fa90deba30d8912572ec0aba815e34e9d1cd6cf1750d92180e1d70ff37b",
+  "student_inference_used": false,
+  "human_validated": false,
+  "splits": {
+    "calibration": {
+      "retained_before": 58,
+      "retained_current": 94,
+      "new_completed_batches": 4,
+      "first_two_batches": {
+        "batch_count": 2,
+        "accepted_rows_replayed": 16,
+        "batch_sha256": [
+          "e7cc3674e6dfdd7ac5c4d7669e3230da7aea82d5c08b0ed27dfde356100291a4",
+          "cf6c4cc490be6d6ec4076f9d78d1f0fb255f9d0d0b9400f42ce8696179388196"
+        ],
+        "teacher_sources": {
+          "author": [
+            {
+              "provider": "devin",
+              "reasoning_effort": "medium",
+              "requested_model": "swe-2",
+              "response_model": "swe-2-medium",
+              "transport": "pi-cli-json",
+              "episodes": 8
+            },
+            {
+              "provider": "kimi-code",
+              "reasoning_effort": "disabled",
+              "requested_model": "kimi-for-coding",
+              "response_model": "kimi-for-coding",
+              "transport": "openai-compatible-http",
+              "episodes": 8
+            }
+          ],
+          "primary": [
+            {
+              "provider": "devin",
+              "reasoning_effort": "medium",
+              "requested_model": "swe-2",
+              "response_model": "swe-2-medium",
+              "transport": "pi-cli-json",
+              "episodes": 16
+            }
+          ],
+          "review": [
+            {
+              "provider": "devin",
+              "reasoning_effort": "high",
+              "requested_model": "swe-2",
+              "response_model": "swe-2-high",
+              "transport": "pi-cli-json",
+              "episodes": 8
+            }
+          ]
+        },
+        "native_budget_and_label_replay_passed": true
+      },
+      "original_success_cache_files_unchanged": 30,
+      "original_complete_batch_files_unchanged": 10,
+      "original_raw_accepted_rows_unchanged": 59,
+      "legacy_request_records": 30,
+      "pi_request_records": 13,
+      "pi_statuses": {
+        "success": 12,
+        "request_started": 1
+      },
+      "pi_observed_completions": 12,
+      "pi_unique_observed_attempt_ids": 12,
+      "pi_known_usage_by_model": [
+        {
+          "provider": "devin",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-high",
+          "transport": "pi-cli-json",
+          "observed_completions": 2,
+          "responses_with_reported_usage": 2,
+          "prompt_tokens": 9855,
+          "prompt_tokens_reported_responses": 2,
+          "completion_tokens": 7714,
+          "completion_tokens_reported_responses": 2,
+          "total_tokens": 17569,
+          "total_tokens_reported_responses": 2,
+          "reported_cacheRead": 0,
+          "reported_cacheWrite": 0,
+          "accounting_semantics": {
+            "provider_reported_input_output_total; cacheRead/cacheWrite remain separate; inclusion not inferred": 2
+          }
+        },
+        {
+          "provider": "devin",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-medium",
+          "transport": "pi-cli-json",
+          "observed_completions": 10,
+          "responses_with_reported_usage": 10,
+          "prompt_tokens": 36180,
+          "prompt_tokens_reported_responses": 10,
+          "completion_tokens": 17035,
+          "completion_tokens_reported_responses": 10,
+          "total_tokens": 53215,
+          "total_tokens_reported_responses": 10,
+          "reported_cacheRead": 0,
+          "reported_cacheWrite": 0,
+          "accounting_semantics": {
+            "provider_reported_input_output_total; cacheRead/cacheWrite remain separate; inclusion not inferred": 10
+          }
+        }
+      ],
+      "all_usage_failure_attempt_events": {},
+      "all_unknown_usage_attempt_events": {
+        "request_started_unobserved_completion": 1
+      },
+      "legacy_known_usage_unchanged": true,
+      "independently_bound_audit_files": 67,
+      "producer": {
+        "pid": 48388,
+        "alive": true
+      }
+    },
+    "test": {
+      "retained_before": 67,
+      "retained_current": 122,
+      "new_completed_batches": 6,
+      "first_two_batches": {
+        "batch_count": 2,
+        "accepted_rows_replayed": 17,
+        "batch_sha256": [
+          "076a7124d23e836bb3e2b760f847af12fc39c305a7a790d78588c57ebb570ae8",
+          "b61431d6c25435282ba64db8030782a7098f7e6a7981a8d6d4b2b7173d6eec3c"
+        ],
+        "teacher_sources": {
+          "author": [
+            {
+              "provider": "devin",
+              "reasoning_effort": "medium",
+              "requested_model": "swe-2",
+              "response_model": "swe-2-medium",
+              "transport": "pi-cli-json",
+              "episodes": 9
+            },
+            {
+              "provider": "kimi-code",
+              "reasoning_effort": "disabled",
+              "requested_model": "kimi-for-coding",
+              "response_model": "kimi-for-coding",
+              "transport": "openai-compatible-http",
+              "episodes": 8
+            }
+          ],
+          "primary": [
+            {
+              "provider": "devin",
+              "reasoning_effort": "medium",
+              "requested_model": "swe-2",
+              "response_model": "swe-2-medium",
+              "transport": "pi-cli-json",
+              "episodes": 13
+            },
+            {
+              "provider": "kimi-code",
+              "reasoning_effort": "low",
+              "requested_model": "kimi-for-coding",
+              "response_model": "kimi-for-coding",
+              "transport": "openai-compatible-http",
+              "episodes": 4
+            }
+          ]
+        },
+        "native_budget_and_label_replay_passed": true
+      },
+      "original_success_cache_files_unchanged": 35,
+      "original_complete_batch_files_unchanged": 10,
+      "original_raw_accepted_rows_unchanged": 71,
+      "legacy_request_records": 36,
+      "pi_request_records": 20,
+      "pi_statuses": {
+        "success": 19,
+        "request_started": 1
+      },
+      "pi_observed_completions": 19,
+      "pi_unique_observed_attempt_ids": 19,
+      "pi_known_usage_by_model": [
+        {
+          "provider": "devin",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-medium",
+          "transport": "pi-cli-json",
+          "observed_completions": 19,
+          "responses_with_reported_usage": 19,
+          "prompt_tokens": 54026,
+          "prompt_tokens_reported_responses": 19,
+          "completion_tokens": 22093,
+          "completion_tokens_reported_responses": 19,
+          "total_tokens": 76119,
+          "total_tokens_reported_responses": 19,
+          "reported_cacheRead": 0,
+          "reported_cacheWrite": 0,
+          "accounting_semantics": {
+            "provider_reported_input_output_total; cacheRead/cacheWrite remain separate; inclusion not inferred": 19
+          }
+        }
+      ],
+      "all_usage_failure_attempt_events": {
+        "HTTP_403": 1,
+        "TimeoutError": 2
+      },
+      "all_unknown_usage_attempt_events": {
+        "request_started_unobserved_completion": 1,
+        "HTTP_403": 1,
+        "TimeoutError": 2
+      },
+      "legacy_known_usage_unchanged": true,
+      "independently_bound_audit_files": 97,
+      "producer": {
+        "pid": 48391,
+        "alive": true
+      }
+    }
+  },
+  "evaluator": {
+    "pid": 46832,
+    "phase": "waiting_for_real_training_and_heldout",
+    "student_test_started": false
+  },
+  "pi_account": {
+    "paused": false,
+    "in_flight": 6,
+    "max_in_flight": 6
+  },
+  "limitations": "This verifies real teacher transport, retained-response accounting, source preservation and native/input/label provenance. It is not a student accuracy result or human validation. In-flight requests have no completion usage yet; production continues under unchanged quotas.",
+  "completed_at": "2026-09-21T07:04:00.488668+00:00"
+}
