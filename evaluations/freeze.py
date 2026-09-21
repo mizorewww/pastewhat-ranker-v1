@@ -61,6 +61,7 @@ def main():
     inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
         "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
         "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
+        "context_projection_adapter": Path("tools/project_context.py"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
     }.items()}
     record = {

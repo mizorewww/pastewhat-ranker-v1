@@ -25,7 +25,7 @@ KINDS = {"text", "url", "email", "code", "command", "phone", "file", "image", "c
 SURFACES = {"unknown", "text", "recipient", "address_bar", "search", "code_editor", "shell_prompt", "chat_composer", "document", "cell", "color", "file_path", "phone"}
 LANGUAGES = ("English", "Simplified Chinese", "Spanish", "Japanese", "French", "German")
 COUNTS = tuple(range(1, 21))
-LITERAL_PASTE_PROTOCOL = "literal-paste-visible-selection-v1"
+LITERAL_PASTE_PROTOCOL = "literal-paste-and-task-identity-v2"
 FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v2"
 CAPTURE_PROTOCOL = "pastewhat-capture-authoring-v1"
 
@@ -37,6 +37,14 @@ addresses, paths, messages and contacts must be fictional. Use example.com/.org/
 domains and synthetic literal placeholder credentials. No real personal data.
 Create varied task structures and plausible same-kind alternatives. The correct
 action should depend on the visible user request, not the app category alone.
+For a select spec, the visible field label, existing selected/draft text, or actual
+nearby UI helper must identify the intended operation and distinguishing constraints.
+A generic tool title or a field that accepts several valid commands does not mean
+those commands achieve the same task. You may invent a realistic fictional UI with
+explicit operation controls/static helper text; those displayed constraints are
+observable. Do not replace this evidence with a hidden first-person user intention.
+For no_match, show a clear observable task whose constraints all candidates violate.
+For the ambiguity/information bucket, deliberately omit a needed distinction.
 All desired actions remain INSIDE the allowed operation. For no_match, keep the
 request in that operation and make every candidate violate its constraints; do
 not manufacture no_match by changing the request to a different task. For
@@ -91,6 +99,12 @@ fragment that only works after an unstated edit. If the visible placement cannot
 establish direct usability, abstain for insufficient context; if literal placement
 is clear and every candidate breaks it, abstain no_match. Do not silently reinterpret
 code, shell, URL, email, or spreadsheet syntax to make a candidate acceptable.
+Syntactic acceptability by an input field is not sufficient for recommendation.
+Multiple positives must accomplish the same visibly requested task and satisfy its
+constraints. Distinct operations do not become interchangeable merely because the
+same general tool supports them. A tool/status summary with no observable purpose
+usually lacks intent: do not invent a task and then call its candidates no_match.
+Use no_match only when an observable task exists and every candidate fails it.
 surroundingText may contain a JSON object with format pastewhat-focus-v1. When
 selectionKnown is true, beforeSelection and afterSelection are the actual visible
 text on either side of the selected range/caret. The literal resulting window is
@@ -429,11 +443,10 @@ class Generator:
                                                    "inputSurface": "A single string chosen from: " + ",".join(sorted(SURFACES)), "fieldRole": "AXTextField or AXTextArea", "fieldLabel": "actual visible field label",
                                                    "selectedText": "Exact actual selected substring of capture.textWindow, or empty for insertion/unknown", "surroundingText": "MUST be the empty string; Swift derives the real structured context from capture",
                                                    "hasAccessibility": True, "isSecure": False},
-                                "capture_schema": {"textWindow": "Actual focused control text, at most 1700 characters. No invented cursor markers or unselected fill-in-the-blank placeholder.",
-                                                   "selectionLocation": "Nonnegative UTF-16 code-unit offset into textWindow, or null if unknown",
-                                                   "selectionLength": "UTF-16 code-unit length of context.selectedText, or null iff position unknown; range must match selectedText exactly",
-                                                   "nearbyText": ["Zero to four actual static sibling labels/headings/help strings; max 240 characters each, 600 total. Not another editable field, hidden intent, imagined user request, or distant document."]},
-                                "capture_rules": "Exactly these four capture keys. Empty standalone field: textWindow empty, selectionLocation 0, selectionLength 0. Whole-field replacement may select the actual existing text with exact offsets. Unknown selection requires both offsets null and selectedText empty. No AX access requires entirely empty captured content and null offsets. Keep fields short and offsets exact; UTF-16 surrogate pairs count as two units. The app pastes literally at this observed range and performs no edit, escaping, or cursor movement.",
+                                "capture_schema": {"beforeSelection": "Actual focused-control text before the known caret/selection; empty for an empty field or whole-field replacement",
+                                                   "afterSelection": "Actual focused-control text after the known caret/selection; empty when at end or replacing the whole field",
+                                                   "nearbyText": ["Prefer one or two short actual static sibling UI labels/helper strings, under 160 characters each; absolute max four, 240 each, 600 total. Include the observable task/constraints when select/no_match is requested, not a generic tool title alone."]},
+                                "capture_rules": "Known position: exactly beforeSelection,afterSelection,nearbyText. textWindow is built as beforeSelection + context.selectedText + afterSelection, and code computes exact UTF-16 offsets; do not supply numeric offsets. Empty standalone field uses empty before/after and empty selectedText. Unknown position instead uses exactly textWindow,nearbyText and empty context.selectedText. No AX access requires unknown position and entirely empty captured content. Total focused text <=1700 characters. All fragments must be actual field text, with no invented cursor markers or unselected fill-in-the-blank placeholders. Nearby text is genuinely displayed static UI text, not another editable field or distant document. Paste inserts the whole entry literally, with no implicit syntax edit or cursor movement.",
                                 "candidate_schema": {"id": "opaque, overwritten before labeling", "text": "whole clipboard entry", "kind": "A single string chosen from: " + ",".join(sorted(KINDS)),
                                                      "capabilities": ["text"], "sourceCategory": "A single string from browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown; actual source app category, not identity"}}, ensure_ascii=False),
                     max_tokens=24576, temperature=0.6, thinking="disabled",
