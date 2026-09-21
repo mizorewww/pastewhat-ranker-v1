@@ -120,6 +120,43 @@ class AccountCoordinator:
                 "http_error_counts": dict(state["http_error_counts"]),
             }
 
+    def record_console_reset(self, *, observed_at, countdown_seconds, safety_seconds, source_url):
+        """Record an independently observed official account reset countdown.
+
+        This is an explicit operator action, never a response to a failed request.
+        It only refines an unknown-reset five-hour fallback; permission, weekly,
+        monthly and server Retry-After restrictions cannot be shortened here.
+        """
+        if source_url != "https://www.kimi.com/code/console":
+            raise ValueError("Reset evidence must be the official account console")
+        if not 0 < countdown_seconds <= 5 * 60 * 60 or safety_seconds < 60:
+            raise ValueError("Invalid reset countdown or insufficient safety margin")
+        now = time.time()
+        if observed_at > now or now - observed_at > 30 * 60:
+            raise ValueError("Console observation must be recent and not in the future")
+        resume_at = observed_at + countdown_seconds + safety_seconds
+        if resume_at <= now:
+            raise ValueError("Conservative observed reset must still be in the future")
+        with self._state() as state:
+            if state.get("blocked_reason") or state.get("pause_reason") != "quota_5h":
+                raise ValueError("Only a five-hour quota cooldown can use this evidence")
+            if state.get("reset_source") != "conservative_full_window_from_error":
+                raise ValueError("Only an unknown server reset fallback can be refined")
+            if observed_at < state.get("last_http_error", {}).get("at", 0):
+                raise ValueError("Console observation predates the last quota error")
+            evidence = {
+                "source_url": source_url, "observed_at": observed_at,
+                "visible_countdown_seconds": countdown_seconds,
+                "safety_seconds": safety_seconds, "resume_at": resume_at,
+                "previous_fallback_until": state["cooldown_until"],
+                "quota_error": dict(state.get("last_http_error", {})),
+                "recorded_at": now,
+            }
+            state.setdefault("reset_evidence_history", []).append(evidence)
+            state["cooldown_until"] = resume_at
+            state["reset_source"] = "official_console_countdown_with_safety_margin"
+            return evidence
+
     def acquire(self, request_timeout):
         identifier = f"{os.getpid()}-{threading.get_ident()}-{uuid.uuid4().hex}"
         while True:
