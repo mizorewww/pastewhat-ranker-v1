@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 from run_contract import load_run_plan
 from pipeline_data_guards import (freeze_experiment_data, freeze_run_plan, verify_binding,
                                   verify_frozen_data, verify_hardening_mix, verify_pilot_subset,
-                                  verify_run_plan, verify_snapshot_binding)
+                                  verify_run_plan, verify_snapshot_binding, verify_train_subset)
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.train import atomic_json, read_allowed_data, verify_completed_run
 
@@ -49,17 +49,19 @@ def stage_layout(run_plan=None, local_state=None):
     if local_state is not None and Path(local_state).resolve() != run_plan.pipeline_directory.resolve():
         raise ValueError("A registered run must use its own pipeline state directory")
     document = run_plan.document
+    counts = {"pilot": document["pilot_episodes"], "train": run_plan.target("train"), "dev": run_plan.target("dev"),
+              "hardening": document["hardening"]["accepted_new"] + document["hardening"]["retained_original"]}
+    if document.get("diagnostic_episodes"):
+        counts["diagnostic"] = document["diagnostic_episodes"]
     return {"local": run_plan.pipeline_directory, "checkpoints": run_plan.checkpoint_directory,
             "reports": run_plan.report_directory,
-            "paths": {stage: run_plan.data_path(stage) for stage in ("pilot", "train", "dev", "hardening")},
-            "counts": {"pilot": document["pilot_episodes"], "train": run_plan.target("train"),
-                       "dev": run_plan.target("dev"),
-                       "hardening": document["hardening"]["accepted_new"] + document["hardening"]["retained_original"]}}
+            "paths": {stage: run_plan.data_path(stage) for stage in counts}, "counts": counts}
 
 
 def formal_stage_changes(stage, micro, *, seed=42, initial_model=None, run_plan=None):
     """Generate formal overrides; the engineering configuration never uses this."""
-    if stage not in ("pilot", "main", "hardening") or (stage == "main" and initial_model is None):
+    if (stage not in ("pilot", "diagnostic", "main", "hardening") or (stage == "main" and initial_model is None)
+            or (stage == "diagnostic" and (run_plan is None or not run_plan.document.get("diagnostic_episodes")))):
         raise ValueError("A formal stage needs its declared role and original main initialization")
     changes = {"micro_batch_episodes": micro}
     if stage != "pilot":
@@ -75,7 +77,7 @@ def formal_stage_changes(stage, micro, *, seed=42, initial_model=None, run_plan=
              run_plan.checkpoint_directory / "ranker-v0-selected" if stage == "hardening" else "checkpoints/initial")
     changes.update({**run_plan.binding(), "initial_model": str(model), "seed": seed,
                     "train_data": str(run_plan.data_path(data_stage)), "train_limit": count,
-                    "dev_data": str(run_plan.data_path("dev")), "epochs": document["epochs"][stage],
+                    "dev_data": str(run_plan.data_path("dev")), "epochs": document["epochs"]["pilot" if stage == "diagnostic" else stage],
                     "head_warmup_steps": 0 if stage == "hardening" else document["head_warmup_steps"],
                     "effective_batch_episodes": document["effective_batch_episodes"]})
     return changes
@@ -153,6 +155,58 @@ def profile_formal_train(train_path, local, state_path, *, run_plan=None):
     return micro
 
 
+def select_throughput_snapshot(layout, early_path, state_path, *, run_plan=None):
+    """Use one representative frozen early snapshot, or wait for full pilot."""
+    pilot_path, pilot_count = layout["paths"]["pilot"], layout["counts"]["pilot"]
+    if early_path is None:
+        wait_for_snapshot(pilot_path, pilot_count, state_path, "pilot_preparation", run_plan=run_plan)
+        return pilot_path
+    early_path = Path(early_path)
+    if run_plan is None or early_path.resolve().parent != pilot_path.resolve().parent or early_path.resolve() == pilot_path.resolve():
+        raise ValueError("Early throughput data must be a separate frozen Train snapshot under this registered run")
+    choice_path = layout["local"] / "throughput-snapshot-choice.json"
+    if choice_path.exists():
+        choice = json.loads(choice_path.read_text())
+        verify_binding(choice, run_plan, "Throughput snapshot choice")
+        if choice.get("requested_early_path") != str(early_path.resolve()):
+            raise ValueError("The early throughput input changed across restart")
+        selected_path = early_path if choice["early_snapshot_eligible"] else pilot_path
+        wait_for_snapshot(selected_path, choice["selected_count"], state_path, "pilot_preparation", run_plan=run_plan)
+        return selected_path
+    while not pilot_path.exists() and not early_path.exists():
+        write_record(state_path, {"phase": "pilot_preparation", "status": "waiting_for_frozen_train_dev_data",
+                                  "required_path": str(pilot_path), "required_count": pilot_count,
+                                  "optional_throughput_path": str(early_path), "updated_unix": time.time()}, run_plan)
+        time.sleep(30)
+    eligibility = {"early_snapshot_eligible": False, "reason": "Pilot ready before the optional early snapshot"}
+    early_count = None
+    if early_path.exists():
+        from pastewhat_ranker.preprocess import Preprocessor
+
+        manifest = json.loads(early_path.with_suffix(".manifest.json").read_text())
+        early_count = manifest.get("episodes")
+        if type(early_count) is not int or not 500 <= early_count <= 1000:
+            raise ValueError("An early throughput snapshot requires 500–1000 frozen Train episodes")
+        verify_snapshot_binding(early_path, early_count, "train", run_plan)
+        episodes = read_allowed_data(early_path, expected_split="train")
+        if len(episodes) != early_count:
+            raise ValueError("Early throughput snapshot count changed")
+        families = {row["id"] for row in json.loads(Path("data_tools/family_partition.json").read_text())["families"]["train"]}
+        candidate_counts = {len(episode["entries"]) for episode in episodes}
+        p = Preprocessor(Path("checkpoints/initial/tokenizer"))
+        max_pair_length = max(len(pair) for episode in episodes for pair in p.encode_episode(episode)["input_ids"])
+        eligible = {episode["family_id"] for episode in episodes} == families and candidate_counts == set(range(1, 21)) and max_pair_length >= 512
+        eligibility = {"early_snapshot_eligible": eligible, "family_count": len({episode["family_id"] for episode in episodes}),
+                       "candidate_counts": sorted(candidate_counts), "max_pair_tokens": max_pair_length,
+                       "reason": "All Train families, 1–20 candidates and actual >=512-token pairs" if eligible else "Early coverage incomplete; measure only the full pilot"}
+    selected_path = early_path if eligibility["early_snapshot_eligible"] else pilot_path
+    selected_count = early_count if eligibility["early_snapshot_eligible"] else pilot_count
+    write_record(choice_path, {**eligibility, "requested_early_path": str(early_path.resolve()),
+                              "selected_count": selected_count, "selected_path": str(selected_path)}, run_plan)
+    wait_for_snapshot(selected_path, selected_count, state_path, "pilot_preparation", run_plan=run_plan)
+    return selected_path
+
+
 def seed_initializations(run_plan=None):
     """Reuse frozen untrained snapshots; no run starts from pilot/overfit weights."""
     source_report = Path("reports/training/seed-initializations.json")
@@ -225,6 +279,32 @@ def completed_stage_evidence(output, expected_config, train_count, dev_count, *,
             "initial_weight_sha256": manifest["initial_weight_sha256"]}
 
 
+def write_learning_curve(layout, micro, *, run_plan):
+    """Compare observed seed-42 Dev results; never extrapolate an optimal size."""
+    points, common = [], None
+    for name, role in (("pilot", "pilot"), ("diagnostic", "diagnostic"), ("main-seed-42", "main")):
+        output = layout["checkpoints"] / name
+        if not (output / "training_summary.json").exists():
+            break
+        config = yaml.safe_load(Path("configs/main.yaml" if role == "main" else "configs/pilot.yaml").read_text())
+        config.update(formal_stage_changes(role, micro, seed=42,
+                                           initial_model="checkpoints/initial" if role == "main" else None, run_plan=run_plan))
+        shared = {key: value for key, value in config.items() if key not in ("train_data", "train_limit")}
+        if common is not None and common != shared:
+            raise ValueError("Learning-curve points must use the same initialization, seed and hyperparameters")
+        common = shared
+        record = completed_stage_evidence(output, config, layout["counts"]["train" if role == "main" else role],
+                                            layout["counts"]["dev"], run_plan=run_plan)
+        metrics = json.loads(Path(record["best_checkpoint"], "dev_metrics.json").read_text())
+        points.append({"stage": name, **record, "dev": {key: value for key, value in metrics.items() if key != "records"}})
+    path = layout["reports"] / "learning-curve.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_record(path, {"version": "pastewhat-learning-curve-v1", "seed": 42, "selected_by": "Dev only",
+                        "same_original_initialization_and_hyperparameters": True,
+                        "status": "complete" if len(points) == 3 else "in_progress", "points": points,
+                        "interpretation": "Observed best-epoch Dev scores at registered sizes; no fitted size extrapolation"}, run_plan)
+
+
 def training_handoff(layout, micro, initializations, selected_seed, hardening_accepted, *, run_plan=None):
     """Public aggregate proof of pilot, every main seed, and executed hardening."""
     verify_run_plan(run_plan)
@@ -252,9 +332,14 @@ def training_handoff(layout, micro, initializations, selected_seed, hardening_ac
         evidence_paths.update(pilot_data=local / "frozen-pilot-data.json",
                               hardening_data=local / "frozen-hardening-data.json",
                               run_plan_binding=local / "run-plan-binding.json")
+        if "diagnostic" in counts:
+            write_learning_curve(layout, micro, run_plan=run_plan)
+            evidence_paths["learning_curve"] = layout["reports"] / "learning-curve.json"
     records = {name: json.loads(path.read_text()) for name, path in evidence_paths.items()}
     for name, record in records.items():
         verify_binding(record, run_plan, "Training evidence " + name)
+    if "learning_curve" in records and records["learning_curve"].get("status") != "complete":
+        raise ValueError("The registered learning-curve diagnostic did not complete")
     for name in ("experiment_data", "pilot_data", "hardening_data"):
         if name in evidence_paths:
             verify_frozen_data(evidence_paths[name], run_plan=run_plan)
@@ -295,7 +380,7 @@ def training_handoff(layout, micro, initializations, selected_seed, hardening_ac
             "deployment_weight_sha256": deployment_sha, "weight_sha256": deployment_sha,
             "selected_by": "Dev only", "registered_seeds": seeds, "completed_seeds": seeds,
             "selected_seed": selected_seed, "hardening_executed": True, "hardening_accepted": hardening_accepted,
-            "training_completion": {"status": "completed", "data_counts": counts, "stages": stages,
+            "training_completion": {"status": "completed", "data_counts": {key: counts[key] for key in ("pilot", "train", "dev", "hardening")}, "stages": stages,
                                     "evidence": {name: artifact_record(path) for name, path in evidence_paths.items()}},
             "status": "conversion_requires_independent_parity_and_calibration"}
 
@@ -305,6 +390,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--local-state", help="Legacy state directory; planned runs use their registered run directory")
     parser.add_argument("--run-plan", type=Path, help="Immutable registered production plan; omission preserves the original route")
+    parser.add_argument("--throughput-snapshot", type=Path, help="Optional frozen 500–1000-row Train snapshot; insufficient coverage falls back to the full pilot")
     args = parser.parse_args()
     run_plan = load_run_plan(args.run_plan) if args.run_plan else None
     layout = stage_layout(run_plan, args.local_state)
@@ -336,8 +422,17 @@ def main():
     overfit_metrics = json.loads(Path(overfit["best_checkpoint"], "dev_metrics.json").read_text())
     if overfit_metrics["decision_accuracy"] < 0.99:
         raise RuntimeError("32-episode overfit gate did not reach 99%; diagnose training before scaling")
+    throughput_source = select_throughput_snapshot(layout, args.throughput_snapshot, state_path, run_plan=run_plan)
+    if run_plan:
+        freeze_experiment_data(local / "frozen-throughput-data.json", {"throughput_train": throughput_source}, run_plan=run_plan)
+    micro = profile_formal_train(throughput_source, local, state_path, run_plan=run_plan)
+    if run_plan:
+        verify_frozen_data(local / "frozen-throughput-data.json", run_plan=run_plan)
     wait_for_snapshot(paths["pilot"], counts["pilot"], state_path, "pilot_preparation", run_plan=run_plan)
-    micro = profile_formal_train(paths["pilot"], local, state_path, run_plan=run_plan)
+    if throughput_source.resolve() != paths["pilot"].resolve():
+        early_count = json.loads(throughput_source.with_suffix(".manifest.json").read_text())["episodes"]
+        write_record(local / "throughput-subset-verification.json",
+                     verify_train_subset(throughput_source, paths["pilot"], early_count, counts["pilot"], run_plan=run_plan), run_plan)
     wait_for_snapshot(paths["dev"], counts["dev"], state_path, "pilot_preparation", expected_split="dev", run_plan=run_plan)
     pilot_data = local / "frozen-pilot-data.json"
     if run_plan:
@@ -349,12 +444,28 @@ def main():
     pilot_metrics = json.loads(Path(pilot["best_checkpoint"], "dev_metrics.json").read_text())
     if pilot_metrics["coverage"] == 0 or pilot_metrics["answerable_top1"] == 0:
         raise RuntimeError("Pilot learned no usable candidate selections; diagnose before scaling")
+    diagnostic_subset = None
+    if "diagnostic" in paths:
+        write_learning_curve(layout, micro, run_plan=run_plan)
+        wait_for_snapshot(paths["diagnostic"], counts["diagnostic"], state_path, "diagnostic_preparation", run_plan=run_plan)
+        diagnostic_subset = verify_train_subset(paths["pilot"], paths["diagnostic"], counts["pilot"], counts["diagnostic"], run_plan=run_plan)
+        diagnostic_data = local / "frozen-diagnostic-data.json"
+        freeze_experiment_data(diagnostic_data, {"pilot_train": paths["pilot"], "diagnostic_train": paths["diagnostic"],
+                                                 "dev": paths["dev"]}, run_plan=run_plan)
+        train_stage("diagnostic", "configs/pilot.yaml", checkpoints / "diagnostic",
+                    formal_stage_changes("diagnostic", micro, run_plan=run_plan), state_path, local, run_plan=run_plan)
+        verify_frozen_data(diagnostic_data, run_plan=run_plan)
+        write_learning_curve(layout, micro, run_plan=run_plan)
     wait_for_snapshot(paths["train"], counts["train"], state_path, "main_preparation", run_plan=run_plan)
     experiment_data = local / "frozen-experiment-data.json"
-    freeze_experiment_data(experiment_data, {"pilot_train": paths["pilot"], "main_train": paths["train"],
-                                            "dev": paths["dev"]}, run_plan=run_plan)
-    write_record(local / "pilot-subset-verification.json",
-                 verify_pilot_subset(paths["pilot"], paths["train"], run_plan=run_plan), run_plan)
+    snapshots = {"pilot_train": paths["pilot"], "main_train": paths["train"], "dev": paths["dev"]}
+    subset_proof = verify_pilot_subset(paths["pilot"], paths["train"], run_plan=run_plan)
+    if "diagnostic" in paths:
+        snapshots["diagnostic_train"] = paths["diagnostic"]
+        subset_proof["learning_curve_subsets"] = {"pilot_to_diagnostic": diagnostic_subset,
+            "diagnostic_to_main": verify_train_subset(paths["diagnostic"], paths["train"], counts["diagnostic"], counts["train"], run_plan=run_plan)}
+    freeze_experiment_data(experiment_data, snapshots, run_plan=run_plan)
+    write_record(local / "pilot-subset-verification.json", subset_proof, run_plan)
     initializations = seed_initializations(run_plan)
     runs = []
     for seed in (run_plan.document["training_seeds"] if run_plan else (42, 43, 44)):
@@ -363,6 +474,8 @@ def main():
                           formal_stage_changes("main", micro, seed=seed, initial_model=initializations[seed]["initial_model"],
                                                run_plan=run_plan), state_path, local, run_plan=run_plan)
         runs.append({"seed": seed, **run})
+        if seed == 42 and "diagnostic" in paths:
+            write_learning_curve(layout, micro, run_plan=run_plan)
     verify_frozen_data(experiment_data, run_plan=run_plan)
     selected = max(runs, key=lambda run: run["best_dev_key"])
     v0 = checkpoints / "ranker-v0-selected"

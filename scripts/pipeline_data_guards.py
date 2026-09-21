@@ -70,18 +70,29 @@ def semantic_record(episode):
                       ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def verify_pilot_subset(pilot_path, main_path, *, run_plan=None):
+def verify_train_subset(subset_path, superset_path, subset_count, superset_count, *, run_plan=None):
+    """Learning-curve points must preserve the same Train examples and labels."""
     if run_plan is not None:
-        verify_snapshot_binding(pilot_path, run_plan.document["pilot_episodes"], "train", run_plan)
-        verify_snapshot_binding(main_path, run_plan.target("train"), "train", run_plan)
-    pilot = read_allowed_data(pilot_path, expected_split="train")
-    main = {episode["id"]: episode for episode in read_allowed_data(main_path, expected_split="train")}
-    for episode in pilot:
-        if episode["id"] not in main or semantic_record(main[episode["id"]]) != semantic_record(episode):
-            raise ValueError("The pilot must be an unchanged subset of main Train, including labels and candidates")
+        verify_snapshot_binding(subset_path, subset_count, "train", run_plan)
+        verify_snapshot_binding(superset_path, superset_count, "train", run_plan)
+    subset = read_allowed_data(subset_path, expected_split="train")
+    superset = {episode["id"]: episode for episode in read_allowed_data(superset_path, expected_split="train")}
+    if len(subset) != subset_count or len(superset) != superset_count:
+        raise ValueError("Learning-curve snapshot counts differ from their registered sizes")
+    for episode in subset:
+        if episode["id"] not in superset or semantic_record(superset[episode["id"]]) != semantic_record(episode):
+            raise ValueError("Train subsets must preserve labels, candidate mappings and model-visible content")
+    return {**(run_plan.binding() if run_plan else {}), "subset_episodes": len(subset), "superset_episodes": len(superset),
+            "is_unchanged_subset": True, "subset_sha256": file_hash(subset_path), "superset_sha256": file_hash(superset_path)}
+
+
+def verify_pilot_subset(pilot_path, main_path, *, run_plan=None):
+    pilot_count = run_plan.document["pilot_episodes"] if run_plan else len(read_allowed_data(pilot_path, expected_split="train"))
+    main_count = run_plan.target("train") if run_plan else len(read_allowed_data(main_path, expected_split="train"))
+    proof = verify_train_subset(pilot_path, main_path, pilot_count, main_count, run_plan=run_plan)
     return {**(run_plan.binding() if run_plan else {}),
-            "pilot_episodes": len(pilot), "main_episodes": len(main),
-            "pilot_is_unchanged_subset": True, "pilot_sha256": file_hash(pilot_path), "main_sha256": file_hash(main_path)}
+            "pilot_episodes": pilot_count, "main_episodes": main_count,
+            "pilot_is_unchanged_subset": True, "pilot_sha256": proof["subset_sha256"], "main_sha256": proof["superset_sha256"]}
 
 
 def freeze_experiment_data(destination, snapshots, partition="data_tools/family_partition.json", *, run_plan=None):
