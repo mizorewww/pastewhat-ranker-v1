@@ -25,8 +25,8 @@ def compile_compact_episode(item, *, episode_id, profile, candidate_count):
     if set(item) != {"slot", "guidance", "selected", "candidates"}:
         raise ValueError("Compact author must supply only slot/guidance/selected/candidates")
     guidance = item["guidance"]
-    if not isinstance(guidance, list) or len(guidance) > 2 or any(not isinstance(line, str) or len(line) > 180 for line in guidance):
-        raise ValueError("Author guidance must be 0–2 short static strings, each at most180 characters")
+    if not isinstance(guidance, list) or len(guidance) > 2 or any(not isinstance(line, str) or len(line) > 240 for line in guidance):
+        raise ValueError("Author guidance must be 0–2 static strings within the native240-character per-string limit")
     selected = item["selected"]
     if not isinstance(selected, str) or len(selected) > 1200:
         raise ValueError("Selected whole-field literal must be a bounded string")

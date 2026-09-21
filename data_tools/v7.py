@@ -30,8 +30,14 @@ source. Remain within its single operation and supplied data seed. Output JSON:
 Default selected to empty. A nonempty selection is naturally existing old field
 content, usually different from the new goal; never insert the correct candidate
 as selectedText merely to reveal an answer. Occasional real reuse is possible.
-Use exactly each plan's candidate_count, language and action scenario. Guidance
-has 0–2 strings, each <=180 characters. Candidates are compact directly pasteable
+Aim for each plan's candidate_count and use its language and action scenario.
+For select, state a concrete visible need and include at least one directly
+usable candidate. For no_match, state an equally clear visible need but EVERY
+candidate must violate at least one stated requirement. This means NO clipboard
+candidate satisfies the paste intent, not a command returning zero search results,
+empty output or a nonexistent resource. Missing context is not no_match. For ambiguous/insufficient_context, omit the decisive fact or preference
+and do not let the candidate list itself manufacture that missing intention.
+Guidance has 0–2 strings, each <=180 characters. Candidates are compact directly pasteable
 text (prefer <=300 characters), {"file":["synthetic-basename.pdf"]}, or
 {"image":[width,height]}. No kinds, payload descriptions, labels or explanations.
 The owner fixes the actual field profile. Guidance is visible static UI text,
@@ -262,7 +268,7 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
                     quality = "sampled_reviewed" if spec["audit_sample"] else "risk_reviewed" if row["id"] in reviewed else "single_pass"
                     primary = primary_for[row["id"]]
                     review = review_for.get(row["id"])
-                    row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "planned_candidate_count": plan["candidate_count"], "actual_candidate_count": len(row["entries"]), "candidate_count_delta": len(row["entries"]) - plan["candidate_count"], "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
+                    row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "planned_candidate_count": plan["candidate_count"], "actual_candidate_count": len(row["entries"]), "candidate_count_delta": len(row["entries"]) - plan["candidate_count"], "quota_slot_id": plan.get("quota_slot_id", plan["id"]), "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
                     accepted[row["id"]] = row
         except TeacherError as error:
             record.update(accepted=list(accepted.values()), usage=dict(usage))

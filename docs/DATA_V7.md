@@ -17,6 +17,10 @@ count differs slightly from the independently sampled target. Provenance records
 both counts and the difference; no candidate is inserted or removed to fit a
 number. Empty lists and lists above twenty require the one allowed author repair.
 Count distributions must be reported by action and language to expose bias.
+The author is asked for short helper text, but admission follows the existing
+native limit of 240 characters per static string and 600 characters across the
+captured nearby strings, including fixed profile help. Text between the former
+180-character author preference and this native limit is preserved verbatim.
 
 A deterministic hash preselects approximately 10% of complete source batches for
 a second independent label after candidate IDs and ordering change. Programmatic
@@ -69,3 +73,17 @@ uv run python -m data_tools.generate_v7 --run-plan configs/run_plan_efficient.js
 
 These commands obey the same account-wide cap, provider cooldown and persistent
 operator dispatch hold as the evaluator. They never restart legacy generators.
+
+Without `--max-batches`, the owned runner continues through the registered source
+schedule and up to eight finite replacement rounds. Each failed logical quota
+slot gets a new source situation, mother-task ID and data seed while preserving
+its family, action, language, observation variant and preselected review cohort.
+Only one accepted episode can fill each logical slot. Exhaustion reports the
+actual deficit instead of silently changing labels or claimed target counts.
+
+`data_tools.freeze_v7.try_freeze` publishes the exact family/action allocations
+as soon as available. It preserves 5k ⊆ 10k ⊆ 20k with unchanged rows, verifies
+budget idempotence and label mappings, binds source audit-file hashes, and writes
+the manifest/fingerprint sidecars before atomically publishing JSONL as the GPU
+readiness signal. Dev is independently frozen at 2k. Freeze completion is
+distinct from a rolling accepted pool reaching an approximate count.
