@@ -35,13 +35,13 @@ Three agents own separate work streams: Train/Dev data; model training/export; a
 
 | Partition / stage | Target episodes | Purpose |
 |---|---:|---|
-| Train | 20,000 | Weight updates, including a frozen 5,000-example pilot subset |
-| Dev | 1,000 | Checkpoint and training decisions |
-| Calibration | 1,000 | Separate 500-example fit and 500-example threshold selection |
-| Test | 2,000 | Final frozen paired evaluation only |
-| Hard-example round | 5,000 new + 5,000 original | One additional training round, accepted on Dev evidence |
+| Train | 1,000 | Weight updates, including a frozen 500-example pilot subset |
+| Dev | 200 | Checkpoint and training decisions |
+| Calibration | 400 | Separate 200-example fit and 200-example threshold selection |
+| Test | 600 | Final frozen paired evaluation only |
+| Hard-example round | 250 new + 250 original | One additional training round, accepted on Dev evidence |
 
-These numbers are targets, not completed data counts. Frozen manifests record actual accepted counts, hashes, distribution, lineage, audit coverage and the absence of human validation. Model inference failures remain visible in evaluation denominators.
+These are the registered targets for `ranker-v1-local-20260921`, not completed data counts. [The immutable run plan](configs/run_plan.json) records the exact scope and quality gates. The initial proposal suggested 20,000 Train episodes; measured teacher cost and accepted-example yield motivated this explicitly smaller first run before formal data production or student evaluation. All 68 conceptual families remain allocated, and the Test schedule provides 50 episodes per family, including 35 selectable episodes. Quality gates were not relaxed; a group with insufficient actual evidence remains inconclusive. Frozen manifests record actual accepted counts, hashes, distribution, lineage, audit coverage and the absence of human validation. Model inference failures remain visible in evaluation denominators.
 
 ## Reproduce the engineering setup
 
@@ -61,10 +61,10 @@ The first actual full-encoder engineering run has passed: 32 independently revie
 Training stages are described by [overfit](configs/overfit.yaml), [pilot](configs/pilot.yaml), [main](configs/main.yaml) and [hardening](configs/hardening.yaml) configurations. The pipeline waits for independently reviewed immutable Train/Dev snapshots:
 
 ```bash
-uv run python scripts/train_pipeline.py
+uv run python scripts/train_pipeline.py --run-plan configs/run_plan.json
 ```
 
-It measures practical micro-batch sizes while preserving the effective episode batch, checks overfitting on 32 reviewed training examples, runs the 5k pilot, reinitializes for 20k main runs with seeds 42/43/44, and selects only on Dev. Each main seed has separately initialized new task heads with exactly the same upstream encoder weights; see [seed provenance](reports/training/seed-initializations.json). It waits for a new training-pool hard-example round, exports the selected candidate and stops at the independent calibration handoff. Progress, source/data hashes, RNG state and optimizer checkpoints allow recovery; it never substitutes a smaller run for a planned full stage. GPU work runs serially.
+It measures practical micro-batch sizes while preserving the effective episode batch, checks overfitting on 32 reviewed training examples, runs the registered 500-episode pilot, reinitializes for 1,000-episode main runs with seeds 42/43/44, and selects only on Dev. Each main seed has separately initialized new task heads with exactly the same upstream encoder weights; see [seed provenance](reports/training/seed-initializations.json). A new 500-episode training pool supplies up to 400 nominations for blind review; the hard-example round requires 250 accepted new episodes mixed with 250 original Train episodes. The pipeline then exports the Dev-selected candidate and stops at the independent calibration handoff. Progress, source/data hashes, RNG state and optimizer checkpoints allow recovery. Every formal snapshot and stage is bound to the same run-plan hash, so a partial dataset cannot silently satisfy a stage. GPU work runs serially.
 
 `uv run python -m tools.mine_training_pool --help` describes the later Train-only hard-example proposal tool. It rejects reused original examples, binds inference to the Dev-selected v0, and prioritizes disagreements and close decisions for **blind teacher review**. A disagreement is not automatically labeled as a student error, and its output cannot be used as a frozen training snapshot.
 
