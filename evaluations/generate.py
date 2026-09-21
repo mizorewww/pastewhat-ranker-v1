@@ -24,7 +24,7 @@ from tools.project_context import project_context
 KINDS = {"text", "url", "email", "code", "command", "phone", "file", "image", "color"}
 SURFACES = {"unknown", "text", "recipient", "address_bar", "search", "code_editor", "shell_prompt", "chat_composer", "document", "cell", "color", "file_path", "phone"}
 LANGUAGES = ("English", "Simplified Chinese", "Spanish", "Japanese", "French", "German")
-COUNTS = (1, 2, 3, 4, 5, 6, 8, 10, 15, 20)
+COUNTS = tuple(range(1, 21))
 LITERAL_PASTE_PROTOCOL = "literal-paste-visible-selection-v1"
 FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v2"
 
@@ -181,15 +181,21 @@ def passed_current_gates(episode: dict) -> bool:
             matches_label_quota(episode))
 
 
-def generation_specs(family_index: int, start: int, count: int) -> list[dict]:
+def generation_specs(family_index: int, start: int, count: int, allocation: int) -> list[dict]:
+    # Independently shuffle each marginal over the whole fixed family quota.
+    # Sharing modulo cycles between these variables would leak target labels.
+    decisions = ["select" if index % 10 < 7 else "no_match" if index % 10 < 9 else
+                 ("ambiguous" if (index // 10) % 2 else "insufficient_context") for index in range(allocation)]
+    sizes = [COUNTS[index % len(COUNTS)] for index in range(allocation)]
+    languages = [LANGUAGES[index % len(LANGUAGES)] for index in range(allocation)]
+    for name, values in (("decision", decisions), ("candidate-count", sizes), ("language", languages)):
+        random.Random(f"pastewhat-heldout-sampling-v4:{name}:{family_index}:{allocation}").shuffle(values)
     result = []
     for index in range(start, start + count):
-        mode = index % 10
-        desired = "select" if mode < 7 else "no_match" if mode < 9 else ("ambiguous" if (index // 10) % 2 else "insufficient_context")
-        candidate_count = COUNTS[(index + family_index * 3) % len(COUNTS)]
+        desired, candidate_count = decisions[index], sizes[index]
         if desired == "ambiguous" and candidate_count == 1:
-            candidate_count = 2
-        result.append({"slot": index, "language": LANGUAGES[(index + family_index) % len(LANGUAGES)],
+            desired = "insufficient_context"  # Same 10% ABSTAIN bucket, unchanged count.
+        result.append({"slot": index, "language": languages[index],
                        "candidate_count": candidate_count, "desired_decision": desired,
                        "same_kind_hard_negatives": desired == "select" and candidate_count > 1,
                        "interchangeable_positives": desired == "select" and candidate_count >= 3 and index % 11 == 0,
@@ -474,10 +480,11 @@ class Generator:
         families = self.partition["families"][self.args.split]
         planned = []
         for family_index, family in enumerate(families):
-            total = 125 if self.args.split == "calibration" else 167 if family_index < 8 else 166
+            allocation = 125 if self.args.split == "calibration" else 167 if family_index < 8 else 166
+            total = allocation
             if self.args.per_family is not None:
                 total = min(total, self.args.per_family)
-            specs = generation_specs(family_index, 0, total)
+            specs = generation_specs(family_index, 0, total, allocation)
             for start in range(0, total, self.args.batch_size):
                 planned.append((family_index, family, specs[start:start + self.args.batch_size]))
         # Surface every reserved operation early without changing any split,
