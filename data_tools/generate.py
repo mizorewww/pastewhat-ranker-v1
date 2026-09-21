@@ -176,13 +176,13 @@ pointing to visible words or a missing fact, and is audit-only.
 """
 
 
-def build_plan(split, limit, batch_size, phase):
+def build_plan(split, limit, batch_size, phase, *, target_override=None):
     partition = json.loads(PARTITION_PATH.read_text())
     families = partition["families"][split][:]
     random.Random(42).shuffle(families)
     target = partition["targets"][split]
     if phase != "main":
-        target = 5000
+        target = target_override or 10000
     quota, remainder = divmod(target, len(families))
     counts = {family["id"]: quota + (i < remainder) for i, family in enumerate(families)}
     # Independent full-family permutations prevent language/count shortcuts.
@@ -197,7 +197,10 @@ def build_plan(split, limit, batch_size, phase):
         count = counts[identifier]
 
         def rng(dimension):
-            return random.Random(int(sha256(f"sampling-v4/42/{split}/{identifier}/{dimension}".encode())[:16], 16))
+            # Preserve the already frozen main schedule. A later new pool has
+            # an independent schedule, not just renamed main episode IDs.
+            namespace = "sampling-v4" if phase == "main" else f"sampling-v4/{phase}"
+            return random.Random(int(sha256(f"{namespace}/42/{split}/{identifier}/{dimension}".encode())[:16], 16))
 
         no_match_count = round(count * 0.2)
         missing_count = count - select_base[identifier] - no_match_count
@@ -614,7 +617,7 @@ def assemble(records, split, phase, limit, preprocessor):
         hard_negative += any(entry["id"] not in positives and entry["kind"] in positive_kinds for entry in episode["entries"])
     manifest = {
         "split": split, "phase": phase, "status": "complete" if len(episodes) == limit else "partial", "episodes": len(episodes), "requested_in_this_run": limit,
-        "planned_full_split": json.loads(PARTITION_PATH.read_text())["targets"][split],
+        "planned_full_split": json.loads(PARTITION_PATH.read_text())["targets"][split] if phase == "main" else 10000,
         "file": str(output.relative_to(ROOT)), "sha256": sha256(payload), "created_at": utc_now(),
         "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()),
         "prompt_version": PROMPT_VERSION, "preprocessing": preprocessor.manifest(),
@@ -642,21 +645,40 @@ def main():
     parser.add_argument("--limit", type=int)
     parser.add_argument("--batch-size", type=int, default=10)
     parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--phase", choices=("main", "hardcase"), default="main")
+    parser.add_argument("--phase", choices=("main", "hard-pool"), default="main")
+    parser.add_argument("--v0-ready", help="Required frozen Dev-selected v0 handoff for a new Train mining pool")
     parser.add_argument("--tokenizer", default=str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
-    if args.phase == "hardcase":
-        raise SystemExit("Hard-case generation is locked until a frozen ranker-v0 and new training-pool error specification are supplied")
     partition = json.loads(PARTITION_PATH.read_text())
-    limit = args.limit or partition["targets"][args.split]
-    if not 1 <= limit <= partition["targets"][args.split] or not 1 <= args.batch_size <= 20 or not 1 <= args.workers <= 8:
+    target = partition["targets"][args.split]
+    if args.phase == "hard-pool":
+        if args.split != "train" or not args.v0_ready:
+            raise SystemExit("A hard pool requires Train ownership and a frozen v0 handoff")
+        ready_path = (ROOT / args.v0_ready).resolve()
+        if ready_path != ROOT / "local/pipeline/ranker-v0-ready.json":
+            raise SystemExit("Use the actual training pipeline's v0 handoff")
+        ready = json.loads(ready_path.read_text())
+        if ready.get("selected_by") != "Dev only" or not (ROOT / "data/frozen/train-20000.jsonl").is_file():
+            raise SystemExit("The full original Train set and Dev-selected v0 must exist first")
+        weight = ROOT / ready["checkpoint"] / "model.safetensors"
+        with weight.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if digest != ready["weight_sha256"]:
+            raise SystemExit("v0 checkpoint weight differs from its frozen handoff")
+        target = 10000
+    limit = args.limit or target
+    if not 1 <= limit <= target or not 1 <= args.batch_size <= 20 or not 1 <= args.workers <= 8:
         raise SystemExit("Invalid generation size or worker count")
     preprocessor = Preprocessor(args.tokenizer)
     client = TeacherClient(ROOT / "local" / "teacher" / args.split / args.phase)
-    batches = build_plan(args.split, limit, args.batch_size, args.phase)
+    batches = build_plan(args.split, limit, args.batch_size, args.phase, target_override=target)
     batch_dir = ROOT / "local" / "generated" / args.split / (args.phase + "-" + CACHE_VERSION)
     batch_dir.mkdir(parents=True, exist_ok=True)
     registry = ContentRegistry(ROOT / f"local/generated/train-dev-{CACHE_VERSION}-content.sqlite3")
+    if args.phase == "hard-pool":
+        for line in (ROOT / "data/frozen/train-20000.jsonl").read_text().splitlines():
+            if registry.claim(json.loads(line)):
+                raise ValueError("Original frozen training contents conflict with the registry")
     # Frozen pilot bytes win over any later content collision. They are never
     # removed or rewritten by duplicate repair.
     pilot_path = ROOT / "data/frozen/pilot-train-5000.jsonl"
