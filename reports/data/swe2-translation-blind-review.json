@@ -1,0 +1,47 @@
+{
+  "action_and_acceptable_set_agreement": true,
+  "api_calls_attempted": 1,
+  "episode_id": "train-v7-translation_target_language-00003",
+  "finished_at": "2026-09-21T07:02:07.362804+00:00",
+  "human_validated": false,
+  "independent_label": {
+    "abstain_reason": null,
+    "acceptable_ids": [
+      "c2",
+      "c1",
+      "c3"
+    ],
+    "decision": "select"
+  },
+  "input_policy": "Unchanged student-visible context and complete candidates only; opaque IDs and independently permuted order; no original label or preferred-answer hints.",
+  "limitations": [
+    "One convenience Train case; not dataset accuracy or generalization.",
+    "Existing explicit static task guidance does not establish accuracy on ordinary unprompted chat."
+  ],
+  "original_episode_sha256": "cc8f96949940033f462edce0632032ae935ebfcc1cd2420c8895a56315eee47b",
+  "original_label": {
+    "abstain_reason": null,
+    "acceptable_ids": [
+      "c2",
+      "c1",
+      "c3"
+    ],
+    "decision": "select"
+  },
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "seed": 463901,
+  "single_call_limit": 1,
+  "snapshot_path": "local/v7/ranker-v1-efficient-20260921/quarantine/root-swe2-translation-review/original.json",
+  "started_at": "2026-09-21T07:01:30.054681+00:00",
+  "teacher_audit_id": "171ed0a40ba06ba18ce8527db2abb9313c6e5895ff483ed3dd24aa72e9288c4f",
+  "teacher_source": {
+    "provider": "devin",
+    "reasoning_effort": "high",
+    "requested_model": "swe-2",
+    "response_model": "swe-2-high",
+    "transport": "pi-cli-json"
+  },
+  "version": "pastewhat-train-spot-blind-review-v1",
+  "visible_sha256": "67f6a02f70a989ec13adf935b5bf3278d6c1b89fd5fe6ba7654840609fd9221c"
+}
