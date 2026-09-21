@@ -170,6 +170,12 @@ def main():
         partition = Path(frozen["inputs"]["family_partition"]["path"]) if frozen else Path("data_tools/family_partition.json")
         require_plan_data_path(plan, args.split, args.data)
         validate_formal_heldout_allocation(episodes, args.split, json.loads(partition.read_text()), plan)
+        audit_path = Path("reports/evaluation") / plan.run_id / ("data-" + args.split + "-audit.json")
+        audit = json.loads(audit_path.read_text())
+        if (audit.get("passed") is not True or audit.get("formal_run") is not True or
+                audit.get("data_sha256") != sha256(args.data) or
+                any(audit.get(key) != value for key, value in plan.binding().items())):
+            raise SystemExit("Formal heldout scoring requires the completed independent data audit")
     command = json.loads(args.command_json)
     if not isinstance(command, list) or not command or any(not isinstance(item, str) for item in command):
         raise SystemExit("Expected a JSON array of command arguments")
