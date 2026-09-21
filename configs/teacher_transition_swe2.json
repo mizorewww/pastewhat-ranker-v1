@@ -1,0 +1,60 @@
+{
+  "version": "pastewhat-teacher-transition-v1",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "registered_at": "2026-09-21T06:40:40.967457+00:00",
+  "authorization": "User explicitly requested switching to SWE-2 in Pi after Kimi quota exhaustion on 2026-09-21. Applies to all future authoring, labels, blind reviews and hard-example verification.",
+  "transport": "pi-cli-json",
+  "provider": "devin",
+  "model": "swe-2",
+  "reasoning_map": {
+    "off": "medium",
+    "disabled": "medium",
+    "low": "medium",
+    "medium": "medium",
+    "high": "high",
+    "max": "max"
+  },
+  "runtime": {
+    "pi_version": "0.85.1",
+    "pi_executable_sha256": "7c3529014c51e2d7d860cdcda564d33e28d394e858bfb81a3b7ed9611ea80b9d",
+    "teacher_extension_sha256": "19628f4a992f702079e3a84e1a473431ab2372e723ba212a6b6fb112041f693a",
+    "provider_extension_sha256": "d2d511272f65752d2989241bcfc3f3bab3789cda32a20d3a8a85883862ffb42d",
+    "pins_path": "provenance/pi-swe2-runtime.json",
+    "pins_sha256": "aec1755795e7f738bd06e3cdbf7990d299ef173d1357c3dc4761d25e1ded86b5"
+  },
+  "coordinator_directory": "local/pi-swe2-account-rate",
+  "max_in_flight": 6,
+  "preserve_existing_accepted": true,
+  "reuse_cached_author_fixtures": true,
+  "new_primary_and_review_provider": "devin/swe-2",
+  "previous_teacher": {
+    "transport": "openai-compatible-http",
+    "requested_model": "kimi-for-coding",
+    "new_requests_retired": true,
+    "accepted_before_transition": {
+      "train": 217,
+      "dev": 62,
+      "calibration": 58,
+      "test": 67
+    }
+  },
+  "preservation_rules": [
+    "Keep existing accepted episode bytes and original teacher audits unchanged.",
+    "Reuse valid cached author drafts only with explicit original author provenance; record the new primary and review providers separately.",
+    "Do not change the registered family partition, sampling plans, preprocessing, split quotas or acceptance gates.",
+    "No Kimi fallback or automatic quota resumption after this switch.",
+    "Unknown provider token usage remains unknown; zero-valued cost metadata is not a billing statement.",
+    "Student features exclude teacher source, raw reasoning and audit data."
+  ],
+  "isolation": {
+    "provider_completions_per_process": 1,
+    "bound_system_prompt": true,
+    "bound_user_messages": 1,
+    "tools": 0,
+    "workspace_context": false,
+    "session_history": false
+  },
+  "teacher_contract_version": "teacher-episodes-v7-batched-decisions",
+  "release_binding": "Freeze this policy and runtime pins before final Test; report per-role teacher provenance in split manifests and bundle public policy/pins only, never private teacher requests."
+}

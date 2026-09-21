@@ -1,0 +1,40 @@
+{
+  "schema": "pastewhat-pi-swe2-protocol-smoke-v1",
+  "source": "existing Train-only engineering cases, no heldout examples",
+  "cases": 6,
+  "agreed_with_engineering_reference": 6,
+  "receipt": {
+    "version": "pastewhat-pi-teacher-receipt-v1",
+    "transport": "pi-cli-json",
+    "provider": "devin",
+    "requested_model": "swe-2",
+    "actual_model": "swe-2-medium",
+    "request_sha256": "a2ab33321b95c874714e036320c6e20cbb2ba70a7d367e976dfac8c511d05183",
+    "max_tokens": 12288,
+    "thinking": "medium",
+    "provider_call_count": 1,
+    "isolated": true,
+    "context_message_count": 1,
+    "tools_count": 0,
+    "usage_source": "pi-devin-provider-reported-or-unknown"
+  },
+  "cost_is_provider_metadata_not_verified_billing": true,
+  "raw_events_sha256": "069fe5b9534de909f750613aafd5446ffde09ba15037e03e0f1dca760569b12c",
+  "claim": "One actual isolated Pi/SWE-2 protocol completion, not a generalization benchmark.",
+  "recorded_at": "2026-09-21T06:40:40.967457+00:00",
+  "run_id": "ranker-v1-efficient-20260921",
+  "transition_policy_sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250",
+  "runtime_pins_sha256": "aec1755795e7f738bd06e3cdbf7990d299ef173d1357c3dc4761d25e1ded86b5",
+  "case_mix": {
+    "select": 4,
+    "abstain": 2
+  },
+  "usage": {
+    "input": 2467,
+    "output": 213,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 2680
+  },
+  "provider_cost_metadata_verified": false
+}

@@ -1,0 +1,36 @@
+{
+  "version": "pastewhat-pi-runtime-pins-v1",
+  "recorded_at": "2026-09-21T06:40:40.967457+00:00",
+  "pi_version": "0.85.1",
+  "pi_executable_sha256": "7c3529014c51e2d7d860cdcda564d33e28d394e858bfb81a3b7ed9611ea80b9d",
+  "teacher_extension": {
+    "path": "tools/pi_teacher_extension.ts",
+    "sha256": "19628f4a992f702079e3a84e1a473431ab2372e723ba212a6b6fb112041f693a"
+  },
+  "provider": {
+    "repository": "../pi-devin",
+    "commit": "143df12dd2c4dc2b862002609f6786ad08005df1",
+    "tracked_source_clean": true,
+    "source_files": {
+      "extensions/index.ts": "d2d511272f65752d2989241bcfc3f3bab3789cda32a20d3a8a85883862ffb42d",
+      "package.json": "1f9eab71d06bd7d94d8d9048fb6c86b1e8e7dac9b95100be695245ac98f81494",
+      "src/cli.ts": "14c653f1ad2f02de924c0860c64cf32c3321cfe1d7957d1178597ab9e8ccfc53",
+      "src/context-map.ts": "10e592922f670bc75be118a4aefa34cc35948363ab7e4a3fabb44b955de4e2d4",
+      "src/credentials.ts": "65f2866f8ebbc145c36830264077333be2bfdfeaa9859caa1a96983cdb680ca7",
+      "src/desktop-auth.ts": "f03e2354b2c279653ce035e14e370a1b37aeef1c44c0b1461ce81e06ee95bd1e",
+      "src/jwt.ts": "8cbb87e020869f05993a9b54410f13e2bc735a96e38c8a3e48e7a989c8d33697",
+      "src/metadata.ts": "d7684dda35af6a58047eca5b20c327c625e1b5a80452a345d4520c51200cf41d",
+      "src/models.ts": "d9b1e087574bb1e1b359545ba6dbb04d30e7ae5b1d6e6fcc6d1d6dc0f4b2565f",
+      "src/stream.ts": "a267adb0e9243e0e373e33a85bedf168bcac76970268f2552ac654903dfa8d5d",
+      "src/thinking.ts": "3f8a85218dafd3b38ecb98687a5c3b14792396bf38a5c1f44c04d03eb2193e46",
+      "src/wire.ts": "9269a58fe11b539c6c3aa0c428639ea1f2e9a1988db6e2800cfbb55a485aa87e"
+    }
+  },
+  "credential_source": "existing user Pi/Devin login; no exported credentials",
+  "model_mapping": {
+    "medium": "swe-2-medium",
+    "high": "swe-2-high",
+    "max": "swe-2-max"
+  },
+  "source_pin_scope": "Pi executable/version and provider TypeScript/package sources; rolling remote model weights are not reproducible from this pin"
+}
