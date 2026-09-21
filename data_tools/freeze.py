@@ -34,6 +34,7 @@ def main():
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--count", type=int, required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--source", help="Optional explicitly reviewed Train/Dev engineering seed")
     parser.add_argument("--overfit", action="store_true")
     parser.add_argument("--tokenizer", default=str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
@@ -43,6 +44,10 @@ def main():
     if any(term in output.name.lower() for term in ("test", "calibration")):
         raise SystemExit("Train/Dev producer cannot write held-out split snapshots")
     source = ROOT / "data" / f"{args.split}.jsonl"
+    if args.source:
+        source = (ROOT / args.source).resolve()
+        if not args.overfit or args.split != "train" or not source.is_relative_to(ROOT / "local") or not source.name.startswith("train_"):
+            raise SystemExit("Alternate input is limited to a local, reviewed Train engineering seed")
     payload = source.read_bytes()
     episodes = [json.loads(line) for line in payload.splitlines()]
     if len(episodes) < args.count:
@@ -109,6 +114,8 @@ def main():
     fingerprint_path = output.with_suffix(".fingerprints.jsonl")
     publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {"split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
+    manifest["source_path"] = str(source.relative_to(ROOT))
+    manifest["purpose"] = "engineering-overfit-check, not representative evaluation" if args.overfit else "frozen training/development data"
     if pilot_proof:
         manifest["pilot_subset"] = pilot_proof
     publish_bytes(output.with_suffix(".manifest.json"), json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2).encode() + b"\n")

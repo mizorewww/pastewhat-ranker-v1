@@ -1,0 +1,70 @@
+{
+  "candidate_counts": {
+    "1": 2,
+    "2": 3,
+    "3": 4,
+    "4": 3,
+    "5": 5,
+    "6": 4,
+    "8": 3,
+    "10": 3,
+    "12": 2,
+    "16": 2,
+    "20": 1
+  },
+  "created_at": "2026-09-21T00:42:04.080079+00:00",
+  "episodes": 32,
+  "families": {
+    "design_color_syntax": 10,
+    "disk_usage": 5,
+    "file_copy_destination": 5,
+    "git_diff_selection": 9,
+    "http_authentication": 1,
+    "http_method": 2
+  },
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "fingerprints": "data/frozen/overfit-train-32.fingerprints.jsonl",
+  "human_validated": false,
+  "labels": {
+    "ambiguous": 3,
+    "insufficient_context": 2,
+    "no_match": 6,
+    "select": 21
+  },
+  "multiple_positive_episodes": 4,
+  "path": "data/frozen/overfit-train-32.jsonl",
+  "preprocessing": {
+    "candidate_budget": 512,
+    "context_budget": 448,
+    "context_fields": [
+      "applicationCategory",
+      "inputSurface",
+      "fieldRole",
+      "fieldLabel",
+      "selectedText",
+      "surroundingText",
+      "hasAccessibility",
+      "isSecure"
+    ],
+    "field_order": [
+      "metadata",
+      "fieldLabel",
+      "selectedText",
+      "surroundingText",
+      "candidateText"
+    ],
+    "max_candidates": 20,
+    "max_pair_tokens": 1024,
+    "metadata_and_special_budget": 64,
+    "pooling": "first_token",
+    "tokenizer_sha256": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+    "truncation": "prefix_tokens; trim longest context field until total context <=448",
+    "version": "pastewhat-pair-v1"
+  },
+  "purpose": "engineering-overfit-check, not representative evaluation",
+  "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants.",
+  "sha256": "7b325fb8aa1860d02e2b5f3285d317a81e8b0c059a0ecf02425eb0bd53691bf0",
+  "source_path": "local/train_overfit_reviewed32.jsonl",
+  "source_sha256": "c06c924ea97383e52e1d501cace121b8fe950db0855900587ca3d28bedfbfd2d",
+  "split": "train"
+}

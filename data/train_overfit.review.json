@@ -1,0 +1,15 @@
+{
+  "final_source_sha256": "c06c924ea97383e52e1d501cace121b8fe950db0855900587ca3d28bedfbfd2d",
+  "independent_agent_review_report": "reports/data/train-seed-independent-review.json",
+  "independent_agent_review_report_sha256": "71592db3c317450b06c800997005667ce474191590a92a087c4d5ce57cc616e7",
+  "initial_accepted": 26,
+  "initial_candidate_sha256": "f39277cbf360975cca0c06c83b180d662d7b7e6588b6504560798da61cd3ad71",
+  "initial_candidates": 32,
+  "initial_rejected": 6,
+  "label_edits": 0,
+  "purpose": "Engineering-only overfit check. This deliberate seed is not a representative benchmark or the 5000-row pilot.",
+  "replacement_accepted": 6,
+  "replacement_candidates": 6,
+  "replacement_sha256": "33a6ae76ed2edd83ea8253b897396572b602e7f6e956703c597ea260f84c0244",
+  "reviewer": "root agent independent from generation agent; not human validation"
+}
