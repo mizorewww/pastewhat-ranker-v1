@@ -48,6 +48,8 @@ class ReplayVerifier:
     def verify(self, episode):
         from data_tools.generate import CANDIDATE_PROJECTION_PATH, LABEL_SYSTEM, PARTITION_PATH, validate_generated, validate_labels
         from data_tools.audit import AUDIT_SYSTEM
+        from data_tools.authoring import AUTHORING_PROTOCOL, compile_compact_episode, owned_profile
+        from data_tools.labeling import LABEL_PROTOCOL
         from tools.project_context import project_context
         from tools.project_candidates import project_candidates
 
@@ -57,10 +59,19 @@ class ReplayVerifier:
         if provenance.get("candidate_payload_protocol") != "native-synthetic-payload-v1" or provenance.get("candidate_projection_provenance_sha256") != sha256(CANDIDATE_PROJECTION_PATH.read_bytes()):
             raise ValueError("Formal data lacks the current native candidate-payload provenance")
         phase = provenance.get("generation_phase", "main")
-        _, generated = self.audit(provenance["generation_audit_id"], phase)
-        raw = next((copy.deepcopy(item) for item in generated["episodes"] if item["id"] == episode["id"]), None)
+        generation_audit, generated = self.audit(provenance["generation_audit_id"], phase)
+        if provenance.get("authoring_protocol") != AUTHORING_PROTOCOL or provenance.get("label_protocol") != LABEL_PROTOCOL:
+            raise ValueError("Formal data lacks the compact/exhaustive-verdict protocol")
+        if provenance.get("compact_authoring_sha256") != sha256((self.root / "data_tools/authoring.py").read_bytes()):
+            raise ValueError("The authoring compiler differs from the frozen protocol")
+        author_request = json.loads(generation_audit["request"]["messages"][1]["content"])
+        profile = author_request.get("field_fixture")
+        if profile != owned_profile(episode["family_id"]) or provenance.get("field_fixture_sha256") != sha256(canonical_bytes(profile)):
+            raise ValueError("The fixed pre-label field fixture does not match its provenance")
+        raw = next((copy.deepcopy(item) for item in generated["episodes"] if item.get("slot") == episode["id"]), None)
         if raw is None:
             raise ValueError("Episode is absent from its authoring response")
+        raw = compile_compact_episode(raw, episode_id=episode["id"], profile=profile, candidate_count=len(episode["entries"]))
         raw = validate_generated({"episodes": [raw]}, [{"id": episode["id"], "candidate_count": len(episode["entries"])}])[0]
         raw["family_id"] = episode["family_id"]
         raw["context"] = project_context(raw["context"], capture=raw["capture"])

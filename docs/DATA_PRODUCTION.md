@@ -235,3 +235,29 @@ switches credentials or changes client identity.
 Rolling and full frozen Train/Dev JSONL corpora are ignored by Git to avoid large
 blobs; code, small engineering fixtures, hashes and public manifests remain in
 Git. Full dataset artifacts are published through the final Hugging Face package.
+
+Formal v6 uses `data_tools.authoring.compile_compact_episode` to remove repeated
+LLM-authored metadata and selection arithmetic. The author returns a slot ID,
+zero to two short static guidance strings, an optional whole-field selected value,
+and literal candidate payloads. A predeclared family profile supplies the real
+field/category/capability help; it never depends on the desired action. Native
+Swift still projects both context and payloads before the student token budget.
+The raw author request contains the exact profile for replay, and provenance binds
+the compiler, profile and native-source hashes. Files/images are actual synthetic
+payloads at visibly supported targets, not the textual summaries inserted into an
+ordinary text field. Small finite method/boolean vocabularies use predeclared
+1–4 candidate ranges; other owned families span1–20. Counts, language and action
+buckets retain independent random schedules. These ranges are authoring choices,
+never post-hoc candidate deletion.
+
+`data_tools.labeling` now asks each blind teacher to judge every opaque candidate
+ID with a boolean and a short evidence phrase. Code derives all positive IDs from
+those booleans, checks exact quoted positive texts and rejects contradictory
+identical plaintext judgments. No canonical answer shortlist is accepted. Both
+original and independently permuted/re-IDed passes must agree on the full action
+set. Teacher verdict evidence is audit-only; it never enters student inputs.
+This makes omitted alternatives observable but is not a guarantee that a teacher
+recognized every semantic equivalence. A real temporary-Git execution review of
+two rejected Train episodes motivated the change; these diagnostics are not new
+formal training examples. Malformed JSON remains an audited rejection, never an
+agent-edited label response.

@@ -1,148 +1,161 @@
 {
   "batch_size": 5,
-  "dataset_protocol": "teacher-episodes-v5-native-payload",
+  "candidate_ranges": {
+    "all_other_owned_families": [
+      1,
+      20
+    ],
+    "configuration_boolean": [
+      1,
+      4
+    ],
+    "http_method": [
+      1,
+      4
+    ]
+  },
+  "dataset_protocol": "teacher-episodes-v6-compact-verdicts",
   "independence": "full-family label, language and candidate-count schedules use separate hash-derived RNG streams",
-  "protocol": "sampling-v4-independent-schedules",
+  "protocol": "sampling-v6-independent-family-spaces",
+  "range_rationale": "Predeclared finite value vocabularies; ranges never depend on action labels. Entire corpus covers1–20; no candidate is dropped after generation.",
   "seed": 42,
   "single_candidate_rule": "ambiguous becomes insufficient_context in the same ABSTAIN bucket; multiple-positive requests disabled, never change candidate count",
   "splits": {
     "dev": {
       "candidate_count_by_action": {
         "1": {
-          "missing_context": 4,
-          "no_match": 9,
-          "select": 37
+          "missing_context": 2,
+          "no_match": 11,
+          "select": 36
         },
         "10": {
-          "missing_context": 11,
-          "no_match": 10,
-          "select": 31
+          "missing_context": 6,
+          "no_match": 12,
+          "select": 32
         },
         "11": {
-          "missing_context": 3,
+          "missing_context": 6,
           "no_match": 11,
-          "select": 35
+          "select": 32
         },
         "12": {
-          "missing_context": 4,
+          "missing_context": 7,
+          "no_match": 8,
+          "select": 34
+        },
+        "13": {
+          "missing_context": 6,
           "no_match": 11,
           "select": 33
         },
-        "13": {
-          "missing_context": 5,
-          "no_match": 4,
-          "select": 40
-        },
         "14": {
-          "missing_context": 2,
-          "no_match": 14,
-          "select": 35
+          "missing_context": 6,
+          "no_match": 12,
+          "select": 33
         },
         "15": {
           "missing_context": 2,
-          "no_match": 8,
-          "select": 39
+          "no_match": 13,
+          "select": 34
         },
         "16": {
-          "missing_context": 2,
+          "missing_context": 3,
+          "no_match": 6,
+          "select": 43
+        },
+        "17": {
+          "missing_context": 5,
           "no_match": 11,
           "select": 35
         },
-        "17": {
-          "missing_context": 6,
-          "no_match": 5,
-          "select": 38
-        },
         "18": {
-          "missing_context": 4,
-          "no_match": 8,
-          "select": 37
+          "missing_context": 5,
+          "no_match": 12,
+          "select": 34
         },
         "19": {
-          "missing_context": 9,
-          "no_match": 8,
-          "select": 35
+          "missing_context": 3,
+          "no_match": 10,
+          "select": 36
         },
         "2": {
-          "missing_context": 4,
-          "no_match": 12,
+          "missing_context": 6,
+          "no_match": 9,
           "select": 33
         },
         "20": {
-          "missing_context": 7,
-          "no_match": 12,
-          "select": 32
+          "missing_context": 4,
+          "no_match": 6,
+          "select": 41
         },
         "3": {
-          "missing_context": 4,
-          "no_match": 12,
+          "missing_context": 6,
+          "no_match": 11,
           "select": 34
         },
         "4": {
-          "missing_context": 8,
-          "no_match": 13,
-          "select": 30
+          "missing_context": 4,
+          "no_match": 5,
+          "select": 39
         },
         "5": {
-          "missing_context": 5,
-          "no_match": 10,
-          "select": 38
-        },
-        "6": {
-          "missing_context": 3,
-          "no_match": 12,
-          "select": 35
-        },
-        "7": {
-          "missing_context": 8,
+          "missing_context": 7,
           "no_match": 11,
           "select": 32
         },
+        "6": {
+          "missing_context": 4,
+          "no_match": 10,
+          "select": 36
+        },
+        "7": {
+          "missing_context": 5,
+          "no_match": 9,
+          "select": 36
+        },
         "8": {
-          "missing_context": 2,
-          "no_match": 15,
-          "select": 34
+          "missing_context": 7,
+          "no_match": 16,
+          "select": 29
         },
         "9": {
-          "missing_context": 7,
-          "no_match": 4,
-          "select": 37
+          "missing_context": 6,
+          "no_match": 6,
+          "select": 38
         }
       },
       "conceptual_families": 8,
       "language_by_action": {
         "English": {
-          "missing_context": 63,
-          "no_match": 119,
-          "select": 418
+          "missing_context": 53,
+          "no_match": 128,
+          "select": 419
         },
         "French": {
           "missing_context": 2,
-          "no_match": 3,
-          "select": 19
+          "no_match": 4,
+          "select": 18
         },
         "German": {
-          "missing_context": 4,
-          "no_match": 3,
-          "select": 17
+          "missing_context": 2,
+          "select": 22
         },
         "Japanese": {
-          "missing_context": 3,
-          "no_match": 1,
-          "select": 20
+          "missing_context": 1,
+          "no_match": 4,
+          "select": 19
         },
         "Simplified Chinese": {
-          "missing_context": 23,
-          "no_match": 70,
-          "select": 211
+          "missing_context": 42,
+          "no_match": 57,
+          "select": 205
         },
         "Spanish": {
-          "missing_context": 5,
-          "no_match": 4,
-          "select": 15
+          "no_match": 7,
+          "select": 17
         }
       },
-      "plan_sha256": "3805a1e43a9c4743f86e4edb0349d1e1d6c7d0b2fec369d2cf6b5b307e68b769",
+      "plan_sha256": "39a6796e3e5c2a5d46f7e7dd513d4d137e5da738659259c7857988c4ec9d0ea8",
       "planned_episodes": 1000,
       "target_action_counts": {
         "missing_context": 100,
@@ -153,140 +166,140 @@
     "train": {
       "candidate_count_by_action": {
         "1": {
-          "missing_context": 112,
-          "no_match": 169,
-          "select": 719
+          "missing_context": 130,
+          "no_match": 254,
+          "select": 816
         },
         "10": {
-          "missing_context": 94,
-          "no_match": 194,
-          "select": 712
+          "missing_context": 109,
+          "no_match": 188,
+          "select": 653
         },
         "11": {
-          "missing_context": 93,
-          "no_match": 188,
-          "select": 719
+          "missing_context": 108,
+          "no_match": 195,
+          "select": 647
         },
         "12": {
-          "missing_context": 108,
-          "no_match": 197,
-          "select": 695
+          "missing_context": 97,
+          "no_match": 183,
+          "select": 670
         },
         "13": {
-          "missing_context": 107,
-          "no_match": 193,
-          "select": 700
+          "missing_context": 87,
+          "no_match": 187,
+          "select": 676
         },
         "14": {
-          "missing_context": 117,
-          "no_match": 206,
-          "select": 677
+          "missing_context": 98,
+          "no_match": 191,
+          "select": 661
         },
         "15": {
-          "missing_context": 104,
-          "no_match": 205,
-          "select": 691
+          "missing_context": 98,
+          "no_match": 195,
+          "select": 657
         },
         "16": {
-          "missing_context": 95,
-          "no_match": 200,
-          "select": 705
+          "missing_context": 84,
+          "no_match": 189,
+          "select": 677
         },
         "17": {
           "missing_context": 97,
-          "no_match": 203,
-          "select": 700
-        },
-        "18": {
-          "missing_context": 97,
-          "no_match": 209,
-          "select": 694
-        },
-        "19": {
-          "missing_context": 112,
-          "no_match": 207,
-          "select": 681
-        },
-        "2": {
-          "missing_context": 99,
-          "no_match": 201,
-          "select": 700
-        },
-        "20": {
-          "missing_context": 95,
-          "no_match": 227,
-          "select": 678
-        },
-        "3": {
-          "missing_context": 104,
-          "no_match": 206,
+          "no_match": 163,
           "select": 690
         },
+        "18": {
+          "missing_context": 90,
+          "no_match": 200,
+          "select": 660
+        },
+        "19": {
+          "missing_context": 77,
+          "no_match": 189,
+          "select": 684
+        },
+        "2": {
+          "missing_context": 116,
+          "no_match": 235,
+          "select": 849
+        },
+        "20": {
+          "missing_context": 102,
+          "no_match": 173,
+          "select": 675
+        },
+        "3": {
+          "missing_context": 110,
+          "no_match": 242,
+          "select": 848
+        },
         "4": {
-          "missing_context": 94,
-          "no_match": 215,
-          "select": 691
+          "missing_context": 119,
+          "no_match": 271,
+          "select": 810
         },
         "5": {
-          "missing_context": 109,
-          "no_match": 193,
-          "select": 698
+          "missing_context": 89,
+          "no_match": 190,
+          "select": 671
         },
         "6": {
-          "missing_context": 84,
-          "no_match": 210,
-          "select": 706
+          "missing_context": 92,
+          "no_match": 176,
+          "select": 682
         },
         "7": {
-          "missing_context": 99,
-          "no_match": 194,
-          "select": 707
+          "missing_context": 104,
+          "no_match": 197,
+          "select": 649
         },
         "8": {
-          "missing_context": 100,
-          "no_match": 190,
-          "select": 710
+          "missing_context": 92,
+          "no_match": 199,
+          "select": 659
         },
         "9": {
-          "missing_context": 80,
-          "no_match": 193,
-          "select": 727
+          "missing_context": 101,
+          "no_match": 183,
+          "select": 666
         }
       },
       "conceptual_families": 40,
       "language_by_action": {
         "English": {
-          "missing_context": 1215,
-          "no_match": 2350,
-          "select": 8435
+          "missing_context": 1207,
+          "no_match": 2422,
+          "select": 8371
         },
         "French": {
-          "missing_context": 49,
-          "no_match": 105,
-          "select": 326
+          "missing_context": 62,
+          "no_match": 79,
+          "select": 339
         },
         "German": {
-          "missing_context": 34,
-          "no_match": 111,
-          "select": 335
+          "missing_context": 44,
+          "no_match": 106,
+          "select": 330
         },
         "Japanese": {
-          "missing_context": 54,
-          "no_match": 108,
-          "select": 358
+          "missing_context": 37,
+          "no_match": 100,
+          "select": 383
         },
         "Simplified Chinese": {
-          "missing_context": 596,
-          "no_match": 1215,
-          "select": 4189
+          "missing_context": 607,
+          "no_match": 1192,
+          "select": 4201
         },
         "Spanish": {
-          "missing_context": 52,
-          "no_match": 111,
-          "select": 357
+          "missing_context": 43,
+          "no_match": 101,
+          "select": 376
         }
       },
-      "plan_sha256": "3af046bc431b7587fac4a4b330eac009f655e93d945d5d3fc12fab3a0cf212d0",
+      "plan_sha256": "6a5e4554991592474b0f7833552c53de57b769280bc8640b706501aa80ff5d60",
       "planned_episodes": 20000,
       "target_action_counts": {
         "missing_context": 2000,

@@ -9,7 +9,7 @@ from pathlib import Path
 import statistics
 
 from data_tools.deployment import placement_issue
-from data_tools.generate import CACHE_VERSION, GENERATOR_SYSTEM, ROOT
+from data_tools.generate import CACHE_VERSION, GENERATOR_SYSTEM, PROMPT_VERSION, ROOT
 from data_tools.teacher import atomic_json, utc_now
 
 
@@ -72,8 +72,8 @@ def report_split(split):
 
 
 def main():
-    report = {"created_at": utc_now(), "dataset_protocol": "teacher-episodes-v5-native-payload", "splits": {split: report_split(split) for split in ("train", "dev")}, "limits": "Small initial staging only. Token costs include observed failed attempts; unfinished-request usage is unknown. ETA is a linear scenario at observed acceptance, not a promised completion time. No held-out examples are accessed."}
-    atomic_json(ROOT / "local/production-v5-staging/report.json", report)
+    report = {"created_at": utc_now(), "dataset_protocol": PROMPT_VERSION, "splits": {split: report_split(split) for split in ("train", "dev")}, "limits": "Small initial staging only. Token costs include observed failed attempts; unfinished-request usage is unknown. ETA is a linear scenario at observed acceptance, not a promised completion time. No held-out examples are accessed."}
+    atomic_json(ROOT / f"local/production-{CACHE_VERSION}-staging/report.json", report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

@@ -48,6 +48,10 @@ afterSelection are the actual unmodified sides of the paste; only selectedText
 is replaced. nearbyText contains bounded static sibling guidance, not field text.
 Unknown selection cannot be treated as a known caret. Do not silently move a
 caret, replace unselected blanks, supply quotes/escapes, or normalize newlines.
+Literal string concatenation applies only to text-capable payloads. A file or
+image summary is not the inserted text: actual file URLs or image bytes are
+pasted, and require visible target capability support such as attachments or a
+canvas. An ordinary text/dimension field cannot accept those payloads as images.
 Nearby guidance must plausibly be a static label beside this field, not an
 invented hidden request or the contents of another editable control.
 payload_metadata_consistent means text describing a file is not falsely given a
