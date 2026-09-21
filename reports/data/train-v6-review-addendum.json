@@ -1,0 +1,19 @@
+{
+  "version": "root-train-v6-staging-review-addendum-v1",
+  "source_sha256": "be8344bdb84b11ef47bf84aaf889a89f178c8cb76c4399a3ecc3164b306e998a",
+  "scope": "Two additional Train-only v6 authoring examples; no heldout data or student scores",
+  "human_validated": false,
+  "findings": [
+    {
+      "id": "train-main-v6-git_diff_selection-00000",
+      "status": "accepted_by_agent_review",
+      "reason": "The visible request explicitly requires unstaged patch output and excludes staged, stat and name-only alternatives; c10 is the only supplied match."
+    },
+    {
+      "id": "train-main-v6-git_diff_selection-00004",
+      "status": "accepted_by_agent_review",
+      "reason": "Both endpoints, direction and literal OLD..NEW syntax are explicitly required. No supplied candidate meets all of those constraints; the two-argument equivalent does not meet the stated syntax constraint."
+    }
+  ],
+  "label_edits": 0
+}
