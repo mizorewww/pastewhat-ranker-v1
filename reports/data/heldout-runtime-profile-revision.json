@@ -1,0 +1,21 @@
+{
+  "version": "heldout-visible-runtime-profile-v2",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "profile_sha256": "c9841241635c15518381a1931c7d7f497196324a9b41f15ca8eb9d663fd74c26",
+  "prior_profile_sha256": "562ee4452f346fef3dcbbd6767af0e53f7223ff025a6d1a607130225d3341d5a",
+  "native_projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "native_profiles_verified": 20,
+  "superseded_rows_quarantined": {
+    "calibration": 8,
+    "test": 7
+  },
+  "quarantine_scope": "All rows from the superseded profile manifest; this count is not a claim that every row had a semantic error.",
+  "reason": "Implementation-dependent candidate usability needs runtime evidence visible equally to teacher and student.",
+  "all_label_buckets_share_the_same_profile": true,
+  "original_inputs_labels_audits_preserved": true,
+  "labels_changed": false,
+  "student_inference_used": false,
+  "human_validated": false,
+  "historical_request_completion_or_usage_unknown_records": 1
+}

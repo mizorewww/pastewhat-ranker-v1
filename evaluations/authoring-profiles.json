@@ -1,6 +1,6 @@
 {
-  "schema": "pastewhat-heldout-compact-profiles-v1",
-  "selection_rule": "Fixed per preregistered conceptual operation before compact authoring; never selected or changed from a label or model prediction",
+  "schema": "pastewhat-heldout-compact-profiles-v2",
+  "selection_rule": "Fixed per conceptual operation and shared across all action buckets before authoring; v2 clarifies observable execution environments before any student scoring",
   "profile_scope": "Synthetic observable field metadata and fixed UI capability help only; generation supplies literal nearby task text, selected text and payloads",
   "profiles": {
     "archive_extract": {
@@ -9,14 +9,18 @@
       "fieldLabel": "Shell command",
       "sourceCategory": "browser",
       "staticGuidance": [
-        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback.",
+        "Command target: macOS stock tools with zsh; system tar is bsdtar. No GNU tool replacements are installed."
       ]
     },
     "spreadsheet_distinct_count": {
       "applicationCategory": "spreadsheet",
       "fieldRole": "AXTextField",
       "fieldLabel": "Formula",
-      "sourceCategory": "spreadsheet"
+      "sourceCategory": "spreadsheet",
+      "staticGuidance": [
+        "Formula engine: Excel 365, English function names, comma argument separator. Paste one complete formula."
+      ]
     },
     "calendar_rsvp_status": {
       "applicationCategory": "unknown",
@@ -48,7 +52,8 @@
       "fieldLabel": "SQL query",
       "sourceCategory": "development",
       "staticGuidance": [
-        "Paste one complete query. Existing selected text is replaced as a whole."
+        "Paste one complete query. Existing selected text is replaced as a whole.",
+        "Query engine: SQLite 3. Paste the whole query; no SQL dialect conversion is applied."
       ]
     },
     "chmod_octal_permission": {
@@ -57,7 +62,8 @@
       "fieldLabel": "Shell command",
       "sourceCategory": "browser",
       "staticGuidance": [
-        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback.",
+        "Command target: macOS stock tools with zsh; system tar is bsdtar. No GNU tool replacements are installed."
       ]
     },
     "git_restore_stash_scope": {
@@ -66,7 +72,8 @@
       "fieldLabel": "Shell command",
       "sourceCategory": "browser",
       "staticGuidance": [
-        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback.",
+        "Command target: macOS stock tools with zsh; system tar is bsdtar. No GNU tool replacements are installed."
       ]
     },
     "regex_anchored_search": {
@@ -75,7 +82,7 @@
       "fieldLabel": "Regular expression",
       "sourceCategory": "development",
       "staticGuidance": [
-        "Enter a pattern for the regex engine named by the visible task. No implicit flags or wrapper are added."
+        "Engine: JavaScript ECMAScript RegExp, no flags, no wrapper. Test input is a single line without CR or LF. Paste only the pattern body."
       ]
     },
     "sql_antijoin_null": {
@@ -84,7 +91,8 @@
       "fieldLabel": "SQL query",
       "sourceCategory": "development",
       "staticGuidance": [
-        "Paste one complete query. Existing selected text is replaced as a whole."
+        "Paste one complete query. Existing selected text is replaced as a whole.",
+        "Query engine: SQLite 3. Paste the whole query; no SQL dialect conversion is applied."
       ]
     },
     "url_pagination_cursor": {
@@ -114,7 +122,8 @@
       "fieldLabel": "Shell command",
       "sourceCategory": "browser",
       "staticGuidance": [
-        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback.",
+        "Command target: macOS stock tools with zsh; system tar is bsdtar. No GNU tool replacements are installed."
       ]
     },
     "timezone_scheduling": {
@@ -127,7 +136,10 @@
       "applicationCategory": "spreadsheet",
       "fieldRole": "AXTextField",
       "fieldLabel": "Formula",
-      "sourceCategory": "spreadsheet"
+      "sourceCategory": "spreadsheet",
+      "staticGuidance": [
+        "Formula engine: Excel 365, English function names, comma argument separator. Paste one complete formula."
+      ]
     },
     "accessibility_alt_caption": {
       "applicationCategory": "creative",
@@ -153,5 +165,6 @@
         "Paste complete header lines. No header name or punctuation is inserted automatically."
       ]
     }
-  }
+  },
+  "revision_reason": "Implementation-dependent usability requires a named visible environment. Superseded contexts and original labels remain quarantined unchanged; no student predictions were used."
 }
