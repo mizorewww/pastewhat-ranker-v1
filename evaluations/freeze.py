@@ -134,6 +134,8 @@ def main():
     inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
         "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
         "run_plan": args.run_plan, "run_contract_source": Path("run_contract.py"),
+        "dependency_lock": Path("uv.lock"), "package_manifest": Path("pyproject.toml"),
+        "baseline_dependency_lock": Path("../laya-mlx/uv.lock"),
         "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
         "context_projection_adapter": Path("tools/project_context.py"),
         "candidate_projection_adapter": Path("tools/project_candidates.py"),

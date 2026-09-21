@@ -90,3 +90,29 @@ exhaustive verdict fields. The old branch stays available for historical v6
 audits. All quality, calibration and paired-comparison thresholds stay unchanged.
 Semantic sampling reports its actual numerator and denominator; it is not a
 human-validation or real-world accuracy claim.
+
+The durable `evaluations.release_pipeline --run-plan configs/run_plan_efficient.json`
+waits for complete data manifests/audits and the genuine completed training
+handoff. Parent authorization of 2026-09-21 is conditional on these actual
+prerequisites and applies only to plan SHA
+`e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f`.
+It waits for the training process to release its lock before using the GPU,
+verifies parity/performance, fits the fixed Calibration family partition,
+checks calibrated parity, and installs the calibrated policy before final
+freeze. The selected weights and preprocessing remain unchanged.
+
+Only after that freeze does it run one Test pass per ranker, pinned Laya and
+pinned Jev client, then produce the paired report. A partial interrupted Test
+is not automatically rerun. Failed data/training proof or numerical parity
+produces an incomplete diagnostic state without a publication handoff. A
+completed quality miss produces a diagnostic handoff with the failed criteria;
+it never changes Test labels, the checkpoint or the threshold.
+
+Aggregate progress and final publication inputs live under
+`local/evaluator-release/ranker-v1-efficient-20260921/` as `status.json` and
+`ready-for-publication.json`. The latter contains run binding, status and
+`artifacts.{reference,deployment,freeze,metrics,parity,performance,calibration_report,data_manifest}`.
+Files use `{path,sha256}`. Model directories additionally use an external
+`manifest_path` containing exactly the relative-path-to-SHA mapping;
+`sha256` equals that manifest's hash and `weight_sha256` binds its weights.
+Root alone assembles and publishes the public bundle.

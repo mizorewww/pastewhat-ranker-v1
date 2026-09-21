@@ -156,7 +156,11 @@ def registered_sources(plan, split, partition, auditor):
     sources = ("data_tools/v7.py", "data_tools/authoring.py", "data_tools/observations.py", "data_tools/content.py",
                "evaluations/authoring.py", "evaluations/authoring_v7.py", "evaluations/authoring-profiles.json",
                "evaluations/generate_v7.py", "evaluations/produce_v7.py", "tools/project_context.py", "tools/project_candidates.py")
-    for path in [*(Path(value) for value in sources), directory / "owner-binding.json", *sorted((directory / "producer-revisions").glob("*.json"))]:
+    owner_evidence = [*sorted(directory.glob("owner-review-*.json")), *sorted((directory / "producer-revisions").glob("*.json"))]
+    exclusions = Path("local/evaluator-quality-exclusions") / (split + ".json")
+    if exclusions.exists():
+        owner_evidence.append(exclusions)
+    for path in [*(Path(value) for value in sources), directory / "owner-binding.json", *owner_evidence]:
         auditor.bound_files[str(path)] = sha256(path)
     return specifications, initial
 
@@ -201,6 +205,8 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
     fingerprints = set()
     qualities, variants, counts = Counter(), Counter(), Counter()
     logical_slots = set()
+    exclusion_path = Path("local/evaluator-quality-exclusions") / (split + ".json")
+    exclusions = set(json.loads(exclusion_path.read_text())["content_fingerprints"]) if exclusion_path.exists() else set()
     for row in episodes:
         metadata = row["synthetic_metadata"]
         accepted = auditor.batch(metadata["batch_record_path"])
@@ -212,8 +218,8 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
         logical_slots.add(metadata["quota_slot_id"])
         verify_slot(row, specifications, initial_slots, auditor)
         fingerprint = content_fingerprint(row)
-        if fingerprint in fingerprints:
-            raise ValueError("Duplicate visible content entered the heldout corpus")
+        if fingerprint in fingerprints or fingerprint in exclusions:
+            raise ValueError("Duplicate or independently excluded visible content entered the heldout corpus")
         fingerprints.add(fingerprint)
         qualities[row["provenance"]["quality_path"]] += 1
         variants[row["provenance"]["observation_variant"]] += 1
