@@ -144,6 +144,8 @@ class Pipeline:
             result["teacher_transition"] = file_record(transition_inputs["teacher_transition"])
             result["pi_runtime_pins"] = file_record(transition_inputs["pi_runtime_pins"])
             result["resource_supplement"] = file_record(transition_inputs["pi_resource_supplement"])
+            result["teacher_correction"] = file_record(transition_inputs["teacher_correction"])
+            result["pi_runtime_v2_pins"] = file_record(transition_inputs["pi_runtime_v2_pins"])
         for split in ("train", "dev", "calibration", "test"):
             source = (self.plan.data_path(split).with_suffix(".manifest.json") if split in {"train", "dev"}
                       else Path("data/evaluator-manifests") / self.plan.run_id / (split + ".manifest.json"))

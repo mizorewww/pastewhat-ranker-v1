@@ -22,6 +22,9 @@ TEACHER_TRANSITION = Path("configs/teacher_transition_swe2.json")
 TEACHER_TRANSITION_SHA = "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
 RESOURCE_SUPPLEMENT = Path("configs/resource_supplement_swe2.json")
 RESOURCE_SUPPLEMENT_SHA = "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+TEACHER_CORRECTION = Path("configs/teacher_correction_swe2_uid.json")
+TEACHER_CORRECTION_SHA = "f2850983a6675ccaff201976faf51e9d43dff3b7826692924a7e2009e7e73195"
+SWE_MODEL_MAPPING = {"medium": "swe-2-medium", "high": "swe-2-high", "max": "swe-2-max"}
 
 
 def teacher_transition_inputs(plan):
@@ -62,6 +65,32 @@ def teacher_transition_inputs(plan):
         if sha256(path) != record["sha256"]:
             raise ValueError("Pi scheduling evidence changed")
         inputs["pi_resource_evidence_" + str(index)] = path
+    if sha256(TEACHER_CORRECTION) != TEACHER_CORRECTION_SHA:
+        raise ValueError("The registered exact-model correction changed")
+    correction = json.loads(TEACHER_CORRECTION.read_text())
+    if (any(correction.get(key) != value for key, value in plan.binding().items()) or
+            correction.get("version") != "pastewhat-teacher-runtime-correction-v1" or
+            correction.get("parent_transition") != {"path": str(TEACHER_TRANSITION), "sha256": TEACHER_TRANSITION_SHA} or
+            correction.get("expected_model_mapping") != SWE_MODEL_MAPPING or
+            correction.get("receipt_version") != "pastewhat-pi-teacher-receipt-v1" or
+            correction.get("exact_uid_guard") != "swe-2-family-and-thinking-v1"):
+        raise ValueError("Teacher correction differs from the registered run and SWE-2 identity")
+    corrected_runtime = correction["runtime"]
+    corrected_pins_path = Path(corrected_runtime["pins_path"])
+    corrected_bridge = Path(corrected_runtime["teacher_extension_path"])
+    if (sha256(corrected_pins_path) != corrected_runtime["pins_sha256"] or
+            sha256(corrected_bridge) != corrected_runtime["teacher_extension_sha256"]):
+        raise ValueError("The corrected immutable Pi runtime changed")
+    corrected_pins = json.loads(corrected_pins_path.read_text())
+    if (corrected_pins.get("model_mapping") != SWE_MODEL_MAPPING or pins.get("model_mapping") != SWE_MODEL_MAPPING or
+            corrected_pins.get("parent_pins") != {"path": str(pins_path), "sha256": transition["runtime"]["pins_sha256"]} or
+            corrected_pins.get("teacher_extension") != {"path": str(corrected_bridge), "sha256": corrected_runtime["teacher_extension_sha256"]} or
+            corrected_pins.get("provider") != pins["provider"] or
+            any(corrected_pins.get(key) != corrected_runtime[key] for key in ("pi_version", "pi_executable_sha256")) or
+            corrected_pins.get("actual_uid_guard") != correction["exact_uid_guard"]):
+        raise ValueError("Corrected Pi pins do not preserve their registered runtime lineage")
+    inputs.update(teacher_correction=TEACHER_CORRECTION, pi_runtime_v2_pins=corrected_pins_path,
+                  pi_teacher_bridge_v2=corrected_bridge)
     return inputs
 
 

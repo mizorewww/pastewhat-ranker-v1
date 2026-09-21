@@ -38,11 +38,25 @@ class BatchAuditor:
         """Replay the final assistant event; streaming deltas never count twice."""
         from data_tools.pi_teacher import normalize_usage
         from evaluations.freeze import (TEACHER_TRANSITION, TEACHER_TRANSITION_SHA,
+                                        TEACHER_CORRECTION, TEACHER_CORRECTION_SHA, SWE_MODEL_MAPPING,
                                         RESOURCE_SUPPLEMENT, RESOURCE_SUPPLEMENT_SHA, teacher_transition_inputs)
         for path in teacher_transition_inputs(self.plan).values():
             self.bound_files[str(path)] = sha256(path)
         transition = json.loads(TEACHER_TRANSITION.read_text())
-        pins = json.loads(Path(transition["runtime"]["pins_path"]).read_text())
+        correction = json.loads(TEACHER_CORRECTION.read_text())
+        corrected = raw.get("teacher_correction")
+        runtime = transition["runtime"]
+        if corrected:
+            if (Path(corrected["path"]).resolve() != TEACHER_CORRECTION.resolve() or
+                    corrected["sha256"] != TEACHER_CORRECTION_SHA):
+                raise ValueError("The Pi audit claims an unregistered model-identity correction")
+            self.bind_file(corrected)
+            runtime = correction["runtime"]
+            if raw["runtime"].get("teacher_correction_sha256") != TEACHER_CORRECTION_SHA:
+                raise ValueError("The corrected Pi call lacks its runtime identity binding")
+        elif datetime.fromisoformat(raw["started_at"]) > datetime.fromisoformat(correction["registered_at"]):
+            raise ValueError("A new Pi call used the retired unguarded runtime")
+        pins = json.loads(Path(runtime["pins_path"]).read_text())
         if raw.get("teacher_transition_sha256") != TEACHER_TRANSITION_SHA:
             raise ValueError("The Pi audit lacks the registered teacher-transition binding")
         if raw.get("resource_supplement"):
@@ -54,13 +68,17 @@ class BatchAuditor:
         for record in raw["source_files"]:
             self.bind_file(record)
             source_paths.add(Path(record["path"]).resolve())
-        required = {TEACHER_TRANSITION.resolve(), Path(transition["runtime"]["pins_path"]).resolve(),
+        required = {TEACHER_TRANSITION.resolve(), Path(runtime["pins_path"]).resolve(),
                     Path(pins["teacher_extension"]["path"]).resolve()}
+        if corrected:
+            required.add(TEACHER_CORRECTION.resolve())
         if not required <= source_paths:
             raise ValueError("The Pi audit lacks its pinned bridge and public policy evidence")
         if (raw["provider"] != transition["provider"] or raw["request"]["model"] != transition["model"] or
-                any(raw["runtime"].get(key) != value for key, value in transition["runtime"].items()
-                    if key not in {"pins_path", "pins_sha256"})):
+                any(raw["runtime"].get(key) != runtime[key] for key in
+                    ("pi_version", "pi_executable_sha256", "teacher_extension_sha256", "provider_extension_sha256")) or
+                raw["runtime"].get("runtime_pins_sha256") != runtime["pins_sha256"] or
+                raw["runtime"].get("teacher_transition_sha256") != TEACHER_TRANSITION_SHA):
             raise ValueError("The Pi call used an unregistered provider or runtime")
         events = []
         for record in raw["raw_event_files"]:
@@ -81,9 +99,11 @@ class BatchAuditor:
             "thinking": request["reasoning_effort"], "provider_call_count": 1, "isolated": True,
             "context_message_count": 1, "tools_count": 0,
             "usage_source": "pi-devin-provider-reported-or-unknown"}
+        if corrected:
+            expected_receipt["exact_uid_guard"] = correction["exact_uid_guard"]
         if receipt != raw["receipt"] or any(receipt.get(key) != value for key, value in expected_receipt.items()):
             raise ValueError("The Pi receipt does not prove the exact isolated request")
-        if receipt["actual_model"] != pins["model_mapping"][request["reasoning_effort"]]:
+        if receipt["actual_model"] != SWE_MODEL_MAPPING.get(request["reasoning_effort"]):
             raise ValueError("The effective Pi model differs from its registered thinking mapping")
         message = endings[0]
         if (message.get("stopReason") != "stop" or message.get("provider") != raw["provider"] or message.get("model") != request["model"] or
@@ -294,7 +314,7 @@ def verify_slot(row, specifications, initial_slots, auditor):
 
 
 def audit_dataset(data, *, plan, split, tokenizer, partition):
-    from evaluations.freeze import RESOURCE_SUPPLEMENT
+    from evaluations.freeze import RESOURCE_SUPPLEMENT, TEACHER_CORRECTION
     require_plan_data_path(plan, split, data)
     episodes = load_jsonl(data)
     partition_document = json.loads(Path(partition).read_text())
@@ -336,6 +356,7 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
             "episodes": len(episodes), "data_sha256": sha256(data), "partition_sha256": sha256(partition),
             "teacher_contract_version": PROTOCOL, "registered_allocation": allocation,
             "resource_supplement": {"path": str(RESOURCE_SUPPLEMENT), "sha256": sha256(RESOURCE_SUPPLEMENT)},
+            "teacher_correction": {"path": str(TEACHER_CORRECTION), "sha256": sha256(TEACHER_CORRECTION)},
             "quality_counts": dict(qualities), "observation_counts": dict(variants), "actual_candidate_counts": dict(counts),
             "teacher_sources": {role: [{**json.loads(source), "episodes": count} for source, count in sorted(values.items())]
                                 for role, values in sorted(source_counts.items())},

@@ -47,6 +47,16 @@ source hashes are recorded; these are rolling remote models, not pinned weights.
 The registered mapping turns disabled/low authoring or primary-label requests
 into SWE-2 medium, while independent high-effort reviews use SWE-2 high.
 
+The append-only `configs/teacher_correction_swe2_uid.json` binds a second,
+immutable bridge and runtime pin set after an earlier Train receipt exposed a
+foreign effective model behind the requested SWE-2 family. Both historical and
+new accepted receipts must match the fixed medium/high/max SWE-2 UID mapping;
+the provider's mutable live mapping cannot establish that identity. New calls
+also carry `exact_uid_guard="swe-2-family-and-thinking-v1"`. Valid historical
+SWE-2 caches retain their original bytes and provenance. Foreign-source rows
+are excluded without changing their labels or erasing their usage. Final
+freezes retain both runtime versions and the correction policy.
+
 Known usage is counted once for each observed completion, including replies
 rejected by receipt, process or label validation. Timeout and other failed
 attempts retain unknown usage explicitly when no counters were observed.

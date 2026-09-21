@@ -241,6 +241,7 @@ def freeze_data(directory, plan, split, tokenizer):
         "teacher_sources": audit["teacher_sources"],
         "teacher_transition": {"path": "configs/teacher_transition_swe2.json", "sha256": sha256("configs/teacher_transition_swe2.json")},
         "resource_supplement": audit["resource_supplement"],
+        "teacher_correction": audit["teacher_correction"],
         "audit_path": str(audit_path), "audit_sha256": sha256(audit_path),
         "teacher_audit_bundle_sha256": audit["teacher_audit_bundle_sha256"],
         "human_validated": False, "student_inference_used": False}
