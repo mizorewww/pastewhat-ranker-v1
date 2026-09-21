@@ -29,9 +29,11 @@ def integer_seed(*values):
     return int(sha256(canonical_bytes(values))[:12], 16)
 
 
-def make_specs(plan, split, batch_size=10):
+def make_specs(plan, split, batch_size=10, *, target=None, namespace=""):
     partition = json.loads(PARTITION.read_text())
-    quotas = action_quotas(family_quotas(partition, split, plan.target(split)))
+    quotas = action_quotas(family_quotas(partition, split, target or plan.target(split)))
+    seed_identity = plan.run_id + (":" + namespace if namespace else "")
+    id_namespace = namespace + "-" if namespace else ""
     grouped = []
     for family in partition["families"][split]:
         family_id = family["id"]
@@ -44,20 +46,22 @@ def make_specs(plan, split, batch_size=10):
         missing_count = buckets["missing_intent"]
         observations = ["no_accessibility"] * round(missing_count * .4) + ["generic_field"] * round(missing_count * .2)
         observations += ["standard"] * (missing_count - len(observations))
-        random.Random(integer_seed(plan.run_id, family_id, "observation")).shuffle(observations)
+        random.Random(integer_seed(seed_identity, family_id, "observation")).shuffle(observations)
         lower, upper = candidate_space(family_id)
         plans = []
         for index, (_, action, action_index) in enumerate(actions):
-            seed = integer_seed(plan.run_id, split, family_id, index)
+            seed = integer_seed(seed_identity, split, family_id, index)
             scenario = action if action != "missing_intent" else ("ambiguous" if action_index % 2 else "insufficient_context")
             variant = observations[action_index] if action == "missing_intent" else "standard"
-            plans.append({"id": f"{split}-v7-{family_id}-{index:05d}", "candidate_count": random.Random(seed ^ 37).randint(lower, upper), "context_language": random.Random(seed ^ 101).choice(["English", "简体中文", "English with Chinese UI text"]), "scenario_type": scenario, "observation_variant": variant, "seed": seed})
+            plans.append({"id": f"{split}-v7-{id_namespace}{family_id}-{index:05d}", "candidate_count": random.Random(seed ^ 37).randint(lower, upper), "context_language": random.Random(seed ^ 101).choice(["English", "简体中文", "English with Chinese UI text"]), "scenario_type": scenario, "observation_variant": variant, "seed": seed})
         family_specs = []
         for offset in range(0, len(plans), batch_size):
             number = offset // batch_size
-            seed = integer_seed(plan.run_id, family_id, "mother", number)
-            mother = {"id": f"{plan.run_id}:{split}:{family_id}:mother-{number:04d}", "operation": family["operation"], "data_seed": seed, "constraints": "Invent concrete synthetic task facts and operands from this seed; every answerable goal and distinguishing constraint must be in actual visible helper text. Vary operations, boundary conditions, output constraints and equivalent forms within this source family. Do not merely replace nouns in one template. A missing preference never permits selecting arbitrary valid options."}
-            batch_id = f"{split}-{family_id}-{number:04d}"
+            seed = integer_seed(seed_identity, family_id, "mother", number)
+            mother = {"id": f"{seed_identity}:{split}:{family_id}:mother-{number:04d}", "operation": family["operation"], "data_seed": seed, "constraints": "Invent concrete synthetic task facts and operands from this seed; every answerable goal and distinguishing constraint must be in actual visible helper text. Vary operations, boundary conditions, output constraints and equivalent forms within this source family. Do not merely replace nouns in one template. A missing preference never permits selecting arbitrary valid options."}
+            if namespace:
+                mother["constraints"] += " New hard-candidate source: emphasize same-type alternatives that differ by a stated boundary, parameter, number, negation or path. Create a new situation rather than changing IDs on a previous task."
+            batch_id = f"{split}-{id_namespace}{family_id}-{number:04d}"
             family_specs.append({"batch_id": batch_id, "family_id": family_id, "mother_task": mother, "profile": owned_profile(family_id), "plans": plans[offset:offset + batch_size], "seed": seed, "run_binding": plan.binding(), "audit_sample": integer_seed(plan.run_id, batch_id, "review") % 10 == 0})
         grouped.append(family_specs)
     # Cover all semantic families before advancing a family's next source batch.
@@ -118,9 +122,14 @@ def replacement_specs(originals, rows, round_number):
     return result
 
 
-def publish_pool(base, split, plan, started):
+def publish_pool(base, split, plan, started, *, target=None):
     records = [json.loads(path.read_text()) for path in (base / "batches" / split).glob("*.json")]
     rows = [row for record in records for row in record["accepted"]]
+    exclusion_path = base / "excluded.json"
+    excluded = json.loads(exclusion_path.read_text()) if exclusion_path.exists() else []
+    excluded_hashes = {row["content_sha256"] for row in excluded}
+    excluded_count = sum(content_fingerprint(row) in excluded_hashes for row in rows)
+    rows = [row for row in rows if content_fingerprint(row) not in excluded_hashes]
     rows.sort(key=lambda row: row["id"])
     if len({row["id"] for row in rows}) != len(rows):
         raise ValueError("Accepted pool repeats an episode identity")
@@ -135,10 +144,15 @@ def publish_pool(base, split, plan, started):
     result["selected_nonempty"] = sum(bool(row["context"]["selectedText"]) for row in rows)
     result["selected_exact_positive"] = sum(bool(row["context"]["selectedText"]) and any(entry["text"] == row["context"]["selectedText"] and entry["id"] in row["label"]["acceptable_ids"] for entry in row["entries"]) for row in rows)
     result["families"] = dict(Counter(row["family_id"] for row in rows))
+    result["excluded_after_independent_review"] = excluded_count
+    selects = [row for row in rows if row["label"]["decision"] == "select"]
+    result["select_all_candidates_positive"] = sum(len(row["label"]["acceptable_ids"]) == len(row["entries"]) for row in selects)
+    result["select_mean_acceptable_fraction"] = sum(len(row["label"]["acceptable_ids"]) / len(row["entries"]) for row in selects) / len(selects) if selects else None
     quality_slots = {row["provenance"].get("quota_slot_id", row["id"]) for row in rows}
     if len(quality_slots) != len(rows):
         raise ValueError("More than one accepted situation fills the same logical quota slot")
     result["unique_fulfilled_quota_slots"] = len(quality_slots)
+    result["target_episodes"] = target or plan.target(split)
     scenarios = {item["id"]: item["scenario_type"] for record in records for item in record["spec"]["plans"]}
     result["accepted_by_planned_scenario"] = dict(Counter(scenarios[row["id"]] for row in rows))
     result["attempted_slots_by_planned_scenario"] = dict(Counter(scenarios.values()))
@@ -156,13 +170,18 @@ def main():
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--backfill-rounds", type=int, default=8, help="Finite number of new-situation replacement rounds after original sources")
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--hard-pool", action="store_true", help="New Train-only source pool for Dev-selected v0 mining")
     args = parser.parse_args()
     plan = load_run_plan(args.run_plan)
     if plan.document["teacher_contract_version"] != PROTOCOL:
         raise SystemExit("This producer only runs the registered v7 protocol")
-    base = ROOT / "local/v7" / plan.run_id
+    if args.hard_pool and args.split != "train":
+        raise SystemExit("The new hard pool is owned Train data only")
+    target = plan.document["hardening"]["pool_episodes"] if args.hard_pool else plan.target(args.split)
+    main_base = ROOT / "local/v7" / plan.run_id
+    base = main_base / "hard-pool" if args.hard_pool else main_base
     base.mkdir(parents=True, exist_ok=True)
-    specs = make_specs(plan, args.split)
+    specs = make_specs(plan, args.split, target=target, namespace="hard-pool" if args.hard_pool else "")
     sampling = {**plan.binding(), "teacher_contract_version": PROTOCOL, "specs": specs}
     sampling_path = base / f"{args.split}.sampling.json"
     if sampling_path.exists() and json.loads(sampling_path.read_text()) != sampling:
@@ -183,7 +202,7 @@ def main():
             batch_id, attempt = request_id.rsplit("-a", 1)
             author_cache.setdefault(batch_id, {})[int(attempt)] = client._result(audit, cache_hit=True)
     preprocessor = Preprocessor(str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
-    registry = ContentRegistry(base / "content.sqlite3")
+    registry = ContentRegistry(main_base / "content.sqlite3")
     started = time.monotonic()
     scheduled = 0
 
@@ -197,9 +216,9 @@ def main():
                 for future in as_completed(futures):
                     future.result()
                     plan.verify_unchanged()
-                    result = publish_pool(base, args.split, plan, started)
+                    result = publish_pool(base, args.split, plan, started, target=target)
                     print(json.dumps(result, ensure_ascii=False), flush=True)
-                    if result["episodes"] >= (plan.target("dev") if args.split == "dev" else plan.document["pilot_episodes"]):
+                    if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else plan.document["pilot_episodes"]):
                         rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
                         for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
                             print(json.dumps({"frozen": frozen}), flush=True)
@@ -221,9 +240,9 @@ def main():
             if not replacement:
                 break
             run_sources(replacement)
-    final = publish_pool(base, args.split, plan, started)
-    status = "bounded_cost_check_finished" if args.max_batches else "complete" if final["episodes"] == plan.target(args.split) else "finite_backfill_exhausted"
-    atomic_json(base / f"{args.split}.run-completion.json", {**plan.binding(), "updated_at": utc_now(), "scheduled_batches_this_process": scheduled, "cost_check_cap": args.max_batches, "status": status, "episodes": final["episodes"], "target": plan.target(args.split)})
+    final = publish_pool(base, args.split, plan, started, target=target)
+    status = "bounded_cost_check_finished" if args.max_batches else "complete" if final["episodes"] == target else "finite_backfill_exhausted"
+    atomic_json(base / f"{args.split}.run-completion.json", {**plan.binding(), "updated_at": utc_now(), "scheduled_batches_this_process": scheduled, "cost_check_cap": args.max_batches, "status": status, "episodes": final["episodes"], "target": target})
 
 
 if __name__ == "__main__":
