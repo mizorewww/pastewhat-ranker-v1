@@ -133,7 +133,7 @@ class TeacherClient:
             previous = audit
         attempts = list(previous.get("attempts", [])) if previous else []
         if previous and previous.get("status") == "request_started":
-            attempts.append({"error_type": "completion_not_observed_before_process_interruption", "started_at": previous.get("attempt_started_at"), "pid": previous.get("pid"), "usage_known": False})
+            attempts.append({"error_type": "previous_started_attempt_has_no_observed_completion", "started_at": previous.get("attempt_started_at"), "pid": previous.get("pid"), "usage_known": False})
         started = utc_now()
         for attempt in range(self.max_attempts):
             try:
