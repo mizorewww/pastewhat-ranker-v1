@@ -398,7 +398,8 @@ def main():
     shutil.copytree(hardened["best_checkpoint"] if accept else v0, release, dirs_exist_ok=True)
     write_record(local / "hardening-selection.json", {"accepted": accept, "group_regressions": group_regressions,
                                                      "selected_by": "Dev only", "hardening_executed": True,
-                                                     "v0_dev": previous, "hardening_dev": current,
+                                                     "v0_dev": {key: value for key, value in previous.items() if key != "records"},
+                                                     "hardening_dev": {key: value for key, value in current.items() if key != "records"},
                                                      "selection_rule": "Dev balanced accuracy improves; no >5pp regression in group n>=20"}, run_plan)
     verify_run_plan(run_plan)
     subprocess.run([sys.executable, "-m", "pastewhat_ranker.export", "--model", str(release), "--output", str(release / "mlx")], check=True)
