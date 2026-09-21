@@ -88,6 +88,11 @@ def normalize_response(episode: dict, response: dict, protocol: str) -> dict:
             response["error"] = "baseline_invalid_request"
         if protocol == "jev" and response.get("decision") == "remote_unavailable":
             response["error"] = "jev_remote_unavailable"
+        # In the pinned production worker, decide() may replace the fallback
+        # error message with a normal ranking explanation. An attempted Laya
+        # call followed by fallback is still an inference failure.
+        if protocol == "baseline" and response.get("mode") == "fallback" and response.get("inferenceCount", 0) > 0:
+            response["error"] = "baseline_model_failure"
         # A production deterministic/no-context response may be 'fallback'. A
         # failed attempted model call is identified by its actual failure message.
         if response.get("mode") == "fallback" and response.get("message") and any(
