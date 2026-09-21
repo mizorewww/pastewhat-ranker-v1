@@ -15,8 +15,11 @@ import shutil
 import subprocess
 import tempfile
 
+import yaml
+
 from evaluations.freeze import directory_hashes, verify_freeze
 from pastewhat_ranker.calibration import load_calibrator
+from run_contract import ORIGINAL_SUGGESTED_TARGETS, load_run_plan
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,6 +66,12 @@ def model_card(metrics: dict, release_status: str, release_commit: str, manifest
         if passed else
         "This is a diagnostic research candidate. One or more release targets were not met; it is not an accepted production replacement."
     )
+    counts = manifest["split_targets"]
+    scale = (f"This release used {counts['train']:,} main Train, {counts['dev']:,} Dev, "
+             f"{counts['calibration']:,} Calibration and {counts['test']:,} Test episodes. "
+             + ("The pre-registered run plan and its measured cost rationale are bundled in `run_plan.json`. "
+                "These are the actual registered sizes, not a claim that the original suggested sizes were completed."
+                if manifest.get("run_plan_sha256") else "These are the original suggested split sizes."))
     return f"""---
 license: apache-2.0
 base_model: convaiinnovations/laya-multilingual
@@ -100,6 +109,8 @@ Use the [uv-locked runtime and inference protocol](https://github.com/mizorewww/
 
 `data_manifest.json` gives actual split counts, conceptual-family partitioning, provenance and hashes. Train, Dev, Calibration and Test have separate roles. The final Test was opened for scoring only after the deployment weights, preprocessing and policy were frozen. No real clipboard history or user contexts were used.
 
+{scale}
+
 ## Limitations
 
 The benchmark covers a bounded synthetic task distribution. New workflows, missing accessibility context, unusual languages, unfamiliar payloads and long truncated content can change reliability. A high softmax score is not itself recommendation correctness. Abstention reduces coverage, and the precision/coverage pair must be considered together. This model recommends content; it does not authorize actions described in that content.
@@ -116,10 +127,18 @@ def assemble(args) -> dict:
     if args.output.exists():
         raise ValueError("Refusing to overwrite an existing release bundle")
     frozen = verify_freeze(args.freeze)
+    plan_record = frozen["inputs"].get("run_plan")
+    plan = load_run_plan(plan_record["path"]) if plan_record else None
+    if plan and plan.sha256 != plan_record["sha256"]:
+        raise ValueError("Release plan differs from the final Test freeze")
     if args.deployment.resolve() != Path(frozen["deployment"]["root"]).resolve():
         raise ValueError("Deployment directory is not the independently frozen model")
     config = read_json(args.reference / "config.json")
     training = read_json(args.reference / "training_summary.json")
+    if plan:
+        train_config = yaml.safe_load((args.reference / "train_config.yaml").read_text())
+        if any(train_config.get(key) != value for key, value in plan.binding().items()):
+            raise ValueError("Reference training belongs to a different registered run")
     if config.get("architecture") != "PasteWhatRanker" or config.get("source_revision") != SOURCE_REVISION:
         raise ValueError("Unexpected architecture or initialization revision")
     if training.get("status") != "completed" or training.get("engineering_overfit") is not False or training.get("global_steps", 0) <= 0:
@@ -167,7 +186,10 @@ def assemble(args) -> dict:
     data_manifest = read_json(args.data_manifest)
     if data_manifest.get("human_validated") is not False:
         raise ValueError("Synthetic manifest must explicitly avoid a human-validation claim")
-    for split, expected in (("train", 20000), ("dev", 1000), ("calibration", 1000), ("test", 2000)):
+    split_targets = plan.document["split_targets"] if plan else ORIGINAL_SUGGESTED_TARGETS
+    if plan and any(data_manifest.get(key) != value for key, value in plan.binding().items()):
+        raise ValueError("Dataset manifest belongs to a different registered run")
+    for split, expected in split_targets.items():
         record = data_manifest.get("splits", {}).get(split, {})
         if record.get("episodes") != expected or not record.get("sha256"):
             raise ValueError(f"The complete planned {split} split is required before this release")
@@ -202,11 +224,16 @@ def assemble(args) -> dict:
             (ROOT / "LICENSE", "LICENSE"), (ROOT / "NOTICE", "NOTICE"),
         ):
             copy_file(source, staging / destination)
+        if plan:
+            copy_file(plan.path, staging / "run_plan.json")
+            copy_file(ROOT / "run_contract.py", staging / "provenance/run_contract.py")
+            copy_file(ROOT / "RUN_PLAN_FORMAT.md", staging / "provenance/RUN_PLAN_FORMAT.md")
         manifest = {"version": "pastewhat-release-bundle-v1", "model_name": "PasteWhat-Ranker-v1",
                     "status": release_status, "created_at": datetime.now(timezone.utc).isoformat(),
                     "code_commit": code_commit, "freeze_sha256": freeze_hash,
                     "reference_weight_sha256": reference_hash, "mlx_weight_sha256": mlx_hash,
-                    "synthetic_only": True, "human_validated": False}
+                    "synthetic_only": True, "human_validated": False, "split_targets": split_targets,
+                    **(plan.binding() if plan else {})}
         card = model_card(metrics, release_status, code_commit, manifest)
         (staging / "README.md").write_text(card)
         (staging / "model_card.md").write_text(card)
@@ -214,6 +241,8 @@ def assemble(args) -> dict:
         write_json(staging / "release_manifest.json", manifest)
         # Recheck read-only inputs after the potentially lengthy weight copies.
         verify_freeze(args.freeze)
+        if plan:
+            plan.verify_unchanged()
         if digest(args.reference / "model.safetensors") != reference_hash:
             raise ValueError("Reference weights changed during release assembly")
         staging.rename(args.output)

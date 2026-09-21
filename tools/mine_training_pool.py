@@ -16,6 +16,7 @@ from pastewhat_ranker.calibration import score_features
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.worker import RankerScorer
 from pastewhat_ranker.train import read_allowed_data
+from run_contract import load_run_plan
 
 
 def canonical(value) -> bytes:
@@ -68,13 +69,21 @@ def main():
     parser.add_argument("--v0-ready", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--count", type=int, default=6000, help="Proposals for review; final hard-example quota is 5,000 accepted new episodes")
+    parser.add_argument("--count", type=int, help="Review proposals; defaults to the registered plan, or legacy 6,000")
+    parser.add_argument("--run-plan", type=Path, help="Registered production sizes and bindings")
     parser.add_argument("--gpu-exclusive-confirmation", required=True)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
+    plan = load_run_plan(args.run_plan) if args.run_plan else None
+    planned_count = plan.document["hardening"]["review_nominations"] if plan else 6000
+    if plan and args.count is not None and args.count != planned_count:
+        raise ValueError("Proposal count differs from the registered plan")
+    args.count = planned_count if args.count is None else args.count
     if args.count < 1:
         raise ValueError("A positive review proposal count is required")
     selected = json.loads(args.v0_ready.read_text())
+    if plan and any(selected.get(key) != value for key, value in plan.binding().items()):
+        raise ValueError("Mining handoff belongs to a different registered run")
     if selected.get("selected_by") != "Dev only":
         raise ValueError("Hard mining requires the Dev-selected ranker-v0 handoff")
     config = json.loads((args.model / "config.json").read_text())
@@ -86,6 +95,8 @@ def main():
         raise ValueError("Mining model does not match the Dev-selected v0")
     original = read_allowed_data(args.original_train, expected_split="train")
     pool = read_allowed_data(args.pool, expected_split="train")
+    if plan and (len(original) != plan.target("train") or len(pool) != plan.document["hardening"]["pool_episodes"]):
+        raise ValueError("Original Train or new pool count differs from the registered plan")
     old_ids, old_contents = {episode["id"] for episode in original}, {content_hash(episode) for episode in original}
     new_contents = set()
     for episode in pool:
@@ -99,7 +110,8 @@ def main():
                   "original_train_sha256": sha256_file(args.original_train),
                   "v0_handoff_sha256": sha256_file(args.v0_ready), "mlx_weight_sha256": weight_hash,
                   "preprocess_sha256": sha256_file(args.model / "preprocess.json"),
-                  "mining_source_sha256": sha256_file(__file__), "requested_proposals": args.count}
+                  "mining_source_sha256": sha256_file(__file__), "requested_proposals": args.count,
+                  **(plan.binding() if plan else {})}
     if args.output.exists():
         if not args.resume or json.loads((args.output / "provenance.json").read_text()) != provenance:
             raise ValueError("Existing mining output requires --resume with exactly the same inputs and code")
@@ -119,6 +131,8 @@ def main():
     started = time.monotonic()
     with score_path.open("a") as stream:
         for episode in pool[len(prior):]:
+            if plan:
+                plan.verify_unchanged()
             row = inspect_score(episode, scorer.score(episode))
             stream.write(canonical(row).decode() + "\n")
             stream.flush()
@@ -157,7 +171,8 @@ def main():
                  "categories": dict(Counter(row["category"] for row in chosen)),
                  "families": dict(Counter(row["family_id"] for row in chosen)), "selected": chosen,
                  "label_edits": 0, "gpu_exclusive_confirmation": args.gpu_exclusive_confirmation,
-                 "proposals_sha256": sha256_file(args.output / "proposals.jsonl")}
+                 "proposals_sha256": sha256_file(args.output / "proposals.jsonl"),
+                 **(plan.binding() if plan else {})}
     write_json(args.output / "selection.json", selection)
     print(json.dumps({key: value for key, value in selection.items() if key != "selected"}), flush=True)
 
