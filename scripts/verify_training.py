@@ -25,7 +25,7 @@ from pastewhat_ranker.preprocess import Preprocessor
 def engineering_episode(count=3):
     return {
         "id": "engineering-only", "family_id": "engineering-excluded-from-all-data",
-        "context": {"applicationCategory": "terminal", "inputSurface": "terminal", "fieldRole": "AXTextArea",
+        "context": {"applicationCategory": "terminal", "inputSurface": "shell_prompt", "fieldRole": "AXTextArea",
                     "fieldLabel": "Command", "selectedText": "", "surroundingText": "List only local branches.",
                     "hasAccessibility": True, "isSecure": False},
         "entries": [{"id": f"candidate-{i}", "text": ("git branch" if i == 0 else f"git branch --list topic-{i}"),

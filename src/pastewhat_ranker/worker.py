@@ -19,6 +19,9 @@ class RankerScorer:
     def __init__(self, model_path, backend="mlx", device="mps"):
         self.backend, self.device = backend, device
         self.preprocessor = Preprocessor(Path(model_path) / "tokenizer")
+        recorded = json.loads((Path(model_path) / "preprocess.json").read_text())
+        if recorded != self.preprocessor.manifest():
+            raise ValueError("Model preprocessing manifest differs from runtime/tokenizer")
         if backend == "mlx":
             from .mlx_model import MLXRanker
             self.model = MLXRanker.from_pretrained(model_path)
@@ -68,7 +71,7 @@ def main():
     for line in sys.stdin:
         episode = {}
         try:
-            if len(line) > 2_000_000:
+            if len(line.encode("utf-8")) > 4 * 1024 * 1024:
                 raise ValueError("Episode request exceeds byte limit")
             episode = json.loads(line)
             response = scorer.score(episode)

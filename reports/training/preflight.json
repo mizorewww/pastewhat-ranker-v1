@@ -9,10 +9,10 @@
     "multi_positive_loss_error": 6.150929909853886e-08,
     "ids_and_labels_excluded": true,
     "preparation_idempotent": true,
-    "max_pair_tokens": 975,
-    "encoder_grad_norm": 0.07604645192623138,
-    "abstain_grad_norm": 18.39057159423828,
-    "rank_head_grad_norm": 13.358004570007324,
+    "max_pair_tokens": 977,
+    "encoder_grad_norm": 0.07196593284606934,
+    "abstain_grad_norm": 18.367979049682617,
+    "rank_head_grad_norm": 13.346602439880371,
     "finite_loss": true
   },
   "tolerances": {
@@ -22,41 +22,41 @@
   "mlx_fp16_parity": [
     {
       "candidate_count": 1,
-      "max_absolute_error": 0.00025644898414611816,
+      "max_absolute_error": 0.0001894235610961914,
       "torch_top_action": 1,
       "mlx_top_action": 1
     },
     {
       "candidate_count": 5,
-      "max_absolute_error": 0.000710606575012207,
+      "max_absolute_error": 0.00022396445274353027,
       "torch_top_action": 5,
       "mlx_top_action": 5
     },
     {
       "candidate_count": 10,
-      "max_absolute_error": 0.000710606575012207,
+      "max_absolute_error": 0.00036138296127319336,
       "torch_top_action": 10,
       "mlx_top_action": 10
     },
     {
       "candidate_count": 20,
-      "max_absolute_error": 0.0008028745651245117,
+      "max_absolute_error": 0.0006409883499145508,
       "torch_top_action": 20,
       "mlx_top_action": 20
     }
   ],
   "timing": {
     "candidate_count": 3,
-    "pair_tokens": 38,
+    "pair_tokens": 40,
     "all_step_seconds": [
-      1.582407208999939,
-      0.6731936249998398,
-      0.6496734590000415,
-      0.6547197079999023,
-      0.672951540998838,
-      0.6716702909998276
+      1.3706219589985267,
+      0.666498041999148,
+      0.6535065829993982,
+      0.657300832999681,
+      0.6693298749996757,
+      0.6702873329995782
     ],
-    "warm_median_step_seconds": 0.6631949994998649,
+    "warm_median_step_seconds": 0.6633153539996783,
     "includes_optimizer_update_every_episode": true,
     "training_dtype": "MPS BF16 autocast with FP32 master weights"
   },

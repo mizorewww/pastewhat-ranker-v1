@@ -30,6 +30,10 @@ APPLICATION_CATEGORIES = frozenset((
     "spreadsheet", "creative", "file_management", "unknown",
 ))
 CAPABILITIES = frozenset(("text", "image", "file", "richText"))
+INPUT_SURFACES = frozenset(("unknown", "text", "recipient", "address_bar", "search",
+                            "shell_prompt", "code_editor", "chat_composer", "document", "cell",
+                            "color", "file_path", "phone"))
+CLIP_KINDS = frozenset(("text", "url", "email", "code", "command", "phone", "file", "image", "color"))
 
 
 def canonical_json(value):
@@ -86,13 +90,24 @@ class Preprocessor:
                 + ",".join(entry["capabilities"]) + " " + entry["sourceCategory"] + "\n")
 
     def prepare_episode(self, episode):
+        if not isinstance(episode, dict):
+            raise ValueError("Episode must be an object")
         source = episode.get("context", {})
+        if not isinstance(source, dict):
+            raise ValueError("Context must be an object")
         forbidden = {"appName", "bundleID", "pid", "PID", "windowTitle"} & source.keys()
         if forbidden:
             raise ValueError("Native application identity must be projected to categories first")
         category = source.get("applicationCategory", "unknown")
         if category not in APPLICATION_CATEGORIES:
             raise ValueError("Invalid applicationCategory")
+        if source.get("inputSurface", "unknown") not in INPUT_SURFACES:
+            raise ValueError("Invalid inputSurface")
+        for key in ("hasAccessibility", "isSecure"):
+            if key in source and not isinstance(source[key], bool):
+                raise ValueError(f"{key} must be a JSON boolean")
+        if not isinstance(source.get("fieldRole", ""), str):
+            raise ValueError("fieldRole must be a string")
         context = {
             "applicationCategory": category,
             "inputSurface": str(source.get("inputSurface", "unknown")),
@@ -122,10 +137,14 @@ class Preprocessor:
             old = len(self.tokens(context[key]))
             context[key] = self._clip(context[key], max(0, old - max(1, excess)))
         raw_entries = episode.get("entries", [])
+        if not isinstance(raw_entries, list):
+            raise ValueError("Entries must be an array")
         if len(raw_entries) > MAX_CANDIDATES:
             raise ValueError("A ranker episode supports at most 20 candidates; none may be dropped")
         entries, ids, was_truncated = [], set(), context != original_context
         for raw in raw_entries:
+            if not isinstance(raw, dict):
+                raise ValueError("Each entry must be an object")
             identifier = raw.get("id")
             if not isinstance(identifier, str) or not identifier or identifier in ids:
                 raise ValueError("Candidate IDs must be unique nonempty strings")
@@ -135,11 +154,14 @@ class Preprocessor:
             category = raw.get("sourceCategory", "unknown")
             if category not in APPLICATION_CATEGORIES:
                 raise ValueError("Invalid sourceCategory")
-            capabilities = sorted(set(raw.get("capabilities", ["text"])))
+            raw_capabilities = raw.get("capabilities", ["text"])
+            if not isinstance(raw_capabilities, list) or any(not isinstance(value, str) for value in raw_capabilities):
+                raise ValueError("Capabilities must be an array of strings")
+            capabilities = sorted(set(raw_capabilities))
             if not capabilities or set(capabilities) - CAPABILITIES:
                 raise ValueError("Invalid candidate capabilities")
             kind = raw.get("kind", "text")
-            if not isinstance(kind, str) or len(self.tokens(kind)) > 8:
+            if kind not in CLIP_KINDS:
                 raise ValueError("Invalid candidate kind")
             value = self._clip(raw.get("text", ""), CANDIDATE_BUDGET)
             was_truncated |= value != raw.get("text", "")

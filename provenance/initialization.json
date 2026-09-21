@@ -2,6 +2,7 @@
   "source_repo": "convaiinnovations/laya-multilingual",
   "revision": "052592a15d198d9ad47da779604259b10b47b7aa",
   "original_weight_sha256": "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204",
+  "encoder_config_sha256": "83f6916d13ef0f556ac461f28308dc2bffa7ebeadee8ec9e2db5812020ea5bb4",
   "tokenizer_sha256": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
   "original_storage_precision": "float16, non-quantized original upstream weights",
   "training_master_precision": "float32",

@@ -17,6 +17,8 @@ from .preprocess import Preprocessor
 SOURCE_REPO = "convaiinnovations/laya-multilingual"
 SOURCE_REVISION = "052592a15d198d9ad47da779604259b10b47b7aa"
 SOURCE_WEIGHT_SHA256 = "9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204"
+SOURCE_ENCODER_CONFIG_SHA256 = "83f6916d13ef0f556ac461f28308dc2bffa7ebeadee8ec9e2db5812020ea5bb4"
+SOURCE_TOKENIZER_SHA256 = "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f"
 
 
 def sha256_file(path):
@@ -65,11 +67,17 @@ class PasteWhatRanker(nn.Module):
         fingerprint = sha256_file(source / "model.safetensors")
         if fingerprint != SOURCE_WEIGHT_SHA256:
             raise ValueError("Initialization weights do not match the frozen upstream revision")
+        if sha256_file(source / "encoder/config.json") != SOURCE_ENCODER_CONFIG_SHA256:
+            raise ValueError("Encoder config does not match the frozen upstream revision")
+        if sha256_file(source / "tokenizer/tokenizer.json") != SOURCE_TOKENIZER_SHA256:
+            raise ValueError("Tokenizer does not match the frozen upstream revision")
         encoder = json.loads((source / "encoder/config.json").read_text())
         config = {"architecture": "PasteWhatRanker", "format_version": 1, "encoder": encoder,
                   "head_hidden": 256, "head_dropout": 0.1, "max_pair_tokens": 1024,
                   "source_repo": SOURCE_REPO, "source_revision": SOURCE_REVISION,
-                  "source_weight_sha256": fingerprint, "initialization_seed": seed}
+                  "source_weight_sha256": fingerprint, "initialization_seed": seed,
+                  "source_encoder_config_sha256": SOURCE_ENCODER_CONFIG_SHA256,
+                  "source_tokenizer_sha256": SOURCE_TOKENIZER_SHA256}
         torch.manual_seed(seed)
         model = cls(config)
         weights = load_file(str(source / "model.safetensors"))
