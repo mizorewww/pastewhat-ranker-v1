@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
 from pathlib import Path
 
@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--ranker-scores", type=Path, required=True)
+    parser.add_argument("--jev", type=Path)
     parser.add_argument("--calibrator", type=Path, required=True)
     parser.add_argument("--weights", type=Path, required=True)
     parser.add_argument("--preprocess", type=Path, required=True)
@@ -88,6 +89,17 @@ def main():
                        "baseline_scores_sha256": sha256(args.baseline), "ranker_scores_sha256": sha256(args.ranker_scores),
                        "calibrator_sha256": sha256(args.calibrator), "report_code_sha256": sha256(__file__)},
     }
+    if args.jev:
+        if "jev" not in frozen:
+            raise SystemExit("An additional Jev baseline must have its client frozen before Test")
+        remote = load_jsonl(args.jev)
+        metrics["additional_jev_baseline"] = {
+            "summary": summarize(episodes, remote), "slices": slices(episodes, remote),
+            "versus_ranker": paired_comparison(episodes, remote, decisions),
+            "actual_responding_model_versions": dict(Counter(row.get("modelVersion") for row in remote if row.get("modelVersion"))),
+            "scores_sha256": sha256(args.jev),
+            "limitations": "The client and its uncalibrated confidence gate were frozen; jev-latest remote weights are rolling. Not the primary acceptance comparator.",
+        }
     write_json(args.output / "metrics.json", metrics)
     write_jsonl(args.output / "ranker-decisions.jsonl", decisions)
     verify_freeze(args.freeze, args.data)

@@ -86,6 +86,8 @@ def normalize_response(episode: dict, response: dict, protocol: str) -> dict:
             response["rawTopID"] = ranked[0].get("id")
         if response.get("decision") == "invalid_request":
             response["error"] = "baseline_invalid_request"
+        if protocol == "jev" and response.get("decision") == "remote_unavailable":
+            response["error"] = "jev_remote_unavailable"
         # A production deterministic/no-context response may be 'fallback'. A
         # failed attempted model call is identified by its actual failure message.
         if response.get("mode") == "fallback" and response.get("message") and any(
@@ -99,7 +101,7 @@ def main():
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--split", choices=("calibration", "test", "regression"), required=True)
     parser.add_argument("--command-json", required=True, help="JSON array of command arguments; no shell expansion")
-    parser.add_argument("--protocol", choices=("ranker", "baseline"), default="ranker")
+    parser.add_argument("--protocol", choices=("ranker", "baseline", "jev"), default="ranker")
     parser.add_argument("--freeze", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=180)
@@ -134,6 +136,8 @@ def main():
             raise RuntimeError("Unscored warmup failed; no dataset results produced")
         if args.protocol == "baseline" and warmup.get("mode") != "laya":
             raise RuntimeError("Baseline must demonstrate actual Laya model inference during warmup")
+        if args.protocol == "jev" and (warmup.get("mode") != "jev" or not warmup.get("modelVersion")):
+            raise RuntimeError("Jev warmup must demonstrate an actual remote response with model version")
         with (args.output / "scores.jsonl").open("x") as handle:
             for index, episode in enumerate(episodes):
                 request = inference_request(episode)

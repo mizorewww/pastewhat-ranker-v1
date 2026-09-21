@@ -28,6 +28,9 @@ def verify_freeze(path: Path, dataset: Path | None = None) -> dict:
         actual = directory_hashes(root)
         if actual != frozen[section]["files"]:
             raise ValueError(f"Frozen {section} files changed")
+    if "jev" in frozen:
+        if directory_hashes(Path(frozen["jev"]["root"])) != frozen["jev"]["files"]:
+            raise ValueError("Frozen Jev client files changed")
     for name, item in frozen["inputs"].items():
         if sha256(item["path"]) != item["sha256"]:
             raise ValueError(f"Frozen {name} changed")
@@ -42,6 +45,8 @@ def main():
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--baseline-model", type=Path, required=True)
     parser.add_argument("--baseline-commit", required=True)
+    parser.add_argument("--jev", type=Path, help="Optional pinned Jev client snapshot; remote weights remain rolling")
+    parser.add_argument("--jev-commit")
     parser.add_argument("--test", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
     parser.add_argument("--calibrator", type=Path, required=True)
@@ -70,6 +75,9 @@ def main():
         "quality_target": {"answerable_top1_delta": 0.05, "key_group_maximum_decline": 0.05,
                            "key_group_minimum_answerable": 30, "recommendation_precision": 0.95},
     }
+    if args.jev:
+        record["jev"] = {"root": str(args.jev.resolve()), "files": directory_hashes(args.jev),
+                         "commit": args.jev_commit, "model_weights": "rolling remote; actual responding versions recorded per request"}
     write_json(args.output, record)
     verify_freeze(args.output, args.test)
     print(json.dumps({"frozen": True, "manifest_sha256": sha256(args.output), "calibration_status": calibrator["status"]}))
