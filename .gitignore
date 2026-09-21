@@ -14,6 +14,17 @@ checkpoints/
 *.npz
 *.npy
 data/private/
+# Full synthetic corpora are released as hashed Hugging Face artifacts, not Git blobs.
+data/train.jsonl
+data/dev.jsonl
+data/train.accepted.jsonl
+data/dev.accepted.jsonl
+data/*_hardcase.jsonl
+data/*_hard-pool.jsonl
+data/frozen/pilot-train-5000.jsonl
+data/frozen/train-20000.jsonl
+data/frozen/dev.jsonl
+data/frozen/hardening-train-10000.jsonl
 *.egg-info/
 dist/
 build/
