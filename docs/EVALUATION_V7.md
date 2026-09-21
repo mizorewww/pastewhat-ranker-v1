@@ -13,6 +13,22 @@ profiles and independent sampling plans, and stores batch data in ignored local
 directories. An explicit `--max-batches` bounds the initial cost check; its
 partial result cannot be used for formal scoring.
 
+After the initial cost check, `evaluations.produce_v7` resumes all registered
+sources with one worker per split. Its immutable local `sampling.json` records
+every original logical slot before full production. Each rejected logical slot
+can receive up to seven newly seeded source situations after the original,
+for eight situations total. Each situation retains the shared one-author-repair
+limit. Replacement registrations preserve family, action, observation, requested
+language, count target and the original independent-review cohort. Exactly one
+accepted situation can fill a logical slot. Exhausting the finite budget leaves
+an explicit incomplete result; it does not silently lower quotas.
+
+The producer resumes successful author responses from raw audits and obeys the
+shared account cooldown. It writes a final private JSONL only at complete
+registered quotas, replays its sources/labels, and publishes aggregate manifests
+and content fingerprints. This data freeze does not authorize student Test
+scoring. Final inference still requires the separately authorized model freeze.
+
 Each batch gets one author request and one independent compact blind label
 request after native projection and student budgeting. Candidate IDs and order
 are made opaque for labeling. A predetermined hash selects about 10% of whole
@@ -48,6 +64,9 @@ Calibration 80/40 and Test 120/60. The remaining slots use the standard view.
 These are initial v7 assignments; the old observation supplement is not applied.
 Language and candidate count are independently shuffled, with the existing
 finite RSVP vocabulary restriction.
+Reports call the source language `requested_context_language`; they do not claim
+to detect actual written language. Observation variants are reported directly
+from per-row provenance. Unknown legacy factors remain explicitly unspecified.
 
 The heldout recipes require visible, determined intent for select/no-match
 tasks. Personal preferences that imply opposite actions are not interchangeable

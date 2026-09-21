@@ -106,6 +106,8 @@ class BatchAuditor:
                 raise ValueError("The native projection contract changed")
             if provenance["preprocess_sha256"] != hashlib.sha256(canonical_bytes(self.preprocessor.manifest())).hexdigest():
                 raise ValueError("The student preprocessing contract changed")
+            if provenance.get("observation_variant") != plans[episode["id"]].get("observation_variant", "standard"):
+                raise ValueError("Heldout observation provenance differs from its source plan")
             if not same_action(self.decision(provenance["label_audit_id"], episode), episode["label"]):
                 raise ValueError("The accepted label differs from the independent teacher decision")
             quality = provenance["quality_path"]
@@ -130,11 +132,72 @@ class BatchAuditor:
         return accepted
 
 
+def registered_sources(plan, split, partition, auditor):
+    from evaluations.generate_v7 import planned_batches
+    directory = Path("local/evaluator-v7") / plan.run_id / split
+    sampling_path = directory / "sampling.json"
+    sampling = json.loads(sampling_path.read_text())
+    expected = planned_batches(plan, partition, split, 10)
+    if sampling.get("specs") != expected or sampling.get("max_situations") != 8:
+        raise ValueError("Heldout sampling differs from its pre-score registration")
+    specifications = {}
+    for path in [sampling_path, *sorted(directory.glob("replacement-round-*.json"))]:
+        registration = json.loads(path.read_text())
+        if any(registration.get(key) != value for key, value in plan.binding().items()):
+            raise ValueError("Heldout replacement lineage belongs to another run")
+        if path != sampling_path and not 1 <= registration.get("round", 0) < 8:
+            raise ValueError("Heldout backfill exceeded eight source situations")
+        auditor.bound_files[str(path)] = sha256(path)
+        for spec in registration["specs"]:
+            if spec["batch_id"] in specifications:
+                raise ValueError("Repeated source batch registration")
+            specifications[spec["batch_id"]] = spec
+    initial = {item["id"]: (spec, item) for spec in expected for item in spec["plans"]}
+    sources = ("data_tools/v7.py", "data_tools/authoring.py", "data_tools/observations.py", "data_tools/content.py",
+               "evaluations/authoring.py", "evaluations/authoring_v7.py", "evaluations/authoring-profiles.json",
+               "evaluations/generate_v7.py", "evaluations/produce_v7.py", "tools/project_context.py", "tools/project_candidates.py")
+    for path in [*(Path(value) for value in sources), directory / "owner-binding.json", *sorted((directory / "producer-revisions").glob("*.json"))]:
+        auditor.bound_files[str(path)] = sha256(path)
+    return specifications, initial
+
+
+def verify_slot(row, specifications, initial_slots, auditor):
+    metadata = row["synthetic_metadata"]
+    slot = metadata["quota_slot_id"]
+    record = json.loads(Path(metadata["batch_record_path"]).read_text())
+    spec = record["spec"]
+    if "cached_author_recovery" in spec:
+        recovery = spec["cached_author_recovery"]
+        parent_path = Path(recovery["original_batch_path"])
+        if sha256(parent_path) != recovery["original_batch_sha256"] or recovery["additional_author_calls_allowed"] is not False:
+            raise ValueError("Cached author recovery changed its original rejected batch")
+        parent = json.loads(parent_path.read_text())
+        if (any(item.get("id") == row["id"] and "original_label" in item for item in parent["rejected"]) or
+                any(item["id"] == row["id"] for item in parent["accepted"]) or
+                row["provenance"]["author_audit_id"] != recovery["original_author_audit_id"]):
+            raise ValueError("Cached recovery reused an accepted or semantically rejected draft")
+        auditor.bound_files[str(parent_path)] = sha256(parent_path)
+        registered = specifications[parent["spec"]["batch_id"]]
+        if parent["spec"] != registered or any(spec.get(key) != registered[key] for key in ("family_id", "mother_task", "profile", "seed", "run_binding", "audit_sample")):
+            raise ValueError("Cached recovery changed the registered author source")
+    elif spec != specifications[spec["batch_id"]]:
+        raise ValueError("Accepted batch differs from its registered source")
+    source = next(item for item in spec["plans"] if item["id"] == row["id"])
+    initial_spec, initial = initial_slots[slot]
+    if (source.get("quota_slot_id", source["id"]) != slot or spec["family_id"] != initial_spec["family_id"] or
+            spec["audit_sample"] != initial_spec["audit_sample"] or spec["profile"] != initial_spec["profile"] or
+            any(source.get(key) != initial[key] for key in ("context_language", "scenario_type", "observation_variant", "candidate_count")) or
+            metadata.get("requested_context_language") != source["context_language"]):
+        raise ValueError("A replacement changed its family, review cohort or registered sampling factor")
+
+
 def audit_dataset(data, *, plan, split, tokenizer, partition):
     require_plan_data_path(plan, split, data)
     episodes = load_jsonl(data)
-    allocation = validate_formal_heldout_allocation(episodes, split, json.loads(Path(partition).read_text()), plan)
+    partition_document = json.loads(Path(partition).read_text())
+    allocation = validate_formal_heldout_allocation(episodes, split, partition_document, plan)
     auditor = BatchAuditor(plan=plan, split=split, tokenizer=tokenizer)
+    specifications, initial_slots = registered_sources(plan, split, partition_document, auditor)
     fingerprints = set()
     qualities, variants, counts = Counter(), Counter(), Counter()
     logical_slots = set()
@@ -144,9 +207,10 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
         original = accepted[row["id"]]
         if any(row.get(key) != value for key, value in original.items()):
             raise ValueError("A finalized heldout row changed after its accepted teacher batch")
-        if metadata["quota_slot_id"] in logical_slots:
+        if metadata["quota_slot_id"] not in initial_slots or metadata["quota_slot_id"] in logical_slots:
             raise ValueError("Several accepted replacements filled the same registered logical slot")
         logical_slots.add(metadata["quota_slot_id"])
+        verify_slot(row, specifications, initial_slots, auditor)
         fingerprint = content_fingerprint(row)
         if fingerprint in fingerprints:
             raise ValueError("Duplicate visible content entered the heldout corpus")
@@ -156,6 +220,8 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
         counts[len(row["entries"])] += 1
     if variants["no_accessibility"] != len(episodes) * 4 // 100 or variants["generic_field"] != len(episodes) * 2 // 100:
         raise ValueError("The initial registered observation allocation changed")
+    if logical_slots != set(initial_slots):
+        raise ValueError("Final heldout data does not fill every registered logical slot")
     plan.verify_unchanged()
     return {"passed": True, "formal_run": True, **plan.binding(), "split": split,
             "episodes": len(episodes), "data_sha256": sha256(data), "partition_sha256": sha256(partition),

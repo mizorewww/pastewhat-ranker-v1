@@ -1,0 +1,142 @@
+{
+  "human_validated": false,
+  "initial_planned_slots": 80,
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "First 40 Calibration plus 40 Test logical slots; costs include original ID/count format failures, recovery labels and transport attempts, not just accepted rows.",
+  "splits": {
+    "calibration": {
+      "owner_excluded": 1,
+      "owner_review_sha256": "c4d65c2930045c2181770358cb780b1e5da74ead61bc7e4e181bd08677a2c037",
+      "owner_reviewed": 10,
+      "quality_paths": {
+        "single_pass": 33
+      },
+      "rejection_event_counts": {
+        "Author guidance must be 0–2 short static strings, each at most180 characters": 3,
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 11,
+        "Compact labels must cover each opaque episode exactly once": 1,
+        "Independent action does not match the registered sampling bucket": 8
+      },
+      "retained_unique": 33,
+      "selected_exact_positive": 6,
+      "selected_nonempty": 12,
+      "usage": {
+        "authored_draft_rows_including_repairs": 52,
+        "by_phase": {
+          "v7-author": {
+            "completion_tokens": 14647,
+            "elapsed_seconds": 262.3306868319996,
+            "known_responses": 7,
+            "prompt_tokens": 10426,
+            "reported_reasoning_tokens": 0,
+            "request_records": 7,
+            "total_tokens": 25073
+          },
+          "v7-label": {
+            "completion_tokens": 25224,
+            "elapsed_seconds": 616.3723181690075,
+            "known_responses": 10,
+            "prompt_tokens": 32804,
+            "reported_reasoning_tokens": 23637,
+            "request_records": 10,
+            "total_tokens": 58028
+          }
+        },
+        "first_request_at": "2026-09-21T04:30:55.196436+00:00",
+        "known_usage": {
+          "completion_tokens": 39871,
+          "known_responses": 17,
+          "prompt_tokens": 43230,
+          "reported_reasoning_tokens": 23637,
+          "total_tokens": 83101
+        },
+        "latest_completion_at": "2026-09-21T04:50:53.704125+00:00",
+        "reasoning_tokens_are_included_in_completion_tokens": true,
+        "request_records": 17,
+        "response_models": {
+          "kimi-for-coding": 17
+        },
+        "statuses": {
+          "success": 17
+        },
+        "summed_request_elapsed_seconds": 878.7030050010071,
+        "unknown_usage_attempt_events": {}
+      }
+    },
+    "test": {
+      "owner_excluded": 0,
+      "owner_review_sha256": "624f6e864e125edacabae4385e0675543f5642b1121ad9419684fbd87bdeb439",
+      "owner_reviewed": 2,
+      "quality_paths": {
+        "sampled_reviewed": 5,
+        "single_pass": 25
+      },
+      "rejection_event_counts": {
+        "Author guidance must be 0–2 short static strings, each at most180 characters": 6,
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 11,
+        "Compact author must supply only slot/guidance/selected/candidates": 1,
+        "Independent action does not match the registered sampling bucket": 5,
+        "Independent review disagrees": 3,
+        "Missing or duplicated author slot": 9
+      },
+      "retained_unique": 30,
+      "selected_exact_positive": 11,
+      "selected_nonempty": 25,
+      "usage": {
+        "authored_draft_rows_including_repairs": 49,
+        "by_phase": {
+          "v7-author": {
+            "completion_tokens": 20798,
+            "elapsed_seconds": 402.9139533319976,
+            "known_responses": 8,
+            "prompt_tokens": 11991,
+            "reported_reasoning_tokens": 0,
+            "request_records": 8,
+            "total_tokens": 32789
+          },
+          "v7-label": {
+            "completion_tokens": 23599,
+            "elapsed_seconds": 547.3684102909974,
+            "known_responses": 8,
+            "prompt_tokens": 34707,
+            "reported_reasoning_tokens": 22458,
+            "request_records": 8,
+            "total_tokens": 58306
+          },
+          "v7-sampled-or-risk-review": {
+            "completion_tokens": 9087,
+            "elapsed_seconds": 215.92671820900068,
+            "known_responses": 2,
+            "prompt_tokens": 7079,
+            "reported_reasoning_tokens": 8824,
+            "request_records": 2,
+            "total_tokens": 16166
+          }
+        },
+        "first_request_at": "2026-09-21T04:30:55.200525+00:00",
+        "known_usage": {
+          "completion_tokens": 53484,
+          "known_responses": 18,
+          "prompt_tokens": 53777,
+          "reported_reasoning_tokens": 31282,
+          "total_tokens": 107261
+        },
+        "latest_completion_at": "2026-09-21T05:04:02.712305+00:00",
+        "reasoning_tokens_are_included_in_completion_tokens": true,
+        "request_records": 18,
+        "response_models": {
+          "kimi-for-coding": 18
+        },
+        "statuses": {
+          "success": 18
+        },
+        "summed_request_elapsed_seconds": 1166.2090818319957,
+        "unknown_usage_attempt_events": {
+          "TimeoutError": 2
+        }
+      }
+    }
+  },
+  "student_inference_used": false
+}
