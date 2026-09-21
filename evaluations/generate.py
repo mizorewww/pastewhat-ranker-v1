@@ -156,16 +156,17 @@ class Generator:
             try:
                 pending_specs = [spec for spec in specs if spec["slot"] not in accepted_by_slot]
                 generated = self.client.complete_json(
-                    GENERATOR_SYSTEM,
-                    json.dumps({"task": "Generate one structurally varied full decision episode per spec. Output {episodes:[{slot,context,entries}]}. No labels.",
-                                "allowed_family": family, "reserved_other_partition_operations": reserved,
+                    GENERATOR_SYSTEM + "\nEVERY episode in this call MUST concern this ONE operation: " + family["operation"]
+                    + "\nVary examples WITHIN that operation; do not switch to another task category. A no-match or ambiguous example still concerns that same operation.",
+                    json.dumps({"task": "Generate one full episode per spec, ALL for this single operation: " + family["operation"] + " Output {episodes:[{slot,context,entries}]}. No labels.",
+                                "allowed_family": family,
                                 "specs": pending_specs, "attempt": attempt,
                                 "context_schema": {"applicationCategory": "one of browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown",
                                                    "inputSurface": "A single string chosen from: " + ",".join(sorted(SURFACES)), "fieldRole": "AXTextField or AXTextArea", "fieldLabel": "actual visible field label",
                                                    "selectedText": "actual selected text or empty", "surroundingText": "actual context/request visible around cursor or empty",
                                                    "hasAccessibility": True, "isSecure": False},
                                 "candidate_schema": {"id": "opaque, overwritten before labeling", "text": "whole clipboard entry", "kind": "A single string chosen from: " + ",".join(sorted(KINDS)),
-                                                     "capabilities": ["text"], "sourceCategory": "actual source app category, not identity"}}, ensure_ascii=False),
+                                                     "capabilities": ["text"], "sourceCategory": "A single string from browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown; actual source app category, not identity"}}, ensure_ascii=False),
                     max_tokens=24576, temperature=0.6, thinking="disabled",
                     phase="independent-generation", request_id=key + f"-generation-{attempt}",
                 )
