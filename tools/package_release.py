@@ -2,6 +2,7 @@
 
 This command does not train, calibrate, select a checkpoint, read Test examples,
 or upload files. The evaluator's frozen reports are its only quality evidence.
+Run from the repository root with: uv run python -m tools.package_release --help
 """
 from __future__ import annotations
 
@@ -93,7 +94,7 @@ Read `metrics.json` for counts, raw ranking, failure denominators, family-level 
 
 ## Inputs and execution
 
-The model uses application **category**, focused-field metadata, selected/surrounding text and 1–20 candidate contents with kind and payload capabilities. It does not use the real application name, bundle identifier, process ID or window title. Candidate IDs map outputs only. Each context–candidate pair has a fixed maximum of 1,024 tokens. All candidates are retained; secure or empty requests bypass inference.
+The model uses application **category**, focused-field metadata, selected/surrounding text and 1–20 candidate contents with kind and payload capabilities. It does not use the real application name, bundle identifier, process ID or window title. Candidate IDs map outputs only. Each context–candidate pair has a fixed maximum of 1,024 tokens. All candidates are retained; secure or empty requests bypass inference. `context_projection/README.md` specifies the native `pastewhat-focus-v1` capture format: actual insertion boundaries and bounded adjacent static labels, rather than an imagined editing location. Its production Swift implementation and source hashes are included.
 
 Use the [uv-locked runtime and inference protocol](https://github.com/mizorewww/pastewhat-ranker-v1/tree/{release_commit}) from this exact release commit. The `mlx/` directory is the FP16 deployment model. The root `model.safetensors` is the PyTorch reference model. The supplied calibrator is bound by hashes to the MLX precision and preprocessing and must not be reused with altered weights. The AppKit adapter only enables a policy that met the registered calibration target.
 
@@ -189,6 +190,9 @@ def assemble(args) -> dict:
         for name in ("model.safetensors", "config.json", "preprocess.json", "conversion.json", "calibrator.json"):
             copy_file(args.deployment / name, staging / "mlx" / name)
         copy_file(calibrator_path, staging / "calibrator.json")
+        for name in ("Models.swift", "RecommendationContext.swift", "FocusText.swift",
+                     "ProjectSyntheticContext.swift", "README.md", "provenance.json"):
+            copy_file(ROOT / "tools/context_projection" / name, staging / "context_projection" / name)
         for source, destination in (
             (args.metrics, "metrics.json"), (args.data_manifest, "data_manifest.json"),
             (args.parity, "reports/parity.json"), (args.performance, "reports/performance.json"),
