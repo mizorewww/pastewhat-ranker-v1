@@ -58,6 +58,47 @@ def percent(value) -> str:
     return "not defined" if value is None else f"{100 * value:.2f}%"
 
 
+def training_provenance_files(frozen: dict, plan, reference: Path, deployment: Path,
+                              data_manifest: dict) -> tuple[list[tuple[Path, str]], dict]:
+    """Bind the published model to completed stages, using metadata only."""
+    if plan is None:
+        return [], {}
+    from evaluations.freeze import training_handoff_inputs
+
+    inputs = training_handoff_inputs(plan, deployment)
+    for name, source in inputs.items():
+        record = frozen["inputs"].get(name, {})
+        if (Path(record.get("path", "")).resolve() != source.resolve()
+                or record.get("sha256") != digest(source)):
+            raise ValueError("Training proof was not bound before final Test: " + name)
+    handoff = read_json(inputs["training_handoff"])
+    if Path(handoff["reference_checkpoint"]).resolve() != reference.resolve():
+        raise ValueError("The packaged reference is not the completed training handoff")
+    completion = handoff["training_completion"]
+    for name, stage in completion["stages"].items():
+        manifest = read_json(Path(stage["run_manifest"]["path"]))
+        if manifest["dev_sha256"] != data_manifest["splits"]["dev"]["sha256"]:
+            raise ValueError("Published Dev data differs from completed training: " + name)
+        if name.startswith("main_seed_") and manifest["train_sha256"] != data_manifest["splits"]["train"]["sha256"]:
+            raise ValueError("Published Train data differs from completed main training: " + name)
+    # The reference weights are already copied to the bundle root. Remaining
+    # verified inputs are aggregate evidence, never datasets or teacher audits.
+    bundle_paths = {name: "model.safetensors" if name == "training_reference_weights"
+                    else "provenance/training/" + name + source.suffix
+                    for name, source in inputs.items()}
+    copies = [(source, bundle_paths[name]) for name, source in sorted(inputs.items())
+              if name != "training_reference_weights"]
+    index = {"version": "pastewhat-bundled-training-proof-v1", **plan.binding(),
+             "training_handoff_sha256": digest(inputs["training_handoff"]),
+             "selected_by": handoff["selected_by"], "completed_seeds": handoff["completed_seeds"],
+             "selected_seed": handoff["selected_seed"], "hardening_executed": handoff["hardening_executed"],
+             "hardening_accepted": handoff["hardening_accepted"],
+             "files": {name: {"original_path": str(source),
+                               "bundle_path": bundle_paths[name],
+                               "sha256": digest(source)} for name, source in sorted(inputs.items())}}
+    return copies, index
+
+
 def model_card(metrics: dict, release_status: str, release_commit: str, manifest: dict) -> str:
     current, previous = metrics["ranker"]["overall"], metrics["baseline"]["overall"]
     passed = release_status == "accepted_on_frozen_synthetic_benchmark"
@@ -133,6 +174,8 @@ print(json.dumps(result, ensure_ascii=False))
 `data_manifest.json` gives actual split counts, conceptual-family partitioning, provenance and hashes. Train, Dev, Calibration and Test have separate roles. The final Test was opened for scoring only after the deployment weights, preprocessing and policy were frozen. No real clipboard history or user contexts were used.
 
 {scale}
+
+`provenance/training/index.json` binds the completed pilot, every registered main seed, the executed hard-example round, and the Dev selection to their configurations, update counts and data hashes. These are actual training records; an initialization or pilot alone cannot satisfy this release bundle.
 
 ## Limitations
 
@@ -218,6 +261,7 @@ def assemble(args) -> dict:
             raise ValueError(f"The complete planned {split} split is required before this release")
         if split in ("calibration", "test") and record["sha256"] != frozen["inputs"][split]["sha256"]:
             raise ValueError(f"Data manifest {split} differs from the final freeze")
+    training_files, training_index = training_provenance_files(frozen, plan, args.reference, args.deployment, data_manifest)
     release_status = "accepted_on_frozen_synthetic_benchmark" if accepted else "research_candidate_quality_targets_not_met"
     code_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -251,11 +295,15 @@ def assemble(args) -> dict:
             copy_file(plan.path, staging / "run_plan.json")
             copy_file(ROOT / "run_contract.py", staging / "provenance/run_contract.py")
             copy_file(ROOT / "RUN_PLAN_FORMAT.md", staging / "provenance/RUN_PLAN_FORMAT.md")
+            for source, destination in training_files:
+                copy_file(source, staging / destination)
+            write_json(staging / "provenance/training/index.json", training_index)
         manifest = {"version": "pastewhat-release-bundle-v1", "model_name": "PasteWhat-Ranker-v1",
                     "status": release_status, "created_at": datetime.now(timezone.utc).isoformat(),
                     "code_commit": code_commit, "freeze_sha256": freeze_hash,
                     "reference_weight_sha256": reference_hash, "mlx_weight_sha256": mlx_hash,
                     "synthetic_only": True, "human_validated": False, "split_targets": split_targets,
+                    "training_handoff_sha256": training_index.get("training_handoff_sha256"),
                     **(plan.binding() if plan else {})}
         card = model_card(metrics, release_status, code_commit, manifest)
         (staging / "README.md").write_text(card)
