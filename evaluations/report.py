@@ -8,7 +8,7 @@ from pathlib import Path
 
 from evaluations.common import (
     calibrated_decision, load_jsonl, paired_comparison, row_outcome, sha256,
-    summarize, summarize_outcomes, write_json, write_jsonl,
+    summarize, summarize_outcomes, verify_score_run, write_json, write_jsonl,
 )
 from evaluations.freeze import verify_freeze
 from pastewhat_ranker.calibration import load_calibrator
@@ -53,6 +53,11 @@ def main():
     if args.output.exists():
         raise SystemExit("Refusing to overwrite frozen Test results")
     frozen = verify_freeze(args.freeze, args.data)
+    verify_score_run(args.baseline, dataset=args.data, split="test", protocol="baseline", freeze=args.freeze)
+    score_run = verify_score_run(args.ranker_scores, dataset=args.data, split="test", protocol="ranker", freeze=args.freeze)
+    if (score_run.get("artifacts", {}).get("weights_sha256") != sha256(args.weights) or
+            score_run.get("artifacts", {}).get("preprocess_sha256") != sha256(args.preprocess)):
+        raise SystemExit("Reported ranker artifacts differ from the frozen scoring run")
     if sha256(args.calibrator) != frozen["inputs"]["calibrator"]["sha256"]:
         raise SystemExit("Report calibrator differs from final freeze")
     episodes = load_jsonl(args.data)
@@ -92,6 +97,7 @@ def main():
     if args.jev:
         if "jev" not in frozen:
             raise SystemExit("An additional Jev baseline must have its client frozen before Test")
+        verify_score_run(args.jev, dataset=args.data, split="test", protocol="jev", freeze=args.freeze)
         remote = load_jsonl(args.jev)
         metrics["additional_jev_baseline"] = {
             "summary": summarize(episodes, remote), "slices": slices(episodes, remote),

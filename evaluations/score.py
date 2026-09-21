@@ -96,6 +96,42 @@ def normalize_response(episode: dict, response: dict, protocol: str) -> dict:
     return response
 
 
+def command_artifacts(command: list[str], protocol: str, frozen: dict | None) -> dict:
+    def option(name: str, default=None):
+        if name not in command:
+            return default
+        if command.count(name) != 1 or command.index(name) + 1 >= len(command):
+            raise ValueError("Ambiguous worker command option: " + name)
+        return command[command.index(name) + 1]
+
+    if "--no-model" in command:
+        raise ValueError("Acceptance inference requires the actual model")
+    backend = option("--backend", "mlx")
+    result = {"backend": backend}
+    if protocol in {"ranker", "baseline"}:
+        model = option("--model")
+        if model is None or backend != "mlx":
+            raise ValueError("Calibration and acceptance require an explicit final MLX model directory")
+        root = Path(model).expanduser().resolve()
+        result["model_root"] = str(root)
+        if frozen:
+            expected = "deployment" if protocol == "ranker" else "baseline_model"
+            if root != Path(frozen[expected]["root"]).resolve():
+                raise ValueError("Worker model path differs from the frozen model artifact")
+        if protocol == "ranker":
+            if "pastewhat_ranker.worker" not in command:
+                raise ValueError("Use the versioned ranker worker for ranker acceptance")
+            result.update(weights_sha256=sha256(root / "model.safetensors"),
+                          preprocess_sha256=sha256(root / "preprocess.json"))
+    elif backend != "jev":
+        raise ValueError("Jev comparison must explicitly select the Jev backend")
+    if frozen and protocol in {"baseline", "jev"}:
+        source = Path(frozen["baseline" if protocol == "baseline" else "jev"]["root"])
+        if not any(Path(part).expanduser().resolve() == source / "worker.py" for part in command):
+            raise ValueError("Worker command differs from the frozen comparator source")
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=Path, required=True)
@@ -108,19 +144,21 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit("Refusing to overwrite an inference run")
+    frozen = None
     if args.split == "test":
         if args.freeze is None:
             raise SystemExit("Final Test requires the parent-approved freeze manifest")
-        verify_freeze(args.freeze, args.data)
+        frozen = verify_freeze(args.freeze, args.data)
     episodes = load_jsonl(args.data)
     if args.split != "regression" and any(row.get("split") != args.split for row in episodes):
         raise SystemExit("Dataset split disagrees with requested inference phase")
     command = json.loads(args.command_json)
     if not isinstance(command, list) or not command or any(not isinstance(item, str) for item in command):
         raise SystemExit("Expected a JSON array of command arguments")
+    artifacts = command_artifacts(command, args.protocol, frozen)
     args.output.mkdir(parents=True)
     manifest = {"split": args.split, "data_sha256": sha256(args.data), "episodes": len(episodes),
-                "command": command, "protocol": args.protocol, "platform": platform.platform(),
+                "command": command, "protocol": args.protocol, "artifacts": artifacts, "platform": platform.platform(),
                 "started_at": datetime.now(timezone.utc).isoformat(), "score_code_sha256": sha256(__file__),
                 "freeze_sha256": sha256(args.freeze) if args.freeze else None,
                 "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()}
@@ -134,6 +172,8 @@ def main():
         write_json(args.output / "warmup.json", warmup)
         if warmup.get("error"):
             raise RuntimeError("Unscored warmup failed; no dataset results produced")
+        if args.protocol == "ranker" and warmup.get("runtime") != "mlx":
+            raise RuntimeError("Ranker acceptance must use actual MLX inference")
         if args.protocol == "baseline" and warmup.get("mode") != "laya":
             raise RuntimeError("Baseline must demonstrate actual Laya model inference during warmup")
         if args.protocol == "jev" and (warmup.get("mode") != "jev" or not warmup.get("modelVersion")):

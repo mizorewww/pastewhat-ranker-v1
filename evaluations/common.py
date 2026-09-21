@@ -40,6 +40,24 @@ def load_jsonl(path: str | Path) -> list[dict]:
     return rows
 
 
+def verify_score_run(path: Path, *, dataset: Path, split: str, protocol: str, freeze: Path | None = None) -> dict:
+    """Reject stale, partial, differently scoped, or unbound scoring artifacts."""
+    manifest_path = path.parent / "run-manifest.json"
+    completion_path = path.parent / "completion.json"
+    manifest = json.loads(manifest_path.read_text())
+    completion = json.loads(completion_path.read_text())
+    if (manifest.get("split") != split or manifest.get("protocol") != protocol or
+            manifest.get("data_sha256") != sha256(dataset)):
+        raise ValueError("Scoring run belongs to a different dataset, split, or model protocol")
+    if manifest.get("freeze_sha256") != (sha256(freeze) if freeze else None):
+        raise ValueError("Scoring run does not refer to the required artifact freeze")
+    if completion.get("scores_sha256") != sha256(path):
+        raise ValueError("Scores changed after the scoring run completed")
+    if completion.get("episodes") != manifest.get("episodes"):
+        raise ValueError("Scoring completion count differs from the run manifest")
+    return manifest
+
+
 def write_json(path: str | Path, value: Any, *, overwrite: bool = False) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

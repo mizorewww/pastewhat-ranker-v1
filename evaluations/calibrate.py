@@ -9,7 +9,7 @@ from pathlib import Path
 
 from evaluations.common import (
     FEATURE_NAMES, calibrated_decision, calibrated_probability, load_jsonl,
-    score_features, sha256, summarize, validate_label, wilson_interval, write_json,
+    score_features, sha256, summarize, validate_label, verify_score_run, wilson_interval, write_json,
 )
 
 
@@ -123,11 +123,15 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit("Refusing to overwrite a calibration run")
+    score_run = verify_score_run(args.scores, dataset=args.data, split="calibration", protocol="ranker")
+    if (score_run.get("artifacts", {}).get("weights_sha256") != sha256(args.weights) or
+            score_run.get("artifacts", {}).get("preprocess_sha256") != sha256(args.preprocess)):
+        raise SystemExit("Calibration score run differs from the requested deployment weights or preprocessing")
     episodes, predictions = load_jsonl(args.data), load_jsonl(args.scores)
     fixed_partition = json.loads(args.partition.read_text())
     if partition_families(episodes) != fixed_partition["families"]:
         raise SystemExit("Calibration families differ from their pre-scoring allocation")
-    if any(row.get("split") not in (None, "calibration") for row in episodes):
+    if any(row.get("split") != "calibration" for row in episodes):
         raise SystemExit("Only Calibration may fit the final calibrator")
     calibrator, report = fit_calibrator(episodes, predictions)
     calibrator["weightsSHA"] = sha256(args.weights)
