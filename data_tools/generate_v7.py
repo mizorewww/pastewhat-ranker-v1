@@ -227,6 +227,19 @@ def main():
     started = time.monotonic()
     scheduled = 0
 
+    def refresh():
+        # Batch records are the durable source of truth. A restart may find
+        # every batch complete even if the previous process exited before its
+        # rolling-pool publication or final snapshot rename.
+        result = publish_pool(base, args.split, plan, started, target=target)
+        result["scheduler"] = {"submitted_task_limit": worker_budget(plan, args.split, args.workers, hard_pool=args.hard_pool), "executor_max_workers": args.workers, "resource_supplement": resources[1] if resources else None}
+        print(json.dumps(result, ensure_ascii=False), flush=True)
+        if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else 1000):
+            rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
+            for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
+                print(json.dumps({"frozen": frozen}), flush=True)
+        return result
+
     def run_sources(sources):
         nonlocal scheduled
         pending = [spec for spec in sources if not (batch_dir / (spec["batch_id"] + ".json")).is_file() or json.loads((batch_dir / (spec["batch_id"] + ".json")).read_text())["status"] != "complete"]
@@ -237,14 +250,11 @@ def main():
             for future in bounded_futures(executor, pending, submit, capacity):
                 future.result()
                 plan.verify_unchanged()
-                result = publish_pool(base, args.split, plan, started, target=target)
-                result["scheduler"] = {"submitted_task_limit": capacity(), "executor_max_workers": args.workers, "resource_supplement": resources[1] if resources else None}
-                print(json.dumps(result, ensure_ascii=False), flush=True)
-                if not args.hard_pool and result["episodes"] >= (plan.target("dev") if args.split == "dev" else 1000):
-                    rows = [json.loads(line) for line in (base / f"{args.split}.jsonl").read_bytes().splitlines()]
-                    for frozen in try_freeze(plan, args.split, rows, preprocessor=preprocessor):
-                        print(json.dumps({"frozen": frozen}), flush=True)
+                refresh()
 
+    # Publish already accepted durable work before planning replacements or
+    # sending a request. This also completes a crash-interrupted final freeze.
+    refresh()
     run_sources(original_specs)
     if not args.max_batches:
         for round_number in range(1, args.backfill_rounds + 1):
@@ -258,7 +268,7 @@ def main():
             if not replacement:
                 break
             run_sources(replacement)
-    final = publish_pool(base, args.split, plan, started, target=target)
+    final = refresh()
     status = "bounded_cost_check_finished" if args.max_batches else "complete" if final["episodes"] == target else "finite_backfill_exhausted"
     atomic_json(base / f"{args.split}.run-completion.json", {**plan.binding(), "updated_at": utc_now(), "scheduled_batches_this_process": scheduled, "cost_check_cap": args.max_batches, "status": status, "episodes": final["episodes"], "target": target})
 

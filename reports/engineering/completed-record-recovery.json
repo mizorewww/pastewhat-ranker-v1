@@ -1,0 +1,31 @@
+{
+  "checks": [
+    {
+      "durable_record_unchanged": true,
+      "existing_frozen_snapshot": false,
+      "existing_snapshot_bytes_preserved": null,
+      "freeze_hook_runs_with_zero_pending_batches": true,
+      "pool_restored_before_replacement_planning": true,
+      "teacher_calls": 0
+    },
+    {
+      "durable_record_unchanged": true,
+      "existing_frozen_snapshot": true,
+      "existing_snapshot_bytes_preserved": true,
+      "freeze_hook_runs_with_zero_pending_batches": true,
+      "pool_restored_before_replacement_planning": true,
+      "teacher_calls": 0
+    }
+  ],
+  "created_at": "2026-09-21T07:51:25.602416+00:00",
+  "formal_data_paths_written": false,
+  "gpu_calls": 0,
+  "rollout": "Current live producers remain uninterrupted; the recovery path loads on the next natural process start.",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "source_sha256": "d763b45ea78969fb5a8454adde3f5281dc32d372451b75227900554f12bce897",
+  "teacher_api_calls": 0,
+  "temporary_scaffold_removed": true,
+  "verification_scope": "Post-implementation offline control-flow simulation using an unchanged existing owned Dev record, temporary paths and a deterministic publication/freeze hook. Semantic freeze validation was not bypassed in production and is not re-tested by this control-flow check.",
+  "version": "pastewhat-complete-record-recovery-check-v1"
+}
