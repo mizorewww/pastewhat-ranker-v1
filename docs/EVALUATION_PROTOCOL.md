@@ -48,6 +48,17 @@ it must never be described as human validation. The report records rejected,
 disputed, repaired, and accepted episode counts and the responding teacher
 model, rather than assuming an API alias identifies fixed weights.
 
+Literal paste usability is part of both blind labeling passes and deployment
+review. Only the observed selection is replaced; otherwise the entry is inserted
+unchanged, including whitespace, quotes, newlines, and escaping. The labeler may
+not assume an unselected placeholder is replaced, an invisible cursor is moved,
+or missing syntax is supplied. Existing accepted rows from an earlier labeling
+prompt must pass both updated blind labels with their original labels unchanged;
+disagreements are quarantined and the slot is regenerated. Confirmed evaluator
+semantic rejections are retained with original teacher provenance and cannot be
+readmitted through an ID or order change. All such checks occur before any student
+Test prediction; they are not corrections based on model errors.
+
 ## Calibration
 
 Only the final intended deployment weights and precision are calibrated.

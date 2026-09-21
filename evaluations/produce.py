@@ -19,7 +19,7 @@ import time
 
 from data_tools.teacher import atomic_json, utc_now
 from data_tools.rate_limit import AccountCoordinator
-from evaluations.generate import matches_label_quota
+from evaluations.generate import passed_current_gates
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "local/evaluator-generation-v2"
@@ -34,10 +34,7 @@ def progress(split: str) -> dict:
         state = json.loads(path.read_text())
         rejected += len(state.get("rejected_attempts", []))
         for episode in state.get("episodes", []):
-            teacher = episode.get("teacher", {})
-            verified = (teacher.get("observed_family_id") == episode["family_id"] and
-                        teacher.get("deployment_input_realistic") is True and
-                        not teacher.get("secondary_family_ids") and matches_label_quota(episode))
+            verified = passed_current_gates(episode)
             if verified:
                 episodes[episode["id"]] = episode
             else:

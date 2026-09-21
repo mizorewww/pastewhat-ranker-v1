@@ -12,7 +12,7 @@ import re
 
 from data_tools.teacher import TeacherClient, canonical_bytes
 from evaluations.common import load_jsonl, sha256, validate_label, write_json
-from evaluations.generate import content_fingerprint, matches_label_quota, normalize_generated
+from evaluations.generate import content_fingerprint, passed_current_gates, normalize_generated, LABEL_SYSTEM, FAMILY_SYSTEM
 from pastewhat_ranker.preprocess import Preprocessor
 
 
@@ -42,7 +42,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     audit_files = {}
 
     @lru_cache(maxsize=None)
-    def read_audit(identifier: str):
+    def read_audit(identifier: str, expected_system: str | None = None):
         if not re.fullmatch(r"[0-9a-f]{64}", identifier):
             raise ValueError("Malformed teacher audit identifier")
         path = audit_root / split / (identifier + ".json")
@@ -52,6 +52,8 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         expected = hashlib.sha256(canonical_bytes({"endpoint": raw["endpoint"], "body": raw["request"]})).hexdigest()
         if expected != identifier or hashlib.sha256(canonical_bytes(raw["request"])).hexdigest() != raw["request_sha256"]:
             raise ValueError("Teacher request provenance hash mismatch")
+        if expected_system is not None and raw["request"]["messages"][0]["content"] != expected_system:
+            raise ValueError("Teacher response used a different labeling or deployment-review protocol")
         result = TeacherClient._result(raw, cache_hit=True)
         request = json.loads(raw["request"]["messages"][1]["content"])
         audit_files[str(path)] = sha256(path)
@@ -61,8 +63,8 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     counts = Counter()
     for episode in episodes:
         validate_label(episode)
-        if not matches_label_quota(episode):
-            raise ValueError("Actual label differs from the preregistered sampling bucket")
+        if not passed_current_gates(episode):
+            raise ValueError("Episode does not pass current literal-paste, blind-family, and quota gates")
         if episode["family_id"] not in families:
             raise ValueError("Episode crosses the preregistered conceptual-family partition")
         metadata = episode["synthetic_metadata"]
@@ -90,7 +92,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
                                        families[episode["family_id"]], partition_hash, preprocessor)
         if recreated["preprocessing"]["visible_sha256"] != visible_hash:
             raise ValueError("Generation, native projection, and preprocessing do not reproduce labeled input")
-        label_request, label_response = read_audit(episode["teacher"]["label_audit_id"])
+        label_request, label_response = read_audit(episode["teacher"]["label_audit_id"], LABEL_SYSTEM)
         visible = {"context": episode["context"], "entries": episode["entries"]}
         matches = [row for row in label_request["episodes"] if {"context": row["context"], "entries": row["entries"]} == visible]
         if len(matches) != 1:
@@ -104,7 +106,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         for row in label_request["episodes"]:
             if set(row) != {"id", "context", "entries"}:
                 raise ValueError("Teacher label request contains hidden task metadata")
-        blind_request, blind_response = read_audit(episode["teacher"]["blind_label_audit_id"])
+        blind_request, blind_response = read_audit(episode["teacher"]["blind_label_audit_id"], LABEL_SYSTEM)
         blind_inputs = unique_records(blind_request["episodes"], len(label_request["episodes"]))
         blind_labels = unique_records(blind_response["labels"], len(blind_inputs))
         shuffled = list(episode["entries"])
@@ -123,7 +125,7 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
             review = reviews[episode["id"]]
             if not (review["family_ok"] and review["input_realistic"] and review["agrees"] and label_equal(review["label"], episode["label"])):
                 raise ValueError("Legacy accepted episode did not pass its original review")
-        family_request, family_response = read_audit(episode["teacher"]["family_classification_audit_id"])
+        family_request, family_response = read_audit(episode["teacher"]["family_classification_audit_id"], FAMILY_SYSTEM)
         if set(family_request) != {"taxonomy", "episodes"}:
             raise ValueError("Blind family classifier received extra target metadata")
         expected_taxonomy = [family for values in specification["families"].values() for family in values]
