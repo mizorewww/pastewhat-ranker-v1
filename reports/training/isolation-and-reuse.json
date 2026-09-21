@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checks": {
+    "train_family_accepted": true,
+    "dev_family_rejected_for_train": true,
+    "dev_family_accepted": true,
+    "train_family_rejected_for_dev": true,
+    "misnamed_forbidden_split_rejected": true,
+    "unknown_family_rejected": true,
+    "completed_provenance_accepted": true,
+    "changed_completed_weights_rejected": true,
+    "changed_completed_data_rejected": true
+  },
+  "temporary_scaffolding_removed": true,
+  "no_calibration_or_test_examples_opened": true
+}

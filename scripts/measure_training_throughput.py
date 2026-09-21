@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
     torch.set_num_threads(8)
     p = Preprocessor(Path(args.model) / "tokenizer")
-    episodes = read_allowed_data(args.train)[:32]
+    episodes = read_allowed_data(args.train, expected_split="train")[:32]
     if len(episodes) < 16:
         raise ValueError("Need at least sixteen training episodes")
     encoded = [p.encode_episode(episode) for episode in episodes]

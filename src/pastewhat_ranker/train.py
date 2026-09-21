@@ -25,12 +25,28 @@ from .model import PasteWhatRanker, collate_encoded, group_loss, sha256_file
 from .preprocess import Preprocessor
 
 
-def read_allowed_data(path):
+def read_allowed_data(path, expected_split=None, partition_path="data_tools/family_partition.json"):
     path = Path(path)
     forbidden = ("test", "calibration", "heldout", "held-out")
     if any(part.lower().startswith(forbidden) for part in path.parts):
         raise ValueError("Training code must never inspect Calibration/Test/heldout data")
-    episodes = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if expected_split not in (None, "train", "dev"):
+        raise ValueError("Training readers support only Train or Dev")
+    partition = json.loads(Path(partition_path).read_text())
+    allowed_splits = (expected_split,) if expected_split else ("train", "dev")
+    family_to_split = {family["id"]: split for split in allowed_splits for family in partition["families"][split]}
+    episodes = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        episode = json.loads(line)
+        recorded_split = episode.get("split")
+        if recorded_split is not None and recorded_split not in allowed_splits:
+            raise ValueError("Episode split is not permitted in this training input")
+        family_split = family_to_split.get(episode.get("family_id"))
+        if family_split is None or (recorded_split is not None and family_split != recorded_split):
+            raise ValueError("Episode conceptual family is outside the frozen permitted partition")
+        episodes.append(episode)
     if len({episode["id"] for episode in episodes}) != len(episodes):
         raise ValueError("Duplicate episode IDs in training input")
     if not episodes:
@@ -46,6 +62,30 @@ def config_hash(config):
 def git_revision():
     result = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
     return result.stdout.strip()
+
+
+def provenance_values(config):
+    return {"config_sha256": config_hash(config), "train_sha256": sha256_file(config["train_data"]),
+            "dev_sha256": sha256_file(config["dev_data"]),
+            "initial_weight_sha256": sha256_file(Path(config["initial_model"]) / "model.safetensors"),
+            "family_partition_sha256": sha256_file(config.get("family_partition", "data_tools/family_partition.json")),
+            "training_source_sha256": {name: sha256_file(Path(__file__).parent / name)
+                                       for name in ("train.py", "model.py", "encoder.py", "preprocess.py")}}
+
+
+def verify_completed_run(output, config):
+    """A completed stage is reusable only when all original provenance matches."""
+    output = Path(output)
+    prior = json.loads((output / "run_manifest.json").read_text())
+    for key, value in provenance_values(config).items():
+        if prior.get(key) != value:
+            raise ValueError(f"Completed-stage provenance mismatch: {key}")
+    summary = json.loads((output / "training_summary.json").read_text())
+    if summary.get("status") != "completed":
+        raise ValueError("Stage summary is not complete")
+    if summary.get("best_weight_sha256") != sha256_file(Path(summary["best_checkpoint"]) / "model.safetensors"):
+        raise ValueError("Completed best checkpoint has changed")
+    return summary
 
 
 def precision_context(config):
@@ -163,6 +203,10 @@ def run(config, output, resume=False):
     output.mkdir(parents=True, exist_ok=True)
     if (output / "run_manifest.json").exists() and not resume:
         raise ValueError("Run directory already exists; use --resume or a new output path")
+    if config.get("precision", "bf16") not in ("bf16", "fp16", "float32"):
+        raise ValueError("Training precision must be bf16, fp16, or float32")
+    if config.get("max_pair_tokens", 1024) != 1024 or config.get("max_candidates", 20) != 20:
+        raise ValueError("The frozen v1 contract requires 1024 pair tokens and all 1–20 candidates")
     torch.set_num_threads(config.get("cpu_threads", 8))
     seed = int(config.get("seed", 42))
     random.seed(seed)
@@ -170,8 +214,9 @@ def run(config, output, resume=False):
     torch.manual_seed(seed)
     if config.get("device", "mps") == "mps":
         torch.mps.manual_seed(seed)
-    train = read_allowed_data(config["train_data"])
-    dev = read_allowed_data(config["dev_data"])
+    partition_path = config.get("family_partition", "data_tools/family_partition.json")
+    train = read_allowed_data(config["train_data"], "train", partition_path)
+    dev = read_allowed_data(config["dev_data"], "train" if config.get("engineering_overfit", False) else "dev", partition_path)
     if config.get("train_limit"):
         # Deterministic first N from a separately frozen shuffled training snapshot.
         train = train[:config["train_limit"]]
@@ -195,11 +240,10 @@ def run(config, output, resume=False):
         "platform": platform.platform(), "started_unix": time.time(),
         "selection": "Dev balanced_select_abstain_accuracy; tie: decision_accuracy, lower Dev loss",
         "training_scope": "full encoder plus both newly initialized heads after head warmup",
-        "training_source_sha256": {name: sha256_file(Path(__file__).parent / name)
-                                   for name in ("train.py", "model.py", "encoder.py", "preprocess.py")},
+        **provenance_values(config),
     }
     prior = json.loads((output / "run_manifest.json").read_text()) if resume else initial_manifest
-    for key in ("config_sha256", "train_sha256", "dev_sha256", "initial_weight_sha256", "training_source_sha256"):
+    for key in provenance_values(config):
         if initial_manifest[key] != prior[key]:
             raise ValueError(f"Resume provenance mismatch: {key}")
     if not resume:
@@ -221,13 +265,14 @@ def run(config, output, resume=False):
         if state["completed"]:
             summary_path = output / "training_summary.json"
             if summary_path.exists():
-                return json.loads(summary_path.read_text())
+                return verify_completed_run(output, config)
             # The atomic completed checkpoint may survive a termination just
             # before its redundant human-readable summary was written.
             recovered = {"status": "completed", "global_steps": state["global_step"],
                          "seen_episodes_including_head_warmup": state["seen_episodes"],
                          "best_dev_key": state["best_key"], "elapsed_this_process_seconds": None,
                          "best_checkpoint": str(output / "best"), "manifest": str(output / "run_manifest.json"),
+                         "best_weight_sha256": sha256_file(output / "best" / "model.safetensors"),
                          "engineering_overfit": bool(config.get("engineering_overfit", False)),
                          "summary_recovered_from_completed_checkpoint": True}
             atomic_json(summary_path, recovered)
@@ -242,6 +287,8 @@ def run(config, output, resume=False):
     else:
         model = PasteWhatRanker.from_pretrained(config["initial_model"], device=device)
         optimizer = make_optimizer(model, config, state["phase"])
+    if config.get("head_dropout", .1) != model.config["head_dropout"]:
+        raise ValueError("Training head_dropout differs from the frozen model architecture")
     scaler = torch.amp.GradScaler(device, enabled=config.get("precision", "bf16") == "fp16")
     log = (output / "events.jsonl").open("a", buffering=1)
     start_time = time.monotonic()
@@ -349,6 +396,7 @@ def run(config, output, resume=False):
                "seen_episodes_including_head_warmup": state["seen_episodes"],
                "best_dev_key": state["best_key"], "elapsed_this_process_seconds": time.monotonic() - start_time,
                "best_checkpoint": str(output / "best"), "manifest": str(output / "run_manifest.json"),
+               "best_weight_sha256": sha256_file(output / "best" / "model.safetensors"),
                "engineering_overfit": bool(config.get("engineering_overfit", False))}
     atomic_json(output / "training_summary.json", summary)
     if (output / "best").exists():

@@ -18,16 +18,16 @@ from pathlib import Path
 import yaml
 
 from pastewhat_ranker.model import sha256_file
-from pastewhat_ranker.train import atomic_json, read_allowed_data
+from pastewhat_ranker.train import atomic_json, read_allowed_data, verify_completed_run
 
 
-def wait_for_snapshot(path, count, state_path, phase):
+def wait_for_snapshot(path, count, state_path, phase, expected_split="train"):
     path = Path(path)
     while not path.exists():
         atomic_json(state_path, {"phase": phase, "status": "waiting_for_frozen_train_dev_data",
                                  "required_path": str(path), "required_count": count, "updated_unix": time.time()})
         time.sleep(30)
-    episodes = read_allowed_data(path)
+    episodes = read_allowed_data(path, expected_split=expected_split)
     if len(episodes) != count:
         raise ValueError(f"Frozen snapshot {path} has {len(episodes)} episodes, expected {count}")
     return sha256_file(path)
@@ -36,10 +36,10 @@ def wait_for_snapshot(path, count, state_path, phase):
 def train_stage(stage, template, output, changes, state_path, local):
     output = Path(output)
     summary = output / "training_summary.json"
-    if summary.exists():
-        return json.loads(summary.read_text())
     config = yaml.safe_load(Path(template).read_text())
     config.update(changes)
+    if summary.exists():
+        return verify_completed_run(output, config)
     config_path = local / (stage + ".yaml")
     config_path.write_text(yaml.safe_dump(config, sort_keys=False))
     atomic_json(state_path, {"phase": stage, "status": "training", "output": str(output),
@@ -76,7 +76,7 @@ def main():
     if overfit_metrics["decision_accuracy"] < 0.99:
         raise RuntimeError("32-episode overfit gate did not reach 99%; diagnose training before scaling")
     wait_for_snapshot("data/frozen/pilot-train-5000.jsonl", 5000, state_path, "pilot_preparation")
-    wait_for_snapshot("data/frozen/dev.jsonl", 1000, state_path, "pilot_preparation")
+    wait_for_snapshot("data/frozen/dev.jsonl", 1000, state_path, "pilot_preparation", expected_split="dev")
     pilot = train_stage("pilot", "configs/pilot.yaml", "checkpoints/pilot", {"micro_batch_episodes": micro}, state_path, local)
     pilot_metrics = json.loads(Path(pilot["best_checkpoint"], "dev_metrics.json").read_text())
     if pilot_metrics["coverage"] == 0 or pilot_metrics["answerable_top1"] == 0:
