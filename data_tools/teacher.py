@@ -125,11 +125,15 @@ class TeacherClient:
         request_bytes = canonical_bytes(body)
         audit_id = sha256(canonical_bytes({"endpoint": self.endpoint, "body": body}))
         path = self.audit_dir / f"{audit_id}.json"
+        previous = None
         if path.is_file():
             audit = json.loads(path.read_text())
             if audit.get("status") == "success":
                 return self._result(audit, cache_hit=True)
-        attempts = []
+            previous = audit
+        attempts = list(previous.get("attempts", [])) if previous else []
+        if previous and previous.get("status") == "request_started":
+            attempts.append({"error_type": "completion_not_observed_before_process_interruption", "started_at": previous.get("attempt_started_at"), "pid": previous.get("pid"), "usage_known": False})
         started = utc_now()
         for attempt in range(self.max_attempts):
             try:
@@ -148,6 +152,10 @@ class TeacherClient:
                 method="POST",
             )
             before = time.monotonic()
+            # Persist the exact sanitized request before opening the connection.
+            # If a worker is interrupted, its unknown response/usage remains
+            # visible instead of disappearing from the production history.
+            atomic_json(path, {"status": "request_started", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "attempt_started_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
             try:
                 try:
                     with urlopen(request, timeout=self.timeout) as response:
