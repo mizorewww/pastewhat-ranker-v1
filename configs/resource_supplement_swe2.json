@@ -1,0 +1,44 @@
+{
+  "version": "pastewhat-resource-supplement-v1",
+  "resource_id": "pi-swe2-concurrency-12",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "teacher_transition_sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250",
+  "registered_at": "2026-09-21T07:12:30.313529+00:00",
+  "provider": "devin",
+  "model": "swe-2",
+  "global_max_in_flight": 12,
+  "fallback_max_in_flight": 6,
+  "initial_workers": {
+    "train": 6,
+    "dev": 2,
+    "calibration": 2,
+    "test": 2
+  },
+  "executor_max_workers": 12,
+  "borrow_slots_per_finished_split": 2,
+  "borrow_when_frozen": [
+    "dev",
+    "calibration",
+    "test"
+  ],
+  "hard_pool_requires_frozen": "train",
+  "on_http_429": "sticky_cap_6_and_bounded_backoff",
+  "cache_identity_effect": "none",
+  "supersedes": "Only the original teacher transition policy local max_in_flight=6 and worker allocation. Teacher identity, request controls, visible inputs, sampling and all scientific gates remain unchanged.",
+  "authorization": "Operational scheduling improvement within the user-authorized continuous production scope; the user requested efficient resource use and no cost-based stop.",
+  "activation_conditions": [
+    "Drain all existing teacher requests before replacing old clients.",
+    "Preserve completed responses and original cache/audit bytes.",
+    "Require zero live leases and an explicit recorded local activation; do not clear provider quota or authentication restrictions.",
+    "Do not automatically raise a fallback cap after a real rate-limit response."
+  ],
+  "evidence": [
+    {
+      "path": "reports/data/pi-initial-production-window.json",
+      "sha256": "3479241881cffc9f3d78ac4702f64131a1a9838ac4d2919e33a7a736113e47b1"
+    }
+  ],
+  "resource_limit_scope": "Local maximum concurrency, not a claimed server entitlement. Actual provider restrictions and observed errors take precedence.",
+  "measurement_plan": "Use the next real production window to report observed acceptance throughput, all known attempt tokens, unknowns, and any provider backoff; no extra synthetic probes or accuracy claims."
+}

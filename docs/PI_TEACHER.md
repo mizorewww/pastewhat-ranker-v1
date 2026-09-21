@@ -41,10 +41,26 @@ counters remain unknown. Pi's zero-valued cost metadata is not a verified
 billing statement. Private raw responses and reasoning stay in ignored audit
 storage and never enter student features or public model bundles.
 
-The new provider has a separate local coordinator with at most six simultaneous
-requests. Kimi producers are retired and their quota state is retained. There
-is no automatic Kimi fallback. This concurrency cap is a local scheduling
-choice, not a claim about the provider's account limits.
+The new provider initially ran through a separate coordinator with at most six
+simultaneous requests. Its first measured Train/Dev production window accepted
+238 new Pi-labeled episodes in 12.53 minutes, reporting 368,783 tokens across all
+observed attempts. Of those episodes, 217 were newly authored by SWE-2 and 21
+reused intact Kimi authorship. These counts include the actual repair and review
+costs and are not a dollar estimate or an accuracy result; see
+[the production report](../reports/data/pi-initial-production-window.json).
+
+The append-only [resource supplement](../configs/resource_supplement_swe2.json)
+allows a local maximum of 12 after existing requests drain and activation is
+recorded. It starts with 6 Train, 2 Dev, 2 Calibration and 2 Test workers, lets
+Train borrow slots once other splits have frozen, and retains the same v0 gates
+for hard-example scoring. A real 429 lowers the effective cap to the previously
+healthy 6 and applies backoff; restart does not silently raise it again. Resource
+settings are audit metadata and do not invalidate successful teacher caches.
+These are local scheduling limits, not a claim about provider entitlement or
+measured speed at 12. The next actual production window measures the effect.
+
+Kimi producers remain retired and their quota state is retained. There is no
+automatic Kimi fallback.
 
 ## Verification and release evidence
 

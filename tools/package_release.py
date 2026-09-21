@@ -115,7 +115,25 @@ def teacher_provenance_files(frozen: dict, plan) -> tuple[list[tuple[Path, str]]
     if (runtime.get("pins_path") != str(pins_path.relative_to(ROOT))
             or runtime.get("pins_sha256") != digest(pins_path)):
         raise ValueError("Teacher runtime pins differ from the transition policy")
-    for source in (policy_path, pins_path):
+    copies = [(policy_path, "provenance/teacher-transition.json"),
+              (pins_path, "provenance/pi-swe2-runtime.json")]
+    resource_path = ROOT / "configs/resource_supplement_swe2.json"
+    resources = read_json(resource_path)
+    if (resources.get("version") != "pastewhat-resource-supplement-v1"
+            or resources.get("run_id") != plan.run_id
+            or resources.get("run_plan_sha256") != plan.sha256
+            or resources.get("teacher_transition_sha256") != digest(policy_path)):
+        raise ValueError("Teacher resource supplement is not bound to this run and provider transition")
+    copies.append((resource_path, "provenance/teacher-resources.json"))
+    for record in resources.get("evidence", []):
+        relative = Path(record["path"])
+        source = ROOT / relative
+        if (relative.is_absolute() or ".." in relative.parts
+                or not source.resolve().is_relative_to((ROOT / "reports/data").resolve())
+                or digest(source) != record["sha256"]):
+            raise ValueError("Teacher resource evidence is not a bound public data report")
+        copies.append((source, record["path"]))
+    for source, _ in copies:
         if not any(Path(record.get("path", "")).resolve() == source.resolve()
                    and record.get("sha256") == digest(source)
                    for record in frozen["inputs"].values()):
@@ -126,9 +144,9 @@ def teacher_provenance_files(frozen: dict, plan) -> tuple[list[tuple[Path, str]]
              "previous_requested_model": policy["previous_teacher"]["requested_model"],
              "transport": policy["transport"], "provider": policy["provider"],
              "requested_model": policy["model"], "effective_model_mapping": pins["model_mapping"],
+             "resource_supplement_sha256": digest(resource_path),
              "source_counts": "See actual author/primary/reviewer distributions in data_manifest.json"}
-    return [(policy_path, "provenance/teacher-transition.json"),
-            (pins_path, "provenance/pi-swe2-runtime.json")], index
+    return copies, index
 
 
 def model_card(metrics: dict, release_status: str, release_commit: str, manifest: dict) -> str:
@@ -150,7 +168,9 @@ def model_card(metrics: dict, release_status: str, release_commit: str, manifest
         "for subsequent authorship, labeling and blind review under the user-authorized transition. "
         "Cached original author drafts retain their Kimi attribution when later labels come from SWE-2. "
         "The bundled `provenance/teacher-transition.json` and runtime pins document the change; "
-        "`data_manifest.json` reports actual teacher sources separately for each role."
+        "`data_manifest.json` reports actual teacher sources separately for each role. "
+        "The scheduling-only `provenance/teacher-resources.json` supplement records local concurrency "
+        "limits and fallback behavior without changing the dataset contract or cache identity."
         if manifest.get("teacher_transition") else "The teacher is `kimi-for-coding`."
     )
     return f"""---
