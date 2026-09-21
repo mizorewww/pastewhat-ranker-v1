@@ -302,7 +302,73 @@
       "reason": "Independent root and training agents: --exit-code preserves the requested standalone diff patch output; context does not constrain exit status. The original acceptable set omits an equivalent usable candidate.",
       "reviewer": "root-agent and training-agent independent review",
       "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "4fd8040719ac425c46fff1646ac1886ce48214d6d82666efffe7644ee3f4f525",
+      "family_id": "git_diff_selection",
+      "id": "train-main-v6-git_diff_selection-00003",
+      "original_generation_audit_id": "58cc2f6bf1aa9497b719f249b8df7219e6576d2869220013c55de1ec11d56d60",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c3",
+          "c6",
+          "c7",
+          "c10"
+        ],
+        "decision": "select"
+      },
+      "reason": "Visible request omits the identities and direction of the two commits; candidate contents cannot supply the missing requested objects. Name-only reverse diff can differ under renames.",
+      "reviewer": "root-agent independent review",
+      "split": "train"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "1310cbc611afdd330d9ba2017b33a6b80f1eff634fc2306bc8381cd9d78b39d7",
+      "family_id": "markdown_link",
+      "id": "dev-main-v6-markdown_link-00002",
+      "original_generation_audit_id": "e9dba303f9688aa57a425e277ad105ec44ef092be8f5dc27e27639b87f19610f",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2",
+          "c4",
+          "c6",
+          "c7",
+          "c8",
+          "c11",
+          "c13"
+        ],
+        "decision": "select"
+      },
+      "reason": "Visible guidance names a document topic/domain but no exact destination; positives include distinct query/fragment destinations and assume these have the requested contents. The Markdown family excludes fragment-anchor reasoning. Do not infer a precise URL from candidates or treat potentially different sections/OS pages as interchangeable without visible permission.",
+      "reviewer": "data-agent independent semantic review; no student scores viewed",
+      "split": "dev"
+    },
+    {
+      "action": "quarantine original inputs and labels; regenerate slot, never hand-edit label",
+      "content_sha256": "28f267851667dfb5fad56ca400fd7af27a5aabe8861aaf7933503bef95fb84e7",
+      "family_id": "markdown_link",
+      "id": "dev-main-v6-markdown_link-00003",
+      "original_generation_audit_id": "e9dba303f9688aa57a425e277ad105ec44ef092be8f5dc27e27639b87f19610f",
+      "original_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1",
+          "c3",
+          "c5",
+          "c6",
+          "c8",
+          "c9"
+        ],
+        "decision": "select"
+      },
+      "reason": "Visible guidance names a document topic/domain but no exact destination; positives include distinct query/fragment destinations and assume these have the requested contents. The Markdown family excludes fragment-anchor reasoning. Do not infer a precise URL from candidates or treat potentially different sections/OS pages as interchangeable without visible permission.",
+      "reviewer": "data-agent independent semantic review; no student scores viewed",
+      "split": "dev"
     }
   ],
-  "reviewed_at": "2026-09-21T02:29:59.259728+00:00"
+  "reviewed_at": "2026-09-21T02:29:59.259728+00:00",
+  "updated_at": "2026-09-21T03:01:01.451304+00:00"
 }

@@ -1,0 +1,712 @@
+{
+  "all_modes": {
+    "dev": {
+      "accepted_candidate_counts": {
+        "1": 2,
+        "3": 1,
+        "5": 1,
+        "8": 1,
+        "14": 1,
+        "17": 1
+      },
+      "accepted_episodes": 7,
+      "accepted_families": {
+        "markdown_link": 3,
+        "python_exception": 4
+      },
+      "accepted_fraction_of_requested_slots": 0.7,
+      "accepted_ids": [
+        "dev-main-v6-markdown_link-00000",
+        "dev-main-v6-markdown_link-00001",
+        "dev-main-v6-markdown_link-00004",
+        "dev-main-v6-python_exception-00000",
+        "dev-main-v6-python_exception-00001",
+        "dev-main-v6-python_exception-00003",
+        "dev-main-v6-python_exception-00004"
+      ],
+      "accepted_labels": {
+        "ambiguous": 1,
+        "insufficient_context": 1,
+        "no_match": 2,
+        "select": 3
+      },
+      "accepted_per_hour": 26.697358232202134,
+      "candidate_counts_per_author_attempt": {
+        "1": 6,
+        "3": 4,
+        "5": 4,
+        "6": 6,
+        "8": 3,
+        "9": 2,
+        "13": 2,
+        "14": 4,
+        "17": 3
+      },
+      "distinct_requested_slots": 10,
+      "elapsed_seconds": 943.913618,
+      "estimated_seconds_for_full_target_at_observed_rate": 134844.80257142856,
+      "estimated_total_tokens_for_full_target_at_observed_cost": 17686285.714285713,
+      "known_api_tokens": {
+        "cached_tokens": 23296,
+        "completion_tokens": 65462,
+        "prompt_tokens": 58342,
+        "total_tokens": 123804
+      },
+      "known_total_tokens_per_accepted_episode": 17686.285714285714,
+      "rejection_event_types": {
+        "author_scenario_drift": 1,
+        "batch_validation": 2,
+        "blind_label_disagreement": 2,
+        "generated_schema_or_visibility": 1
+      },
+      "rejection_findings": {
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 1,
+        "Teacher completion was not valid JSON": 2,
+        "author_scenario_drift": 1,
+        "blind_label_disagreement": 2
+      },
+      "request_phases": {
+        "blind-family-and-deployment-review": {
+          "completed_observed": 4,
+          "median_seconds": 22.636481937999633,
+          "sum_seconds": 89.12424833399928
+        },
+        "dev-main-blind-label": {
+          "completed_observed": 4,
+          "median_seconds": 47.772242374998314,
+          "sum_seconds": 213.79908404199523
+        },
+        "dev-main-generate": {
+          "completed_observed": 8,
+          "median_seconds": 82.28269304150126,
+          "sum_seconds": 653.948423458005
+        },
+        "dev-main-label": {
+          "completed_observed": 6,
+          "median_seconds": 87.81404441599989,
+          "sum_seconds": 683.0507588740002
+        }
+      },
+      "request_statuses": {
+        "invalid_response": 2,
+        "request_started": 3,
+        "success": 20
+      },
+      "split": "dev",
+      "started_at": "2026-09-21T02:49:31.843764+00:00"
+    },
+    "train": {
+      "accepted_candidate_counts": {
+        "4": 1,
+        "8": 1,
+        "10": 1,
+        "14": 1,
+        "18": 1,
+        "19": 1
+      },
+      "accepted_episodes": 6,
+      "accepted_families": {
+        "file_copy_destination": 2,
+        "git_diff_selection": 4
+      },
+      "accepted_fraction_of_requested_slots": 0.6,
+      "accepted_ids": [
+        "train-main-v6-file_copy_destination-00000",
+        "train-main-v6-file_copy_destination-00002",
+        "train-main-v6-git_diff_selection-00000",
+        "train-main-v6-git_diff_selection-00001",
+        "train-main-v6-git_diff_selection-00002",
+        "train-main-v6-git_diff_selection-00004"
+      ],
+      "accepted_labels": {
+        "ambiguous": 1,
+        "no_match": 4,
+        "select": 1
+      },
+      "accepted_per_hour": 22.855358276908802,
+      "candidate_counts_per_author_attempt": {
+        "4": 1,
+        "5": 4,
+        "8": 1,
+        "10": 3,
+        "11": 4,
+        "12": 1,
+        "14": 8,
+        "18": 4,
+        "19": 3
+      },
+      "distinct_requested_slots": 10,
+      "elapsed_seconds": 945.073787,
+      "estimated_seconds_for_full_target_at_observed_rate": 3150245.956666667,
+      "estimated_total_tokens_for_full_target_at_observed_cost": 370743333.3333334,
+      "known_api_tokens": {
+        "cached_tokens": 19456,
+        "completion_tokens": 54753,
+        "prompt_tokens": 56470,
+        "total_tokens": 111223
+      },
+      "known_total_tokens_per_accepted_episode": 18537.166666666668,
+      "rejection_event_types": {
+        "batch_validation": 1,
+        "blind_family_or_deployment_review": 1,
+        "blind_label_disagreement": 5,
+        "generated_schema_or_visibility": 2
+      },
+      "rejection_findings": {
+        "Candidate count differs from the predeclared slot; no candidates may be silently dropped": 2,
+        "Core task is copying directory tree projects to explicit destination /srv/archive; the explicit 'without following symlinks' constraint forces discriminating dereference flags (-rP/-a/--no-dereference vs -rL/--dereference).": 1,
+        "Incomplete teacher response: length": 1,
+        "blind_label_disagreement": 5
+      },
+      "request_phases": {
+        "blind-family-and-deployment-review": {
+          "completed_observed": 4,
+          "median_seconds": 18.889787875501497,
+          "sum_seconds": 76.21377316800135
+        },
+        "train-main-blind-label": {
+          "completed_observed": 4,
+          "median_seconds": 44.56070247899879,
+          "sum_seconds": 222.43937966599697
+        },
+        "train-main-generate": {
+          "completed_observed": 6,
+          "median_seconds": 90.13180064549852,
+          "sum_seconds": 528.2970416659991
+        },
+        "train-main-label": {
+          "completed_observed": 6,
+          "median_seconds": 60.89683214600154,
+          "sum_seconds": 489.7489473340029
+        }
+      },
+      "request_statuses": {
+        "invalid_response": 1,
+        "request_started": 3,
+        "success": 19
+      },
+      "split": "train",
+      "started_at": "2026-09-21T02:49:30.633744+00:00"
+    }
+  },
+  "completed_json_groups": [
+    {
+      "accepted_after_all_gates_and_current_local_rejections": 2,
+      "accepted_ids": [
+        "train-main-v6-git_diff_selection-00000",
+        "train-main-v6-git_diff_selection-00004"
+      ],
+      "requests": [
+        {
+          "audit_id": "c4ffdef255544ca0ea026b7c14ddb11a8d2652b2bace02ddfe7d330537035400",
+          "elapsed_seconds": 79.62769787499928,
+          "max_tokens": 24576,
+          "phase": "train-main-generate",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 3374,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2899
+            },
+            "prompt_tokens": 1050,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 4424
+          }
+        },
+        {
+          "audit_id": "59074ece6fd0d95ddb29c35c7fb2c392b58ef9f3885f622167734639f629f669",
+          "elapsed_seconds": 33.484755125002266,
+          "max_tokens": 8192,
+          "phase": "train-main-label",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 1893,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1241
+            },
+            "prompt_tokens": 2548,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 4441
+          }
+        },
+        {
+          "audit_id": "fb2bccd3654a444913793bcf666c44aea117ba64a6e8ad277c23b87228c15a75",
+          "elapsed_seconds": 23.0058622079996,
+          "max_tokens": 8192,
+          "phase": "train-main-blind-label",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 1498,
+            "completion_tokens_details": {
+              "reasoning_tokens": 773
+            },
+            "prompt_tokens": 2548,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 4046
+          }
+        },
+        {
+          "audit_id": "7d729d9e7918b8c0f8a85cb2881d05ddd0a4b8adee7f2a5dff337fe2bd8ff76a",
+          "elapsed_seconds": 24.863915959002043,
+          "max_tokens": 8192,
+          "phase": "blind-family-and-deployment-review",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 2816,
+            "completion_tokens": 972,
+            "completion_tokens_details": {
+              "reasoning_tokens": 827
+            },
+            "prompt_tokens": 4480,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816
+            },
+            "total_tokens": 5452
+          }
+        }
+      ],
+      "split": "train",
+      "sum_known_tokens": 18363,
+      "sum_serial_request_seconds": 160.9822311670032
+    },
+    {
+      "accepted_after_all_gates_and_current_local_rejections": 2,
+      "accepted_ids": [
+        "train-main-v6-file_copy_destination-00000",
+        "train-main-v6-file_copy_destination-00002"
+      ],
+      "requests": [
+        {
+          "audit_id": "25d729a129ce6debd391099feea74bec73549a3451ba8b0e283c465ab6086087",
+          "elapsed_seconds": 158.699372209001,
+          "max_tokens": 24576,
+          "phase": "train-main-generate",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 1024,
+            "completion_tokens": 4914,
+            "completion_tokens_details": {
+              "reasoning_tokens": 4086
+            },
+            "prompt_tokens": 1237,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024
+            },
+            "total_tokens": 6151
+          }
+        },
+        {
+          "audit_id": "66ca8537de725d77738274b2eaf688f6fb45cc2a0c377a7a5e11838d3a8c4de0",
+          "elapsed_seconds": 93.1051078749988,
+          "max_tokens": 8192,
+          "phase": "train-main-label",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 4361,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2668
+            },
+            "prompt_tokens": 3954,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 8315
+          }
+        },
+        {
+          "audit_id": "3b8072aa6170b2d29fb4ab3429eb955fd30b9690a6cfc72dab48d0c6f4e48613",
+          "elapsed_seconds": 111.6829877909986,
+          "max_tokens": 8192,
+          "phase": "train-main-blind-label",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 5157,
+            "completion_tokens_details": {
+              "reasoning_tokens": 3537
+            },
+            "prompt_tokens": 3954,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 9111
+          }
+        },
+        {
+          "audit_id": "3130cdc32d4ab3b9ed9403605dfa246442b816d4dd7a421d12647490d93e08ca",
+          "elapsed_seconds": 32.45966462499928,
+          "max_tokens": 8192,
+          "phase": "blind-family-and-deployment-review",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 2816,
+            "completion_tokens": 1632,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1247
+            },
+            "prompt_tokens": 5886,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816
+            },
+            "total_tokens": 7518
+          }
+        }
+      ],
+      "split": "train",
+      "sum_known_tokens": 31095,
+      "sum_serial_request_seconds": 395.9471324999977
+    },
+    {
+      "accepted_after_all_gates_and_current_local_rejections": 2,
+      "accepted_ids": [
+        "dev-main-v6-markdown_link-00000",
+        "dev-main-v6-markdown_link-00004"
+      ],
+      "requests": [
+        {
+          "audit_id": "db9d42545c0cabd28db750cfb4346aa25ed28e4fe9ed47d5dbae628402e2db36",
+          "elapsed_seconds": 134.27681891700195,
+          "max_tokens": 24576,
+          "phase": "dev-main-generate",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 512,
+            "completion_tokens": 4227,
+            "completion_tokens_details": {
+              "reasoning_tokens": 3726
+            },
+            "prompt_tokens": 1130,
+            "prompt_tokens_details": {
+              "cached_tokens": 512
+            },
+            "total_tokens": 5357
+          }
+        },
+        {
+          "audit_id": "165f8c80924b30f922fe89b723d4e000a19a5f39f05de6fbf3db1c1d63ec7e8a",
+          "elapsed_seconds": 94.36664129099881,
+          "max_tokens": 8192,
+          "phase": "dev-main-label",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 3610,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2803
+            },
+            "prompt_tokens": 2326,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 5936
+          }
+        },
+        {
+          "audit_id": "523bfd16fe558f71151571b6bb4c1fd9066f617250e440c74ff90da7e39a0d28",
+          "elapsed_seconds": 102.36573229199712,
+          "max_tokens": 8192,
+          "phase": "dev-main-blind-label",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 3519,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2720
+            },
+            "prompt_tokens": 2326,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 5845
+          }
+        },
+        {
+          "audit_id": "7b92099f3788700299c9e57cdd5454aca353b35e2f6a682401123947ced9ccc7",
+          "elapsed_seconds": 28.711242208999465,
+          "max_tokens": 8192,
+          "phase": "blind-family-and-deployment-review",
+          "reasoning_effort": "high",
+          "requested_items": 2,
+          "usage": {
+            "cached_tokens": 2816,
+            "completion_tokens": 1321,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1156
+            },
+            "prompt_tokens": 4258,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816
+            },
+            "total_tokens": 5579
+          }
+        }
+      ],
+      "split": "dev",
+      "sum_known_tokens": 22717,
+      "sum_serial_request_seconds": 359.72043470899735
+    },
+    {
+      "accepted_after_all_gates_and_current_local_rejections": 1,
+      "accepted_ids": [
+        "dev-main-v6-markdown_link-00001"
+      ],
+      "requests": [
+        {
+          "audit_id": "e9dba303f9688aa57a425e277ad105ec44ef092be8f5dc27e27639b87f19610f",
+          "elapsed_seconds": 19.230858667000575,
+          "max_tokens": 24576,
+          "phase": "dev-main-generate",
+          "reasoning_effort": null,
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 1024,
+            "completion_tokens": 882,
+            "prompt_tokens": 1158,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024
+            },
+            "total_tokens": 2040
+          }
+        },
+        {
+          "audit_id": "0e4662fecd6b30eb40439025bfb4843f2e266d6f3013da4a3f08a76547f284d9",
+          "elapsed_seconds": 81.26144754100096,
+          "max_tokens": 8192,
+          "phase": "dev-main-label",
+          "reasoning_effort": "high",
+          "requested_items": 4,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 4583,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2742
+            },
+            "prompt_tokens": 2799,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 7382
+          }
+        },
+        {
+          "audit_id": "2dd260e0eadc86f5ad61eca66f06fb57f3e63827b4bee68a5d74f137adfe97ee",
+          "elapsed_seconds": 51.762303457999224,
+          "max_tokens": 8192,
+          "phase": "dev-main-blind-label",
+          "reasoning_effort": "high",
+          "requested_items": 4,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 2417,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1168
+            },
+            "prompt_tokens": 2799,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 5216
+          }
+        },
+        {
+          "audit_id": "a81ef5bce45b69dbf496786f6b82fe9a720d7c03d5a62faf21b35263680a12ee",
+          "elapsed_seconds": 16.5617216669998,
+          "max_tokens": 8192,
+          "phase": "blind-family-and-deployment-review",
+          "reasoning_effort": "high",
+          "requested_items": 4,
+          "usage": {
+            "cached_tokens": 2816,
+            "completion_tokens": 542,
+            "completion_tokens_details": {
+              "reasoning_tokens": 237
+            },
+            "prompt_tokens": 4731,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816
+            },
+            "total_tokens": 5273
+          }
+        }
+      ],
+      "split": "dev",
+      "sum_known_tokens": 19911,
+      "sum_serial_request_seconds": 168.81633133300056
+    },
+    {
+      "accepted_after_all_gates_and_current_local_rejections": 4,
+      "accepted_ids": [
+        "dev-main-v6-python_exception-00000",
+        "dev-main-v6-python_exception-00001",
+        "dev-main-v6-python_exception-00003",
+        "dev-main-v6-python_exception-00004"
+      ],
+      "requests": [
+        {
+          "audit_id": "1b372fd808a0352f17ddd2f3e58fae2c6c4f3c387aa2270ee46ba1a247c2ef73",
+          "elapsed_seconds": 177.2200495420002,
+          "max_tokens": 24576,
+          "phase": "dev-main-generate",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 1024,
+            "completion_tokens": 6327,
+            "completion_tokens_details": {
+              "reasoning_tokens": 4648
+            },
+            "prompt_tokens": 1240,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024
+            },
+            "total_tokens": 7567
+          }
+        },
+        {
+          "audit_id": "5f0978a0d3f49017955735f1cff026c7dc3e71cb343eb53ada09d72934ca29be",
+          "elapsed_seconds": 218.41200483300054,
+          "max_tokens": 8192,
+          "phase": "dev-main-label",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 7741,
+            "completion_tokens_details": {
+              "reasoning_tokens": 6657
+            },
+            "prompt_tokens": 3914,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 11655
+          }
+        },
+        {
+          "audit_id": "4d4ff47d7f6efbf6faa8c82374c5c61376aeafbbecebfa5af4d9bd8fe6f3889d",
+          "elapsed_seconds": 43.782181291997404,
+          "max_tokens": 8192,
+          "phase": "dev-main-blind-label",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 768,
+            "completion_tokens": 2389,
+            "completion_tokens_details": {
+              "reasoning_tokens": 1462
+            },
+            "prompt_tokens": 3914,
+            "prompt_tokens_details": {
+              "cached_tokens": 768
+            },
+            "total_tokens": 6303
+          }
+        },
+        {
+          "audit_id": "52b53aef97fcadf0b2b6cefe5f5be8df823f3495d94f8af9c25cb73dbca5edaf",
+          "elapsed_seconds": 30.800819000000047,
+          "max_tokens": 8192,
+          "phase": "blind-family-and-deployment-review",
+          "reasoning_effort": "high",
+          "requested_items": 5,
+          "usage": {
+            "cached_tokens": 2816,
+            "completion_tokens": 1258,
+            "completion_tokens_details": {
+              "reasoning_tokens": 882
+            },
+            "prompt_tokens": 5846,
+            "prompt_tokens_details": {
+              "cached_tokens": 2816
+            },
+            "total_tokens": 7104
+          }
+        }
+      ],
+      "split": "dev",
+      "sum_known_tokens": 32629,
+      "sum_serial_request_seconds": 470.2150546669982
+    }
+  ],
+  "created_at": "2026-09-21T03:05:15.668125+00:00",
+  "dataset_protocol": "teacher-episodes-v6-compact-verdicts",
+  "frozen_cost_observation": true,
+  "independent_agent_review": {
+    "dev_data_agent_approved": 1,
+    "dev_data_agent_rejected": 2,
+    "human_validated": false,
+    "remaining_newly_accepted_rows_not_yet_independently_agent_reviewed": true,
+    "train_root_approved": 4,
+    "train_root_rejected": 1
+  },
+  "interpretation": "Actual JSON-object requests reduce pure malformed JSON after the compatibility probe; no strict-schema or semantic correctness guarantee. Complete five-item four-call groups observed for Train file-copy (2 accepted) and Dev Python-exception (4 accepted). Their costs include rejected members. Known usage excludes unknown interrupted/in-flight completions, which are separately retained. Preliminary difficult families and repair-heavy scheduling are not an unbiased full-dataset throughput benchmark. Suggested original20k/1k targets remain uncompleted; this report is evidence for preregistering a feasible smaller first run, not a trained model result.",
+  "json_object_mode": {
+    "dev": {
+      "accepted_ids": [
+        "dev-main-v6-markdown_link-00000",
+        "dev-main-v6-markdown_link-00001",
+        "dev-main-v6-markdown_link-00004",
+        "dev-main-v6-python_exception-00000",
+        "dev-main-v6-python_exception-00001",
+        "dev-main-v6-python_exception-00003",
+        "dev-main-v6-python_exception-00004"
+      ],
+      "all_four_calls_json_mode_accepted_after_local_rejections": 7,
+      "known_tokens_per_accepted_episode": 12830.714285714286,
+      "known_usage_including_rejected_or_incomplete_groups": {
+        "cached_tokens": 20736,
+        "completion_tokens": 44069,
+        "prompt_tokens": 45746,
+        "total_tokens": 89815
+      },
+      "observed_requests": 17,
+      "request_statuses": {
+        "request_started": 1,
+        "success": 16
+      }
+    },
+    "train": {
+      "accepted_ids": [
+        "train-main-v6-file_copy_destination-00000",
+        "train-main-v6-file_copy_destination-00002",
+        "train-main-v6-git_diff_selection-00000",
+        "train-main-v6-git_diff_selection-00004"
+      ],
+      "all_four_calls_json_mode_accepted_after_local_rejections": 4,
+      "known_tokens_per_accepted_episode": 15414.0,
+      "known_usage_including_rejected_or_incomplete_groups": {
+        "cached_tokens": 12032,
+        "completion_tokens": 31902,
+        "prompt_tokens": 29754,
+        "total_tokens": 61656
+      },
+      "observed_requests": 11,
+      "request_statuses": {
+        "request_started": 1,
+        "success": 10
+      }
+    }
+  },
+  "student_scores_used": false
+}

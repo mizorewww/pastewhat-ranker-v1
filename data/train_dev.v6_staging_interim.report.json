@@ -1,0 +1,142 @@
+{
+  "created_at": "2026-09-21T02:53:36.693904+00:00",
+  "dataset_protocol": "teacher-episodes-v6-compact-verdicts",
+  "limits": "Preliminary staging; live repairs continue. Teacher gates do not guarantee semantically correct labels. Malformed JSON and disagreement remain counted.",
+  "splits": {
+    "dev": {
+      "accepted_candidate_counts": {},
+      "accepted_episodes": 0,
+      "accepted_families": {},
+      "accepted_fraction_of_requested_slots": 0.0,
+      "accepted_ids": [],
+      "accepted_labels": {},
+      "accepted_per_hour": 0.0,
+      "candidate_counts_per_author_attempt": {
+        "1": 4,
+        "3": 3,
+        "5": 3,
+        "6": 3,
+        "8": 1,
+        "9": 1,
+        "13": 1,
+        "14": 3,
+        "17": 1
+      },
+      "distinct_requested_slots": 10,
+      "elapsed_seconds": 244.905148,
+      "estimated_seconds_for_full_target_at_observed_rate": null,
+      "estimated_total_tokens_for_full_target_at_observed_cost": null,
+      "known_api_tokens": {
+        "cached_tokens": 1536,
+        "completion_tokens": 17664,
+        "prompt_tokens": 11396,
+        "total_tokens": 29060
+      },
+      "known_total_tokens_per_accepted_episode": null,
+      "rejection_event_types": {
+        "batch_validation": 2
+      },
+      "rejection_findings": {
+        "Teacher completion was not valid JSON": 2
+      },
+      "request_phases": {
+        "dev-main-generate": {
+          "completed_observed": 3,
+          "median_seconds": 31.055139332998806,
+          "sum_seconds": 158.65531024899974
+        },
+        "dev-main-label": {
+          "completed_observed": 2,
+          "median_seconds": 130.17838329199913,
+          "sum_seconds": 260.35676658399825
+        }
+      },
+      "request_statuses": {
+        "invalid_response": 2,
+        "request_started": 2,
+        "success": 3
+      },
+      "split": "dev",
+      "started_at": "2026-09-21T02:49:31.843764+00:00"
+    },
+    "train": {
+      "accepted_candidate_counts": {
+        "4": 1,
+        "8": 1,
+        "12": 1
+      },
+      "accepted_episodes": 3,
+      "accepted_families": {
+        "git_diff_selection": 3
+      },
+      "accepted_fraction_of_requested_slots": 0.3,
+      "accepted_ids": [
+        "train-main-v6-git_diff_selection-00001",
+        "train-main-v6-git_diff_selection-00002",
+        "train-main-v6-git_diff_selection-00003"
+      ],
+      "accepted_labels": {
+        "no_match": 2,
+        "select": 1
+      },
+      "accepted_per_hour": 43.885182514329365,
+      "candidate_counts_per_author_attempt": {
+        "4": 1,
+        "5": 1,
+        "8": 1,
+        "10": 1,
+        "11": 1,
+        "12": 1,
+        "14": 3,
+        "18": 2,
+        "19": 1
+      },
+      "distinct_requested_slots": 10,
+      "elapsed_seconds": 246.096732,
+      "estimated_seconds_for_full_target_at_observed_rate": 1640644.8800000001,
+      "estimated_total_tokens_for_full_target_at_observed_cost": 166406666.6666667,
+      "known_api_tokens": {
+        "cached_tokens": 1792,
+        "completion_tokens": 9567,
+        "prompt_tokens": 15394,
+        "total_tokens": 24961
+      },
+      "known_total_tokens_per_accepted_episode": 8320.333333333334,
+      "rejection_event_types": {
+        "blind_label_disagreement": 2
+      },
+      "rejection_findings": {
+        "blind_label_disagreement": 2
+      },
+      "request_phases": {
+        "blind-family-and-deployment-review": {
+          "completed_observed": 1,
+          "median_seconds": 12.915659792000952,
+          "sum_seconds": 12.915659792000952
+        },
+        "train-main-blind-label": {
+          "completed_observed": 1,
+          "median_seconds": 66.11554274999799,
+          "sum_seconds": 66.11554274999799
+        },
+        "train-main-generate": {
+          "completed_observed": 2,
+          "median_seconds": 17.67021554150051,
+          "sum_seconds": 35.34043108300102
+        },
+        "train-main-label": {
+          "completed_observed": 1,
+          "median_seconds": 73.58415520900235,
+          "sum_seconds": 73.58415520900235
+        }
+      },
+      "request_statuses": {
+        "request_started": 2,
+        "success": 5
+      },
+      "split": "train",
+      "started_at": "2026-09-21T02:49:30.633744+00:00"
+    }
+  },
+  "status": "first_completed_four_gate_batch_interim"
+}
