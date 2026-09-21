@@ -237,6 +237,8 @@ class Pipeline:
         self.step("calibration_scores", self.module("score", "--run-plan", self.plan.path,
             "--data", self.plan.data_path("calibration"), "--split", "calibration", "--protocol", "ranker",
             "--command-json", json.dumps(ranker_command), "--output", cal_scores), cal_scores / "completion.json")
+        if json.loads((cal_scores / "completion.json").read_text()).get("failures") != 0:
+            raise ValueError("Calibration inference failed; do not fit on a silently reduced subset")
         calibration = self.reports / "calibration"
         self.step("calibration_fit", self.module("calibrate", "--run-plan", self.plan.path,
             "--data", self.plan.data_path("calibration"), "--scores", cal_scores / "scores.jsonl",
