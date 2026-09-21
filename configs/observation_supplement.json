@@ -1,0 +1,88 @@
+{
+  "version": "pastewhat-observation-supplement-v1",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "registered_at": "2026-09-21T03:50:12.753798+00:00",
+  "reason": "The native-deployment missing-context calibration feature is structurally constant zero under the initial compact authoring profiles. Add realistic missing observations before model training, calibration or final Test scoring; do not infer real-user performance from explicit uncertainty cues alone.",
+  "evidence": {
+    "path": "reports/data/formal-observation-coverage.json",
+    "sha256": "cacd603171fa9dda0639b9f48b84026c58c0fbe1adedb2ebc43588e6e4186e86"
+  },
+  "split_targets": {
+    "train": {
+      "no_accessibility": 40,
+      "generic_field": 20
+    },
+    "dev": {
+      "no_accessibility": 8,
+      "generic_field": 4
+    },
+    "calibration": {
+      "no_accessibility": 16,
+      "generic_field": 8
+    },
+    "test": {
+      "no_accessibility": 24,
+      "generic_field": 12
+    }
+  },
+  "eligibility": {
+    "planned_action_bucket": "missing_intent",
+    "only_before_first_author_request": true,
+    "preserve_slot_id_candidate_count_language_family_and_action_bucket": true,
+    "prefer_balanced_family_allocation": true,
+    "existing_dispatched_observations_and_labels_immutable": true
+  },
+  "variants": {
+    "no_accessibility": {
+      "hasAccessibility": false,
+      "fieldRole": "",
+      "fieldLabel": "",
+      "selectedText": "",
+      "surroundingText": "",
+      "capture": "unknown with an empty text window and no nearby text; actual native projection determines the model fields"
+    },
+    "generic_field": {
+      "hasAccessibility": true,
+      "fieldLabel": "retain the normal observable field label from the owning profile",
+      "fieldRole": "retain the normal observable role from the owning profile",
+      "selectedText": "",
+      "surroundingText": "empty focused field; no author guidance, static instructional text or explicit uncertainty cue"
+    }
+  },
+  "execution_order": [
+    "independent partition owner freezes an assignment of eligible slots",
+    "author creates the same registered candidate group",
+    "compile the literal author fixture",
+    "apply the registered observable-view variant",
+    "run unchanged native projection and student token budget",
+    "run both blind labels and the existing family/deployment audit on only that final visible view"
+  ],
+  "review_rules": {
+    "hidden_full_scene_provided_to_labeler_or_auditor": false,
+    "unknown_family_exempted": false,
+    "manual_label_edits": false,
+    "existing_duplicate_and_lineage_gates_required": true,
+    "unclear_family_action": "reject and regenerate the same registered slot",
+    "variant_metadata_is_student_feature": false
+  },
+  "provenance": {
+    "required_per_variant": [
+      "supplement_sha256",
+      "assignment_sha256",
+      "observation_adapter_sha256"
+    ],
+    "partition_owners_keep_assignments_separate": true,
+    "aggregate_counts_only_shared_with_root_for_heldout": true
+  },
+  "unchanged": [
+    "main run ID and hash",
+    "all split sizes and family partitions",
+    "70/20/10 planned action allocation",
+    "candidate counts and complete candidate groups",
+    "native projection and student preprocessing",
+    "teacher identity and blind-verdict protocol",
+    "training initialization and hyperparameters",
+    "calibration and final Test quality gates"
+  ]
+}
