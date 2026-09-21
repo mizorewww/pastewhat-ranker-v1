@@ -20,14 +20,17 @@ import sys
 import time
 
 from data_tools.generate import PARTITION_PATH, PROMPT_VERSION, ROOT
+from data_tools.deployment import placement_issue
+from data_tools.freeze import publish_bytes
 from data_tools.rate_limit import AccountCoordinator
-from data_tools.teacher import atomic_json, utc_now
+from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 
 
 class Progress:
     def __init__(self, split):
         self.split = split
         self.audit_cache = {}
+        self.episodes = {}
 
     def read(self):
         episodes, rejections, batch_count = {}, 0, 0
@@ -35,11 +38,18 @@ class Progress:
         for path in directory.glob("*.json"):
             if path.name == "failures.json":
                 continue
-            value = json.loads(path.read_text())
+            try:
+                value = json.loads(path.read_text())
+            except FileNotFoundError:
+                continue  # A completed batch atomically replaced its partial.
             batch_count += not path.name.endswith(".partial.json")
             rejections += len(value.get("rejected", []))
             for episode in value.get("episodes", []):
                 episodes[episode["id"]] = episode
+        teacher_passed = len(episodes)
+        self.episodes = {identifier: episode for identifier, episode in episodes.items() if not placement_issue(episode)}
+        local_rejections = teacher_passed - len(self.episodes)
+        episodes = self.episodes
         for path in (ROOT / "local/teacher" / self.split).rglob("*.json"):
             stamp = path.stat().st_mtime_ns
             if path in self.audit_cache and self.audit_cache[path][0] == stamp:
@@ -53,7 +63,21 @@ class Progress:
             statuses[audit["status"]] += 1
             usage.update({key: audit["usage"].get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
         labels = Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in episodes.values())
-        return {"accepted_including_partial_batches": len(episodes), "completed_batches": batch_count, "rejected_attempt_events": rejections, "labels": dict(labels), "families_with_accepted_data": len({episode["family_id"] for episode in episodes.values()}), "teacher_requests_including_unreleased_attempts": len(self.audit_cache), "teacher_request_statuses": dict(statuses), "teacher_usage_including_unreleased_attempts": dict(usage)}
+        return {"accepted_including_partial_batches": len(episodes), "teacher_passed_before_local_release_gate": teacher_passed, "local_release_rejections": local_rejections, "completed_batches": batch_count, "rejected_attempt_events": rejections, "labels": dict(labels), "families_with_accepted_data": len({episode["family_id"] for episode in episodes.values()}), "teacher_requests_including_unreleased_attempts": len(self.audit_cache), "teacher_request_statuses": dict(statuses), "teacher_usage_including_unreleased_attempts": dict(usage)}
+
+    def publish_pool(self):
+        """Publish already-reviewed slots without waiting for their batch peers."""
+        output = ROOT / "data" / f"{self.split}.accepted.jsonl"
+        manifest_path = output.with_suffix(".manifest.json")
+        episodes = sorted(self.episodes.values(), key=lambda episode: episode["id"])
+        payload = b"".join(canonical_bytes(episode) + b"\n" for episode in episodes)
+        digest = sha256(payload)
+        if manifest_path.is_file() and json.loads(manifest_path.read_text()).get("sha256") == digest and output.is_file():
+            return
+        output.parent.mkdir(parents=True, exist_ok=True)
+        publish_bytes(output, payload)
+        labels = Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in episodes)
+        atomic_json(manifest_path, {"split": self.split, "episodes": len(episodes), "sha256": digest, "prompt_version": PROMPT_VERSION, "labels": dict(labels), "families": dict(Counter(episode["family_id"] for episode in episodes)), "partial_batch_slots_included": True, "created_at": utc_now(), "human_validated": False})
 
 
 def launch(split, workers, run_dir):
@@ -68,13 +92,17 @@ def freeze_if_ready(split, count, filename, run_dir):
     destination = ROOT / "data/frozen" / filename
     if destination.is_file():
         return {"status": "already_frozen", "path": str(destination.relative_to(ROOT))}
-    manifest_path = ROOT / "data" / f"{split}.manifest.json"
+    manifest_path = ROOT / "data" / f"{split}.accepted.manifest.json"
     if not manifest_path.is_file():
         return {"status": "waiting"}
     manifest = json.loads(manifest_path.read_text())
     if manifest.get("prompt_version") != PROMPT_VERSION or manifest.get("episodes", 0) < count:
         return {"status": "waiting", "committed_rows": manifest.get("episodes", 0)}
-    result = subprocess.run([sys.executable, "-m", "data_tools.freeze", "--split", split, "--count", str(count), "--output", str(destination.relative_to(ROOT))], cwd=ROOT, capture_output=True, text=True)
+    if split == "train" and count == 5000:
+        labels = manifest.get("labels", {})
+        if labels.get("select", 0) < 3500 or labels.get("no_match", 0) < 1000 or labels.get("ambiguous", 0) + labels.get("insufficient_context", 0) < 500 or len(manifest.get("families", {})) < 40:
+            return {"status": "waiting_for_pilot_strata", "committed_rows": manifest["episodes"], "labels": labels}
+    result = subprocess.run([sys.executable, "-m", "data_tools.freeze", "--split", split, "--count", str(count), "--source", f"data/{split}.accepted.jsonl", "--output", str(destination.relative_to(ROOT))], cwd=ROOT, capture_output=True, text=True)
     with (run_dir / "freeze.log").open("a") as stream:
         stream.write(json.dumps({"time": utc_now(), "split": split, "count": count, "exit_code": result.returncode, "stdout": result.stdout, "stderr": result.stderr}, ensure_ascii=False) + "\n")
     return {"status": "frozen" if result.returncode == 0 else "validation_failed", "path": str(destination.relative_to(ROOT)), "detail": result.stderr[-1000:] if result.returncode else ""}
@@ -123,6 +151,7 @@ def main():
         status = {"updated_at": utc_now(), "prompt_version": PROMPT_VERSION, "elapsed_seconds": round(elapsed, 1), "account_rate_state": account_status, "splits": {}}
         for split, tracker in trackers.items():
             progress = tracker.read()
+            tracker.publish_pool()
             gained = progress["accepted_including_partial_batches"] - initial_counts[split]
             rate = gained / elapsed if gained > 0 else 0.0
             remaining = max(0, targets[split] - progress["accepted_including_partial_batches"])

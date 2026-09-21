@@ -25,12 +25,42 @@ def publish_bytes(path, payload):
     temporary.replace(path)
 
 
+def choose_pilot(episodes, families):
+    """Take exact action strata while spreading each stratum across families."""
+    buckets = {"select": {}, "no_match": {}, "missing_context": {}}
+    for episode in sorted(episodes, key=lambda episode: sha256(episode["id"].encode())):
+        label = episode["label"]
+        bucket = "select" if label["decision"] == "select" else "no_match" if label["abstain_reason"] == "no_match" else "missing_context"
+        buckets[bucket].setdefault(episode["family_id"], []).append(episode)
+    selected = []
+    for bucket, count in (("select", 3500), ("no_match", 1000), ("missing_context", 500)):
+        groups = buckets[bucket]
+        remaining = count
+        index = 0
+        while remaining:
+            added = False
+            for family in sorted(families):
+                candidates = groups.get(family, [])
+                if index < len(candidates):
+                    selected.append(candidates[index])
+                    remaining -= 1
+                    added = True
+                    if not remaining:
+                        break
+            if not added:
+                raise ValueError(f"Pilot needs {count} independently labeled {bucket} episodes")
+            index += 1
+    if {episode["family_id"] for episode in selected} != set(families):
+        raise ValueError("Pilot must cover every frozen Train conceptual family")
+    return selected
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--count", type=int, required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--source", help="Optional explicitly reviewed Train/Dev engineering seed")
+    parser.add_argument("--source", help="Reviewed engineering seed or the owning split's accepted partial-batch pool")
     parser.add_argument("--overfit", action="store_true")
     parser.add_argument("--tokenizer", default=str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
@@ -42,8 +72,10 @@ def main():
     source = ROOT / "data" / f"{args.split}.jsonl"
     if args.source:
         source = (ROOT / args.source).resolve()
-        if not args.overfit or args.split != "train" or not source.is_relative_to(ROOT / "local") or not source.name.startswith("train_"):
-            raise SystemExit("Alternate input is limited to a local, reviewed Train engineering seed")
+        engineering_source = args.overfit and args.split == "train" and source.is_relative_to(ROOT / "local") and source.name.startswith("train_")
+        accepted_pool = not args.overfit and source == ROOT / "data" / f"{args.split}.accepted.jsonl"
+        if not (engineering_source or accepted_pool):
+            raise SystemExit("Alternate input must be a reviewed Train seed or the owning split's accepted pool")
     payload = source.read_bytes()
     episodes = [json.loads(line) for line in payload.splitlines()]
     if len(episodes) < args.count:
@@ -88,7 +120,7 @@ def main():
             raise ValueError("The pilot is not an unchanged subset of the full training pool")
         pilot_proof = {"path": str(pilot_path.relative_to(ROOT)), "episodes": len(pilot), "sha256": sha256(pilot_bytes), "unchanged_subset": True}
     episodes.sort(key=lambda episode: sha256(episode["id"].encode()))
-    chosen = []
+    chosen = choose_pilot(episodes, allowed_families) if args.split == "train" and args.count == 5000 and not args.overfit else []
     if args.overfit:
         # Include a multi-positive episode and every available abstention reason,
         # then mix across families. This is training-data selection, not an eval.

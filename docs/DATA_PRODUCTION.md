@@ -109,6 +109,15 @@ backoff, reports accepted/rejected counts, actual request usage and observed-rat
 ETA, and freezes the 5k pilot, 20k Train and 1k Dev snapshots as each becomes ready.
 It does not stop at the pilot quota. `local/production-v3/progress.json` is the
 latest aggregate status; JSONL progress and process logs retain its history.
+Completed, fully reviewed slots from partial batches enter a separate
+`data/train.accepted.jsonl` or `data/dev.accepted.jsonl` pool, so an unfinished
+peer does not delay their availability. The pilot selects exactly 3,500 select,
+1,000 no-match and 500 missing-context/ambiguity episodes, spreads selection
+across the 40 Train families and checks that all families occur. Frozen
+production snapshots require at least half of selectable cases to have a
+same-kind negative; their observed 70/20/10 fractions must be within 2.5
+percentage points of the target. These gates do not apply to the intentionally
+nonrepresentative 32-row engineering seed.
 
 Each completed batch is resumable, and partial accepted rows and repair counters
 survive failures. Generation and freezing use one candidate-ID/order-independent
