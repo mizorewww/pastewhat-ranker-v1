@@ -1,0 +1,49 @@
+{
+  "version": "pastewhat-run-plan-v1",
+  "run_id": "ranker-v1-efficient-20260921",
+  "split_targets": {
+    "train": 20000,
+    "dev": 2000,
+    "calibration": 2000,
+    "test": 3000
+  },
+  "pilot_episodes": 5000,
+  "hardening": {
+    "pool_episodes": 10000,
+    "review_nominations": 6000,
+    "accepted_new": 5000,
+    "retained_original": 5000
+  },
+  "training_seeds": [
+    42,
+    43,
+    44
+  ],
+  "epochs": {
+    "pilot": 2,
+    "main": 2,
+    "hardening": 1
+  },
+  "head_warmup_steps": 200,
+  "effective_batch_episodes": 16,
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "teacher_contract_version": "teacher-episodes-v7-batched-decisions",
+  "registration_reason": "The user clarified100k was illustrative and requested the suitable pretrained-ranker scale. Start with20k main Train and5k targeted hard examples; diagnose a5k/10k/20k learning curve on fixed Dev and expand only on meaningful Dev benefit. Efficient batched data production replaces repeated full audits. Existing smaller run is preserved as superseded engineering history; no formal model or Test score is reused.",
+  "registered_at": "2026-09-21T04:17:43.576622+00:00",
+  "cost_evidence": [
+    {
+      "path": "reports/data/sample-size-decision.json",
+      "sha256": "27d0e027553c9a9b23286e670e04e6362b24ce09f93f3b085b2dc1b3369bce81"
+    }
+  ],
+  "quality_gates": {
+    "recommendation_precision": 0.95,
+    "minimum_calibration_recommendations": 25,
+    "top1_improvement": 0.05,
+    "maximum_group_regression": 0.05,
+    "minimum_answerable_per_test_family": 30,
+    "minimum_dev_group_episodes": 20
+  },
+  "diagnostic_episodes": 10000
+}

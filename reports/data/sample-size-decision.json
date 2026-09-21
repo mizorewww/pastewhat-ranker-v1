@@ -1,0 +1,112 @@
+{
+  "version": "pastewhat-sample-size-decision-v1",
+  "created_at": "2026-09-21T04:17:43.576622+00:00",
+  "status": "planning_estimate_not_measured_optimum",
+  "parameters": {
+    "encoder": 306939648,
+    "word_embeddings": 196608000,
+    "encoder_except_word_embeddings": 110331648,
+    "new_heads": 591106,
+    "total": 307530754
+  },
+  "model_context": "Full fine-tuning of a pretrained multilingual encoder, not from-scratch language-model pretraining.",
+  "assumptions": {
+    "mean_candidates_per_episode": 10.5,
+    "full_encoder_epochs": 2,
+    "effective_batch_episodes": 16,
+    "train_operation_families": 40,
+    "pilot_is_subset_of_main": true
+  },
+  "scenarios": [
+    {
+      "train_episodes": 5000,
+      "pairs_per_epoch": 52500,
+      "pair_presentations_two_epochs": 105000,
+      "full_encoder_updates_per_seed": 626,
+      "mean_episodes_per_train_family": 125.0
+    },
+    {
+      "train_episodes": 10000,
+      "pairs_per_epoch": 105000,
+      "pair_presentations_two_epochs": 210000,
+      "full_encoder_updates_per_seed": 1250,
+      "mean_episodes_per_train_family": 250.0
+    },
+    {
+      "train_episodes": 20000,
+      "pairs_per_epoch": 210000,
+      "pair_presentations_two_epochs": 420000,
+      "full_encoder_updates_per_seed": 2500,
+      "mean_episodes_per_train_family": 500.0
+    },
+    {
+      "train_episodes": 50000,
+      "pairs_per_epoch": 525000,
+      "pair_presentations_two_epochs": 1050000,
+      "full_encoder_updates_per_seed": 6250,
+      "mean_episodes_per_train_family": 1250.0
+    },
+    {
+      "train_episodes": 100000,
+      "pairs_per_epoch": 1050000,
+      "pair_presentations_two_epochs": 2100000,
+      "full_encoder_updates_per_seed": 12500,
+      "mean_episodes_per_train_family": 2500.0
+    }
+  ],
+  "selected_initial_targets": {
+    "train": 20000,
+    "dev": 2000,
+    "calibration": 2000,
+    "test": 3000,
+    "accepted_new_hard_examples": 5000
+  },
+  "unique_release_data_target": 32000,
+  "hard_pool_proposals_are_additional": true,
+  "learning_curve": {
+    "subsets": [
+      5000,
+      10000,
+      20000
+    ],
+    "fixed_dev": 2000,
+    "diagnostic_seed": 42,
+    "from_same_encoder_initialization": true,
+    "same_training_hyperparameters": true,
+    "test_used": false,
+    "interpretation": "Choose further scale using consistent Dev ranking/abstention improvement and new coverage; 50k/100k are not predetermined success requirements. Three seeds are used for the final main scale."
+  },
+  "coverage_rationale": "20k averages500 episodes per training family, including70% select/20% no_match/10% missing or ambiguous intent. Diversity of independent mother tasks matters more than repeated entities or permutations.",
+  "existing_throughput_limit": "Only16 engineering episodes,97pairs,mean78.25tokens and6.06candidates were measured; no full-corpus training ETA is inferred.",
+  "efficiency_change": "Replace exhaustive four-pass labeling of every proposal with batched authorship, native preprocessing, one independent compact label pass, programmatic validation, and sampled/uncertain-case secondary review. Retain independent partition owners.",
+  "sources": [
+    {
+      "url": "https://huggingface.co/jhu-clsp/mmBERT-base",
+      "supports": "307M total,110M nonembedding pretrained encoder; not a sample-size law."
+    },
+    {
+      "url": "https://arxiv.org/html/2301.01820v4",
+      "supports": "InPars-v2 demonstrates domain reranker adaptation using10k synthetic positive and10k negative text pairs per collection; different task/model, no claim that this directly establishes PasteWhat optimum."
+    },
+    {
+      "url": "https://sbert.net/docs/cross_encoder/training_overview.html",
+      "supports": "Cross-encoder fine tuning with hard negatives and independent reranking evaluation; examples do not determine the optimal PasteWhat sample count."
+    }
+  ],
+  "previous_registered_run": {
+    "run_id": "ranker-v1-local-20260921",
+    "plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+    "status": "superseded_before_formal_training_or_test_scoring",
+    "retained_formal_rows_at_stop": {
+      "train": 39,
+      "dev": 9,
+      "calibration": 2,
+      "test": 10
+    }
+  },
+  "no_claims": [
+    "No actual20k/32k corpus yet.",
+    "No formal training or Test accuracy yet.",
+    "No universal optimal sample count can be derived from parameter count alone."
+  ]
+}

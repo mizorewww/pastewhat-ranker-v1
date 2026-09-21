@@ -102,7 +102,7 @@ class RunPlan:
     def data_path(self, stage: str) -> Path:
         if stage in {"calibration", "test"}:
             return Path("local/evaluator-heldout") / self.run_id / f"{stage}.jsonl"
-        names = {"pilot": "pilot-train.jsonl", "train": "train.jsonl", "dev": "dev.jsonl",
+        names = {"pilot": "pilot-train.jsonl", "diagnostic": "diagnostic-train.jsonl", "train": "train.jsonl", "dev": "dev.jsonl",
                  "hardening": "hardening-train.jsonl"}
         return Path("data/frozen") / self.run_id / names[stage]
 
@@ -126,7 +126,9 @@ def load_run_plan(path: str | Path, *, verify_sources: bool = True) -> RunPlan:
                 "epochs", "head_warmup_steps", "effective_batch_episodes", "family_partition_sha256",
                 "projection_provenance_sha256", "teacher_contract_version", "registration_reason",
                 "registered_at", "cost_evidence", "quality_gates"}
-    if not isinstance(document, dict) or set(document) != required:
+    optional = {"diagnostic_episodes"}
+    if (not isinstance(document, dict) or not required <= set(document)
+            or set(document) - required - optional):
         raise ValueError("Run plan fields differ from the registered schema")
     if document["version"] != "pastewhat-run-plan-v1" or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", document["run_id"]):
         raise ValueError("Invalid run plan version or identity")
@@ -137,6 +139,10 @@ def load_run_plan(path: str | Path, *, verify_sources: bool = True) -> RunPlan:
         _positive(count, split)
     if _positive(document["pilot_episodes"], "pilot episodes") > targets["train"]:
         raise ValueError("Pilot must fit inside the registered main Train set")
+    if "diagnostic_episodes" in document:
+        diagnostic = _positive(document["diagnostic_episodes"], "diagnostic episodes")
+        if not document["pilot_episodes"] < diagnostic < targets["train"]:
+            raise ValueError("The optional learning-curve subset must lie between pilot and main Train")
     hard = document["hardening"]
     if not isinstance(hard, dict) or set(hard) != {"pool_episodes", "review_nominations", "accepted_new", "retained_original"}:
         raise ValueError("Hard pool, nominations and accepted mixture are distinct quantities")
@@ -180,4 +186,6 @@ def load_run_plan(path: str | Path, *, verify_sources: bool = True) -> RunPlan:
         for split, count in targets.items():
             action_quotas(family_quotas(partition, split, count))
         action_quotas(family_quotas(partition, "train", document["pilot_episodes"]))
+        if "diagnostic_episodes" in document:
+            action_quotas(family_quotas(partition, "train", document["diagnostic_episodes"]))
     return RunPlan(path, digest(path), document)

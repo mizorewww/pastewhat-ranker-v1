@@ -31,17 +31,19 @@ Inputs contain `applicationCategory`, observable focused-field metadata, selecte
 
 The shared [preprocessor](src/pastewhat_ranker/preprocess.py) budgets each pair to at most 1,024 tokens: 448 context, 512 candidate text, and 64 metadata/special tokens. Synthetic contexts first pass through the [actual production Swift projection](tools/context_projection/README.md), then token budgeting, **then** blind teacher labeling. The teacher cannot use evidence that was truncated away from the student.
 
-Three agents own separate work streams: Train/Dev data; model training/export; and Calibration/Test/evaluation. Conceptual families are assigned before generation. Paraphrases, entity substitutions, counterfactuals and permutations remain within a partition. The training code never inspects Calibration/Test. Accepted examples require two blind label passes with reordered/reidentified candidates, an independent family/deployment review, and programmatic schema/budget checks. Teacher disagreements are quarantined or regenerated, not silently declared correct. This is agent/teacher review, **not human validation**.
+Three agents own separate work streams: Train/Dev data; model training/export; and Calibration/Test/evaluation. Conceptual families are assigned before generation. Paraphrases, entity substitutions, counterfactuals and permutations remain within a partition. The training code never inspects Calibration/Test. The efficient production protocol uses batched authorship followed by native projection, token budgeting and one independent compact blind-label pass. Programmatic checks precede labeling. A preselected 10% sample and uncertain cases receive an additional blind review; manifests distinguish single-pass and reviewed examples. Retries are bounded and disagreements are quarantined rather than silently declared correct. This is agent/teacher review, **not human validation**.
 
 | Partition / stage | Target episodes | Purpose |
 |---|---:|---|
-| Train | 1,000 | Weight updates, including a frozen 500-example pilot subset |
-| Dev | 200 | Checkpoint and training decisions |
-| Calibration | 400 | Separate 200-example fit and 200-example threshold selection |
-| Test | 600 | Final frozen paired evaluation only |
-| Hard-example round | 250 new + 250 original | One additional training round, accepted on Dev evidence |
+| Train | 20,000 | Weight updates; nested 5k and 10k subsets measure the learning curve |
+| Dev | 2,000 | Checkpoint and training decisions |
+| Calibration | 2,000 | Separate 1,000-example fit and 1,000-example threshold selection |
+| Test | 3,000 | Final frozen paired evaluation only |
+| Hard-example round | 5,000 new + 5,000 original | One additional training round, accepted on Dev evidence |
 
-These are the registered targets for `ranker-v1-local-20260921`, not completed data counts. [The immutable run plan](configs/run_plan.json) records the exact scope and quality gates. The initial proposal suggested 20,000 Train episodes; measured teacher cost and accepted-example yield motivated this explicitly smaller first run before formal data production or student evaluation. All 68 conceptual families remain allocated, and the Test schedule provides 50 episodes per family, including 35 selectable episodes. Quality gates were not relaxed; a group with insufficient actual evidence remains inconclusive. Frozen manifests record actual accepted counts, hashes, distribution, lineage, audit coverage and the absence of human validation. Model inference failures remain visible in evaluation denominators.
+These are targets for `ranker-v1-efficient-20260921`, not completed counts. The unique main/release target is 32,000 episodes, including 5,000 new hard examples; pilot subsets and reused original examples are not counted twice. The larger hard-mining proposal pool is separate. [The immutable run plan](configs/run_plan_efficient.json) and [sample-size rationale](reports/data/sample-size-decision.json) record the scope. 20k is a practical starting estimate for adapting the pretrained 307M encoder, not a measured optimum. Expansion to 50k depends on meaningful fixed-Dev learning-curve improvements and added task coverage, never final Test scores.
+
+The earlier 1,000/200/400/600 run is preserved in [its original plan](configs/run_plan.json). It was superseded before formal training or Test scoring after costly authoring/labeling iterations; its remaining 39/9/2/10 rows are historical engineering data and do not count toward the new run. All 68 conceptual families remain allocated. The new Test target is 250 episodes per family, with 175 scheduled selectable cases. Quality gates remain unchanged; inadequate group evidence is reported as inconclusive. Frozen manifests record actual accepted counts, hashes, lineage, audit coverage and the absence of human validation. Model inference failures remain visible in evaluation denominators.
 
 ## Reproduce the engineering setup
 
@@ -61,10 +63,12 @@ The first actual full-encoder engineering run has passed: 32 independently revie
 Training stages are described by [overfit](configs/overfit.yaml), [pilot](configs/pilot.yaml), [main](configs/main.yaml) and [hardening](configs/hardening.yaml) configurations. The pipeline waits for independently reviewed immutable Train/Dev snapshots:
 
 ```bash
-uv run python scripts/train_pipeline.py --run-plan configs/run_plan.json
+uv run python scripts/train_pipeline.py --run-plan configs/run_plan_efficient.json
 ```
 
-It measures practical micro-batch sizes while preserving the effective episode batch, checks overfitting on 32 reviewed training examples, runs the registered 500-episode pilot, reinitializes for 1,000-episode main runs with seeds 42/43/44, and selects only on Dev. Each main seed has separately initialized new task heads with exactly the same upstream encoder weights; see [seed provenance](reports/training/seed-initializations.json). A new 500-episode training pool supplies up to 400 nominations for blind review; the hard-example round requires 250 accepted new episodes mixed with 250 original Train episodes. The pipeline then exports the Dev-selected candidate and stops at the independent calibration handoff. Progress, source/data hashes, RNG state and optimizer checkpoints allow recovery. Every formal snapshot and stage is bound to the same run-plan hash, so a partial dataset cannot silently satisfy a stage. GPU work runs serially.
+The existing 32-episode full-encoder overfit proof is retained. The pipeline measures practical micro-batch sizes on representative new Train data, runs the 5k pilot and 10k diagnostic from identical seed 42 initialization, then independently initializes 20k main runs for seeds 42/43/44. A fixed Dev set measures the 5k/10k/20k learning curve; final checkpoint selection uses Dev only. Each seed has separately initialized task heads and identical upstream encoder weights; see [seed provenance](reports/training/seed-initializations.json).
+
+A new 10,000-episode training pool supplies up to 6,000 nominations for blind review. The hard-example round requires 5,000 accepted new episodes mixed with 5,000 original Train episodes. The pipeline exports the Dev-selected candidate and stops at the independent calibration handoff. Progress, source/data hashes, RNG state and optimizer checkpoints support recovery. Every formal snapshot and stage is bound to one run-plan hash; a partial dataset cannot satisfy a full stage. GPU work runs serially.
 
 `uv run python -m tools.mine_training_pool --help` describes the later Train-only hard-example proposal tool. It rejects reused original examples, binds inference to the Dev-selected v0, and prioritizes disagreements and close decisions for **blind teacher review**. A disagreement is not automatically labeled as a student error, and its output cannot be used as a frozen training snapshot.
 
