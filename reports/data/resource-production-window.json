@@ -1,0 +1,343 @@
+{
+  "completed_batches": 22,
+  "cost": {
+    "by_phase": {
+      "v7-author": {
+        "completion_tokens": 54112,
+        "observed_response_records": 33,
+        "prompt_tokens": 42791,
+        "total_tokens": 96903
+      },
+      "v7-label": {
+        "completion_tokens": 20416,
+        "observed_response_records": 34,
+        "prompt_tokens": 143005,
+        "total_tokens": 163421
+      },
+      "v7-sampled-or-risk-review": {
+        "completion_tokens": 1503,
+        "observed_response_records": 2,
+        "prompt_tokens": 6121,
+        "total_tokens": 7624
+      }
+    },
+    "by_response_model": {
+      "swe-2-high": {
+        "completion_tokens": 1503,
+        "observed_response_records": 2,
+        "prompt_tokens": 6121,
+        "total_tokens": 7624
+      },
+      "swe-2-medium": {
+        "completion_tokens": 74528,
+        "observed_response_records": 67,
+        "prompt_tokens": 185796,
+        "total_tokens": 260324
+      }
+    },
+    "in_flight_with_lease": 8,
+    "incomplete_attempts": 8,
+    "known_tokens_per_new_accepted": 1288.2115384615386,
+    "known_usage": {
+      "completion_tokens": 76031,
+      "prompt_tokens": 191917,
+      "records_without_reasoning_breakdown": 69,
+      "total_tokens": 267948
+    },
+    "observed_response_records": 69,
+    "request_statuses": {
+      "request_started": 8,
+      "success": 69
+    },
+    "terminal_unknown_usage_attempts": 0,
+    "unique_process_attempts": 77
+  },
+  "earlier_6_slot_window": {
+    "comparison_note": "Different source cohorts, cache reuse and queue carry-in; descriptive operational comparison, not a controlled claim of causal speedup.",
+    "known_tokens_per_new_accepted": 1549.5084033613446,
+    "new_accepted_per_minute": 18.99096656507213,
+    "observed_rate_ratio": 2.438440319615718,
+    "path": "reports/data/pi-initial-production-window.json",
+    "sha256": "3479241881cffc9f3d78ac4702f64131a1a9838ac4d2919e33a7a736113e47b1"
+  },
+  "early_throughput_snapshot_ready": false,
+  "elapsed_seconds": 269.4979,
+  "limitations": [
+    "Acceptance and production throughput are not model accuracy or generalization.",
+    "All observed window attempts are counted, including rejected responses and work in unfinished batches. In-flight final usage is not yet observed.",
+    "Rejected events may overlap a single slot; replacements preserve labels and create new registered source situations.",
+    "Provider-reported token totals do not establish monetary billing; reasoning breakdown is unknown.",
+    "Existing earlier successful audits and baseline row bytes were checked without rewriting them."
+  ],
+  "local_concurrency": {
+    "blocked_until_external_change": false,
+    "cooldown_until": 1789974809.407821,
+    "http_error_counts": {},
+    "in_flight": 12,
+    "max_in_flight": 12,
+    "paused": false,
+    "pi_failure_counts": {
+      "transient_transport": 1
+    },
+    "reason": null,
+    "remaining_seconds": 0,
+    "resource_activation": {
+      "activated_max_in_flight": 12,
+      "at": 1789975763.1650848,
+      "operator_drain_token": "b29fc23519b94683a53e2bce170d1dce",
+      "previous_max_in_flight": 6,
+      "provider_cooldown_preserved": true,
+      "resource_supplement": {
+        "path": "configs/resource_supplement_swe2.json",
+        "sha256": "d5d0ec49b921371987e7e8dab712aeba394d5912f361baa852f5f70e09c8402f"
+      }
+    }
+  },
+  "new_accepted": 208,
+  "new_accepted_per_minute": 46.3083385807459,
+  "preceding_fetch_failed_unknown_attempt_outside_this_window": {
+    "attempt_id": "61199cb7f37a4b3a8d0a2bf9b80d0524",
+    "audit_id": "0f168a124d65be2a1d8725843bf69dc6e8b58afac9b55f1fe1ce8beaf9f67146",
+    "first_window_includes_attempt": false,
+    "http_429_observed": false,
+    "observed_at": "2026-09-21T07:12:29.407816+00:00",
+    "provider_error_messages": [
+      "fetch failed",
+      "fetch failed",
+      "fetch failed",
+      "Only one provider completion is allowed per teacher process",
+      "Only one provider completion is allowed per teacher process",
+      "Only one provider completion is allowed per teacher process"
+    ],
+    "raw_event_file": {
+      "path": "local/v7/ranker-v1-efficient-20260921/teacher/train/pi-events/0f168a124d65be2a1d8725843bf69dc6e8b58afac9b55f1fe1ce8beaf9f67146/61199cb7f37a4b3a8d0a2bf9b80d0524/events.jsonl",
+      "sha256": "c1c0511b8b285f1e35e21725c70a9ed53b350db84dfa5be4b29e75b5d1c8960a"
+    },
+    "recorded_at": "2026-09-21T07:25:31.260560+00:00",
+    "recovery": "60-second bounded local transport backoff; later same request succeeded",
+    "source": "real Train provider attempt before resource upgrade",
+    "usage_known": false
+  },
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "Owned Train/Dev only; no Calibration/Test content or raw audit access.",
+  "snapshot_file_sha256": {
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/attempt-ledger.json": "345f2ec46c2ef2f64410572b8295e4dce7f236f316f248ed5eb427f7d1fac62c",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/dev-accepted-rows.json": "6fa0f4891931ce8529f37b01c312c09ea09edc3b3b060c992bb69ad4612b30e9",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/dev-batch-records.json": "1bc9a646c78ba888e0814995dfeaf0f08b1214180a566d8adb65ff6caaeb7fac",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/dev-window-audits.json": "e4e934daa13af8f0a6e137c32ff548e41c5e32d0047e182aa3d2b7a2843b83e0",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/pending-attempts.json": "3a0e10cb1fbc81a3e4d5e833d57b48c95e219f533b162ce7436290fa0d98a8fa",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/train-accepted-rows.json": "2eeb940b4a0b4170c118d88d3cc17dcd4aa6de4b3229c3f8918b1a20104597b1",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/train-batch-records.json": "039e55bf8b4ab68044d77a33aeae99ab8884bdb052bf10bebc4a75d21266a2ca",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/train-window-audits.json": "29fed2bac923e1ac6de423e27dd742fd832ab86c629b05ae9978baddb92cb82f",
+    "local/v7/ranker-v1-efficient-20260921/resource-production-window/unknown-attempts.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "splits": {
+    "dev": {
+      "baseline_accepted": 198,
+      "carry_in_batches_completed": 0,
+      "current_accepted": 256,
+      "frozen_ready": false,
+      "new_accepted_ids": 58,
+      "new_accepted_per_minute": 12.912902104246452,
+      "new_actions": {
+        "insufficient_context": 5,
+        "no_match": 11,
+        "select": 42
+      },
+      "new_candidate_counts_by_action": {
+        "abstain": {
+          "1": 1,
+          "3": 2,
+          "4": 1,
+          "6": 1,
+          "8": 1,
+          "10": 1,
+          "11": 1,
+          "13": 1,
+          "14": 1,
+          "15": 2,
+          "16": 2,
+          "17": 1,
+          "19": 1
+        },
+        "select": {
+          "1": 2,
+          "3": 3,
+          "4": 1,
+          "5": 2,
+          "6": 1,
+          "7": 2,
+          "8": 2,
+          "9": 3,
+          "10": 1,
+          "12": 2,
+          "13": 5,
+          "14": 2,
+          "15": 4,
+          "16": 2,
+          "18": 2,
+          "19": 5,
+          "20": 3
+        }
+      },
+      "new_complete_batches": 5,
+      "new_quality_paths": {
+        "single_pass": 58
+      },
+      "new_select_all_positive": 2,
+      "new_select_mean_acceptable_fraction": 0.27467747895379474,
+      "new_selected_exact_positive": 0,
+      "new_selected_nonempty": 16,
+      "new_situation_accepted": 49,
+      "new_situation_batches_completed": 5,
+      "new_situation_planned_slots": 50,
+      "new_situation_rejection_events": {
+        "Actual candidate list must contain1–20 complete entries": 1,
+        "Independent action does not match the registered sampling bucket": 3
+      },
+      "retired_baseline_ids": [],
+      "role_sources": {
+        "author": [
+          {
+            "episodes": 8,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "cached_before_window"
+          },
+          {
+            "episodes": 50,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "new_in_window"
+          }
+        ],
+        "primary": [
+          {
+            "episodes": 58,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "new_in_window"
+          }
+        ]
+      },
+      "target": 2000,
+      "unchanged_baseline_rows_present": 198,
+      "unchanged_successful_cache_audits": 77
+    },
+    "train": {
+      "baseline_accepted": 698,
+      "carry_in_batches_completed": 2,
+      "current_accepted": 848,
+      "frozen_ready": false,
+      "new_accepted_ids": 150,
+      "new_accepted_per_minute": 33.39543647649944,
+      "new_actions": {
+        "ambiguous": 3,
+        "insufficient_context": 11,
+        "no_match": 31,
+        "select": 105
+      },
+      "new_candidate_counts_by_action": {
+        "abstain": {
+          "1": 5,
+          "2": 3,
+          "3": 2,
+          "4": 1,
+          "5": 1,
+          "6": 3,
+          "7": 4,
+          "8": 4,
+          "9": 2,
+          "10": 3,
+          "11": 2,
+          "12": 4,
+          "13": 2,
+          "14": 1,
+          "15": 2,
+          "16": 2,
+          "17": 2,
+          "18": 1,
+          "19": 1
+        },
+        "select": {
+          "1": 9,
+          "2": 5,
+          "3": 10,
+          "4": 10,
+          "5": 7,
+          "6": 3,
+          "7": 6,
+          "8": 5,
+          "9": 5,
+          "10": 1,
+          "11": 2,
+          "12": 5,
+          "13": 4,
+          "14": 4,
+          "15": 10,
+          "16": 3,
+          "17": 3,
+          "18": 4,
+          "19": 3,
+          "20": 6
+        }
+      },
+      "new_complete_batches": 17,
+      "new_quality_paths": {
+        "sampled_reviewed": 10,
+        "single_pass": 140
+      },
+      "new_select_all_positive": 11,
+      "new_select_mean_acceptable_fraction": 0.3658836171363814,
+      "new_selected_exact_positive": 0,
+      "new_selected_nonempty": 36,
+      "new_situation_accepted": 146,
+      "new_situation_batches_completed": 15,
+      "new_situation_planned_slots": 150,
+      "new_situation_rejection_events": {
+        "Actual candidate list must contain1–20 complete entries": 2,
+        "Independent action does not match the registered sampling bucket": 14
+      },
+      "retired_baseline_ids": [],
+      "role_sources": {
+        "author": [
+          {
+            "episodes": 12,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "cached_before_window"
+          },
+          {
+            "episodes": 138,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "new_in_window"
+          }
+        ],
+        "primary": [
+          {
+            "episodes": 150,
+            "provider": "devin",
+            "response_model": "swe-2-medium",
+            "timing": "new_in_window"
+          }
+        ],
+        "review": [
+          {
+            "episodes": 10,
+            "provider": "devin",
+            "response_model": "swe-2-high",
+            "timing": "new_in_window"
+          }
+        ]
+      },
+      "target": 5000,
+      "unchanged_baseline_rows_present": 698,
+      "unchanged_successful_cache_audits": 288
+    }
+  },
+  "version": "pastewhat-resource-production-window-v1",
+  "window_end": "2026-09-21T07:35:18.976008+00:00",
+  "window_start": "2026-09-21T07:30:49.478108+00:00"
+}
