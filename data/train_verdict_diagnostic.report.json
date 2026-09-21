@@ -1,0 +1,99 @@
+{
+  "created_at": "2026-09-21T02:50:37.887680+00:00",
+  "limits": "Two targeted engineering failures only; no general teacher-quality equivalence claim. All raw responses, including malformed JSON, retained. No answer hints sent to teacher.",
+  "phases": [
+    {
+      "audit_id": "bd079546697d0b6a5369b19233313c56e555892bfb0aae8b7c411b18ccc901ec",
+      "phase": "original",
+      "prior_failures": [
+        "Teacher completion was not valid JSON"
+      ],
+      "rows": [
+        {
+          "diagnostic": "underspecified output-format exclusion",
+          "id": "train-main-v5-git_diff_selection-00000",
+          "label": {
+            "abstain_reason": null,
+            "acceptable_ids": [
+              "c8"
+            ],
+            "decision": "select"
+          },
+          "required_equivalents_found": false
+        },
+        {
+          "diagnostic": "equal patch stdout with unrequested exit-status difference",
+          "id": "train-main-v5-git_diff_selection-00004",
+          "label": {
+            "abstain_reason": null,
+            "acceptable_ids": [
+              "c8",
+              "c12"
+            ],
+            "decision": "select"
+          },
+          "required_equivalents_found": true
+        }
+      ],
+      "usage": {
+        "cached_tokens": 2048,
+        "completion_tokens": 5765,
+        "completion_tokens_details": {
+          "reasoning_tokens": 5078
+        },
+        "prompt_tokens": 2255,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048
+        },
+        "total_tokens": 8020
+      }
+    },
+    {
+      "audit_id": "cf398421812afcec4cf0c5b869a5cd6d3a8b00651f2f49abd3d0ad58be34e931",
+      "phase": "permuted",
+      "prior_failures": [],
+      "rows": [
+        {
+          "diagnostic": "underspecified output-format exclusion",
+          "id": "train-main-v5-git_diff_selection-00000",
+          "label": {
+            "abstain_reason": null,
+            "acceptable_ids": [
+              "c8"
+            ],
+            "decision": "select"
+          },
+          "required_equivalents_found": false
+        },
+        {
+          "diagnostic": "equal patch stdout with unrequested exit-status difference",
+          "id": "train-main-v5-git_diff_selection-00004",
+          "label": {
+            "abstain_reason": null,
+            "acceptable_ids": [
+              "c8",
+              "c12"
+            ],
+            "decision": "select"
+          },
+          "required_equivalents_found": true
+        }
+      ],
+      "usage": {
+        "cached_tokens": 768,
+        "completion_tokens": 1698,
+        "completion_tokens_details": {
+          "reasoning_tokens": 985
+        },
+        "prompt_tokens": 2225,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "total_tokens": 3923
+      }
+    }
+  ],
+  "protocol": "independent-candidate-verdicts-v1",
+  "source": "Train-only already rejected v5 diagnostic; never counted as new training data",
+  "source_sha256": "f29057c32260b77900a1fe2605385a24e3fae654e355b5415968319112a0dca3"
+}
