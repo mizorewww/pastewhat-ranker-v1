@@ -40,6 +40,24 @@ def load_jsonl(path: str | Path) -> list[dict]:
     return rows
 
 
+def validate_formal_heldout_allocation(episodes: list[dict], split: str, partition: dict) -> dict:
+    """Only complete preregistered heldout allocations qualify for formal scoring."""
+    if split not in {"calibration", "test"}:
+        raise ValueError("Formal heldout allocation is only Calibration or Test")
+    families = partition["families"][split]
+    expected_count = 8 if split == "calibration" else 12
+    if len(families) != expected_count:
+        raise ValueError("Conceptual family partition differs from preregistered allocation")
+    expected = {family["id"]: 125 if split == "calibration" else 167 if index < 8 else 166
+                for index, family in enumerate(families)}
+    if any(episode.get("split") != split for episode in episodes):
+        raise ValueError("Heldout rows contain a different split")
+    observed = dict(Counter(episode["family_id"] for episode in episodes))
+    if observed != expected or len({episode["id"] for episode in episodes}) != len(episodes):
+        raise ValueError("Formal heldout data must contain the complete unique preregistered family allocation")
+    return {"split": split, "episodes": len(episodes), "families": observed}
+
+
 def verify_score_run(path: Path, *, dataset: Path, split: str, protocol: str, freeze: Path | None = None) -> dict:
     """Reject stale, partial, differently scoped, or unbound scoring artifacts."""
     manifest_path = path.parent / "run-manifest.json"

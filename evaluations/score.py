@@ -11,7 +11,7 @@ import selectors
 import subprocess
 import time
 
-from evaluations.common import inference_request, load_jsonl, score_features, sha256, write_json
+from evaluations.common import inference_request, load_jsonl, score_features, sha256, validate_formal_heldout_allocation, write_json
 from evaluations.freeze import verify_freeze
 
 
@@ -157,6 +157,9 @@ def main():
     episodes = load_jsonl(args.data)
     if args.split != "regression" and any(row.get("split") != args.split for row in episodes):
         raise SystemExit("Dataset split disagrees with requested inference phase")
+    if args.split != "regression":
+        partition = Path(frozen["inputs"]["family_partition"]["path"]) if frozen else Path("data_tools/family_partition.json")
+        validate_formal_heldout_allocation(episodes, args.split, json.loads(partition.read_text()))
     command = json.loads(args.command_json)
     if not isinstance(command, list) or not command or any(not isinstance(item, str) for item in command):
         raise SystemExit("Expected a JSON array of command arguments")

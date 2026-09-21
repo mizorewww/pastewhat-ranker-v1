@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 
-from evaluations.common import sha256, write_json
+from evaluations.common import load_jsonl, sha256, validate_formal_heldout_allocation, write_json
 
 
 def directory_hashes(root: Path) -> dict[str, str]:
@@ -50,6 +50,8 @@ def main():
     parser.add_argument("--test", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
     parser.add_argument("--calibrator", type=Path, required=True)
+    parser.add_argument("--calibration-audit", type=Path, default=Path("reports/data-calibration-audit.json"))
+    parser.add_argument("--test-audit", type=Path, default=Path("reports/data-test-audit.json"))
     parser.add_argument("--preprocess-source", type=Path, default=Path("src/pastewhat_ranker/preprocess.py"))
     parser.add_argument("--family-partition", type=Path, default=Path("data_tools/family_partition.json"))
     parser.add_argument("--authorization", required=True, help="Exact parent-agent freeze authorization reference, not a fabricated user approval")
@@ -58,11 +60,23 @@ def main():
     calibrator = json.loads(args.calibrator.read_text())
     if calibrator.get("version") != "pastewhat-calibrator-v1":
         raise SystemExit("Expected the deployment-version correctness calibrator")
+    allocation = {}
+    partition = json.loads(args.family_partition.read_text())
+    partition_hash = sha256(args.family_partition)
+    for split, dataset, audit_path in (("calibration", args.calibration, args.calibration_audit),
+                                       ("test", args.test, args.test_audit)):
+        allocation[split] = validate_formal_heldout_allocation(load_jsonl(dataset), split, partition)
+        audit = json.loads(audit_path.read_text())
+        if (audit.get("passed") is not True or audit.get("split") != split or
+                audit.get("episodes") != allocation[split]["episodes"] or
+                audit.get("data_sha256") != sha256(dataset) or audit.get("partition_sha256") != partition_hash):
+            raise SystemExit("Final freeze requires a passing audit bound to the complete " + split + " data")
     inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
         "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
         "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
         "context_projection_adapter": Path("tools/project_context.py"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
+        "calibration_audit": args.calibration_audit, "test_audit": args.test_audit,
     }.items()}
     record = {
         "version": "pastewhat-release-freeze-v1", "status": "frozen_for_final_test",
@@ -76,6 +90,7 @@ def main():
         "evaluation_code": {"root": str(Path("evaluations").resolve()), "files": directory_hashes(Path("evaluations"))},
         "context_projection": {"root": str(Path("tools/context_projection").resolve()), "files": directory_hashes(Path("tools/context_projection"))},
         "inputs": inputs, "calibration_status": calibrator["status"],
+        "heldout_allocation": allocation,
         "quality_target": {"answerable_top1_delta": 0.05, "key_group_maximum_decline": 0.05,
                            "key_group_minimum_answerable": 30, "recommendation_precision": 0.95},
     }
