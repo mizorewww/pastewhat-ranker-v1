@@ -1,0 +1,53 @@
+{
+  "schema": "pastewhat-heldout-first-batch-v5",
+  "created_at": "2026-09-21T02:36:06.212410+00:00",
+  "scope": "Small synthetic data-authoring acceptance; not model accuracy",
+  "wall_seconds": 814.212909,
+  "splits": {
+    "calibration": {
+      "requested_slots": 6,
+      "generated_attempt_rows": 11,
+      "teacher_gate_accepted": 5,
+      "independently_quarantined_missing_positives": 1,
+      "provisionally_retained": 4,
+      "retained_per_generated_attempt_row": 0.36363636363636365,
+      "actual_labels": {
+        "select": 3,
+        "ambiguous": 1
+      },
+      "exact_native_and_audit_replay_passed": true,
+      "teacher_requests": 13,
+      "request_statuses": {
+        "success": 13
+      }
+    },
+    "test": {
+      "requested_slots": 6,
+      "generated_attempt_rows": 12,
+      "teacher_gate_accepted": 6,
+      "independently_quarantined_missing_positives": 1,
+      "provisionally_retained": 5,
+      "retained_per_generated_attempt_row": 0.4166666666666667,
+      "actual_labels": {
+        "select": 3,
+        "no_match": 2
+      },
+      "exact_native_and_audit_replay_passed": true,
+      "teacher_requests": 16,
+      "request_statuses": {
+        "success": 16
+      }
+    }
+  },
+  "native_projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "teacher_effort": "high",
+  "teacher_parameter_probe_sha256": "c132d7a6b8abe7cd863bc67de9f28b3a623b781486f5c55753234cf06e8996fa",
+  "formal_production_started": false,
+  "next_required_step": "Adopt candidate-by-candidate annotation protocol validated only on Train before further production",
+  "human_validated": false,
+  "student_inference_used": false,
+  "limitations": [
+    "Teacher agreement missed equivalent positive alternatives in two rows; original labels retained privately instead of silently corrected",
+    "Numbers describe two early conceptual families and do not estimate quality across the full heldout allocation"
+  ]
+}
