@@ -1,0 +1,157 @@
+{
+  "schema": "pastewhat-heldout-compact-profiles-v1",
+  "selection_rule": "Fixed per preregistered conceptual operation before compact authoring; never selected or changed from a label or model prediction",
+  "profile_scope": "Synthetic observable field metadata and fixed UI capability help only; generation supplies literal nearby task text, selected text and payloads",
+  "profiles": {
+    "archive_extract": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Shell command",
+      "sourceCategory": "browser",
+      "staticGuidance": [
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+      ]
+    },
+    "spreadsheet_distinct_count": {
+      "applicationCategory": "spreadsheet",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Formula",
+      "sourceCategory": "spreadsheet"
+    },
+    "calendar_rsvp_status": {
+      "applicationCategory": "unknown",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "RSVP status",
+      "sourceCategory": "messaging"
+    },
+    "url_fragment_anchor": {
+      "applicationCategory": "browser",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "URL",
+      "sourceCategory": "browser"
+    },
+    "contact_international_dial": {
+      "applicationCategory": "unknown",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Phone number",
+      "sourceCategory": "writing"
+    },
+    "translation_formal_tone": {
+      "applicationCategory": "writing",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Translation",
+      "sourceCategory": "writing"
+    },
+    "sql_group_having": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "SQL query",
+      "sourceCategory": "development",
+      "staticGuidance": [
+        "Paste one complete query. Existing selected text is replaced as a whole."
+      ]
+    },
+    "chmod_octal_permission": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Shell command",
+      "sourceCategory": "browser",
+      "staticGuidance": [
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+      ]
+    },
+    "git_restore_stash_scope": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Shell command",
+      "sourceCategory": "browser",
+      "staticGuidance": [
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+      ]
+    },
+    "regex_anchored_search": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Regular expression",
+      "sourceCategory": "development",
+      "staticGuidance": [
+        "Enter a pattern for the regex engine named by the visible task. No implicit flags or wrapper are added."
+      ]
+    },
+    "sql_antijoin_null": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "SQL query",
+      "sourceCategory": "development",
+      "staticGuidance": [
+        "Paste one complete query. Existing selected text is replaced as a whole."
+      ]
+    },
+    "url_pagination_cursor": {
+      "applicationCategory": "browser",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "URL",
+      "sourceCategory": "browser"
+    },
+    "email_reply_forward_thread": {
+      "applicationCategory": "mail",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Message body",
+      "sourceCategory": "mail"
+    },
+    "json_patch_operation": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "JSON Patch document",
+      "sourceCategory": "development",
+      "staticGuidance": [
+        "Paste a complete JSON Patch document. This field does not add missing brackets or quoted strings."
+      ]
+    },
+    "shell_symlink_dereference": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Shell command",
+      "sourceCategory": "browser",
+      "staticGuidance": [
+        "Task command editor: paste one complete command. This editable field is not terminal scrollback."
+      ]
+    },
+    "timezone_scheduling": {
+      "applicationCategory": "unknown",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Scheduled date and time",
+      "sourceCategory": "writing"
+    },
+    "spreadsheet_conditional_lookup": {
+      "applicationCategory": "spreadsheet",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Formula",
+      "sourceCategory": "spreadsheet"
+    },
+    "accessibility_alt_caption": {
+      "applicationCategory": "creative",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "Image description",
+      "sourceCategory": "writing",
+      "staticGuidance": [
+        "The text field accepts only text. Nearby help identifies the requested description purpose; unseen image pixels are unavailable."
+      ]
+    },
+    "units_decimal_locale": {
+      "applicationCategory": "unknown",
+      "fieldRole": "AXTextField",
+      "fieldLabel": "Measurement value",
+      "sourceCategory": "writing"
+    },
+    "api_idempotency_header": {
+      "applicationCategory": "development",
+      "fieldRole": "AXTextArea",
+      "fieldLabel": "HTTP request headers",
+      "sourceCategory": "development",
+      "staticGuidance": [
+        "Paste complete header lines. No header name or punctuation is inserted automatically."
+      ]
+    }
+  }
+}
