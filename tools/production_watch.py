@@ -64,6 +64,27 @@ def observe(plan, now):
         if failed:
             label = {"training": "学生训练", "evaluation": "独立评估", "publication": "模型发布"}[name]
             events[name + "_failed"] = label + "报告了错误，需要排查后继续。当前状态和原始产物已保留。"
+    # A finite source budget can end normally without raising a pipeline error.
+    # Read only its terminal aggregate receipt, never accepted rows or labels.
+    base = local / "v7" / plan.run_id
+    receipts = [(split, base / (split + ".run-completion.json"), "status")
+                for split in ("train", "dev")]
+    receipts += [(split, local / "evaluator-v7" / plan.run_id / split / "production-completion.json", "status")
+                 for split in ("calibration", "test")]
+    receipts += [("hardening", base / "hard-pool/train.run-completion.json", "status"),
+                 ("hardening", base / "hardening/insufficient-confirmed-new.json", "confirmed")]
+    for split, path, field in receipts:
+        record = read(path)
+        if not record or (ROOT / plan.data_path(split)).is_file():
+            continue
+        if any(record.get(key) != value for key, value in plan.binding().items()):
+            raise ValueError("Terminal data receipt belongs to another run")
+        exhausted = (record.get("status") == "finite_backfill_exhausted" if field == "status"
+                     else record["confirmed"] < record["required"])
+        if exhausted:
+            label = {"train": "Train", "dev": "Dev", "calibration": "Calibration",
+                     "test": "Test", "hardening": "难例训练数据"}[split]
+            events["data_" + split + "_exhausted"] = label + "仍未满额，有限补齐或确认已结束。已保留缺口记录，需要排查后继续。"
     publication = phases["publication"]
     if publication.get("phase") == "published":
         accepted = publication.get("status") == "accepted_on_frozen_synthetic_benchmark"

@@ -76,7 +76,8 @@ observes only aggregate progress, coordinator state and reported pipeline errors
 It calls no teacher, reads no examples, and never changes the coordinator or
 restarts production. It posts a local macOS notification for a provider block,
 at least five minutes of provider backoff, persistent concurrency reduction,
-reported training/evaluation/publication failure, and completed publication.
+reported training/evaluation/publication failure, exhausted finite data backfill
+or hard-example confirmation with a remaining deficit, and completed publication.
 Routine batches and an intentional maintenance drain do not produce alerts.
 Notification deduplication persists across observer restarts and rearms after
 the condition clears. Command failures can retry after five minutes.
