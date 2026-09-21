@@ -17,72 +17,185 @@ from pathlib import Path
 
 import yaml
 
-from pipeline_data_guards import (freeze_experiment_data, verify_frozen_data,
-                                  verify_hardening_mix, verify_pilot_subset)
+# Direct script execution puts scripts/, not the repository root, on sys.path.
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from run_contract import load_run_plan
+from pipeline_data_guards import (freeze_experiment_data, freeze_run_plan, verify_binding,
+                                  verify_frozen_data, verify_hardening_mix, verify_pilot_subset,
+                                  verify_run_plan, verify_snapshot_binding)
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.train import atomic_json, read_allowed_data, verify_completed_run
 
 STATE_PATH = None
 
 
-def wait_for_snapshot(path, count, state_path, phase, expected_split="train"):
+def write_record(path, values, run_plan=None):
+    verify_run_plan(run_plan)
+    atomic_json(path, {**values, **(run_plan.binding() if run_plan else {})})
+
+
+def stage_layout(run_plan=None, local_state=None):
+    if run_plan is None:
+        return {"local": Path(local_state or "local/pipeline"),
+                "checkpoints": Path("checkpoints"), "reports": Path("reports/training"),
+                "paths": {"pilot": Path("data/frozen/pilot-train-5000.jsonl"),
+                          "train": Path("data/frozen/train-20000.jsonl"),
+                          "dev": Path("data/frozen/dev.jsonl"),
+                          "hardening": Path("data/frozen/hardening-train-10000.jsonl")},
+                "counts": {"pilot": 5000, "train": 20000, "dev": 1000, "hardening": 10000}}
+    if local_state is not None and Path(local_state).resolve() != run_plan.pipeline_directory.resolve():
+        raise ValueError("A registered run must use its own pipeline state directory")
+    document = run_plan.document
+    return {"local": run_plan.pipeline_directory, "checkpoints": run_plan.checkpoint_directory,
+            "reports": run_plan.report_directory,
+            "paths": {stage: run_plan.data_path(stage) for stage in ("pilot", "train", "dev", "hardening")},
+            "counts": {"pilot": document["pilot_episodes"], "train": run_plan.target("train"),
+                       "dev": run_plan.target("dev"),
+                       "hardening": document["hardening"]["accepted_new"] + document["hardening"]["retained_original"]}}
+
+
+def formal_stage_changes(stage, micro, *, seed=42, initial_model=None, run_plan=None):
+    """Generate formal overrides; the engineering configuration never uses this."""
+    if stage not in ("pilot", "main", "hardening") or (stage == "main" and initial_model is None):
+        raise ValueError("A formal stage needs its declared role and original main initialization")
+    changes = {"micro_batch_episodes": micro}
+    if stage != "pilot":
+        changes["seed"] = seed
+    if stage == "main":
+        changes["initial_model"] = str(initial_model)
+    if run_plan is None:
+        return changes
+    document = run_plan.document
+    data_stage = "train" if stage == "main" else stage
+    count = stage_layout(run_plan)["counts"][data_stage]
+    model = (initial_model if initial_model is not None else
+             run_plan.checkpoint_directory / "ranker-v0-selected" if stage == "hardening" else "checkpoints/initial")
+    changes.update({**run_plan.binding(), "initial_model": str(model), "seed": seed,
+                    "train_data": str(run_plan.data_path(data_stage)), "train_limit": count,
+                    "dev_data": str(run_plan.data_path("dev")), "epochs": document["epochs"][stage],
+                    "head_warmup_steps": 0 if stage == "hardening" else document["head_warmup_steps"],
+                    "effective_batch_episodes": document["effective_batch_episodes"]})
+    return changes
+
+
+def wait_for_snapshot(path, count, state_path, phase, expected_split="train", *, run_plan=None):
     path = Path(path)
     while not path.exists():
-        atomic_json(state_path, {"phase": phase, "status": "waiting_for_frozen_train_dev_data",
-                                 "required_path": str(path), "required_count": count, "updated_unix": time.time()})
+        write_record(state_path, {"phase": phase, "status": "waiting_for_frozen_train_dev_data",
+                                  "required_path": str(path), "required_count": count, "updated_unix": time.time()}, run_plan)
         time.sleep(30)
+    verify_snapshot_binding(path, count, expected_split, run_plan)
     episodes = read_allowed_data(path, expected_split=expected_split)
     if len(episodes) != count:
         raise ValueError(f"Frozen snapshot {path} has {len(episodes)} episodes, expected {count}")
     return sha256_file(path)
 
 
-def train_stage(stage, template, output, changes, state_path, local):
+def train_stage(stage, template, output, changes, state_path, local, *, run_plan=None):
+    verify_run_plan(run_plan)
     output = Path(output)
     summary = output / "training_summary.json"
     config = yaml.safe_load(Path(template).read_text())
     config.update(changes)
+    if stage != "overfit":
+        verify_binding(config, run_plan, "Formal training configuration")
     if summary.exists():
-        return verify_completed_run(output, config)
+        result = verify_completed_run(output, config)
+        verify_run_plan(run_plan)
+        return result
     config_path = local / (stage + ".yaml")
     config_path.write_text(yaml.safe_dump(config, sort_keys=False))
-    atomic_json(state_path, {"phase": stage, "status": "training", "output": str(output),
-                             "config": str(config_path), "updated_unix": time.time()})
+    write_record(state_path, {"phase": stage, "status": "training", "output": str(output),
+                              "config": str(config_path), "updated_unix": time.time()}, run_plan)
     command = [sys.executable, "-m", "pastewhat_ranker.train", "--config", str(config_path), "--output", str(output)]
     if (output / "latest" / "progress.json").exists():
         command.append("--resume")
     with (local / (stage + ".log")).open("a", buffering=1) as log:
         subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
+    verify_run_plan(run_plan)
     return json.loads(summary.read_text())
 
 
-def profile_formal_train(train_path, local, state_path):
-    report_path = Path("reports/training/pilot-throughput.json")
-    if report_path.exists():
-        report = json.loads(report_path.read_text())
+def profile_formal_train(train_path, local, state_path, *, run_plan=None):
+    verify_run_plan(run_plan)
+    report_path = stage_layout(run_plan)["reports"] / "pilot-throughput.json"
+
+    def validated(report):
         if (report.get("training_data_sha256") != sha256_file(train_path)
                 or report.get("reference_model_sha256") != sha256_file("checkpoints/initial/model.safetensors")
-                or report.get("selection") != "workload_quantiles"):
+                or report.get("selection") != "workload_quantiles"
+                or report.get("selected_micro_batch") not in (1, 2, 4)):
             raise ValueError("Formal throughput report does not match the frozen training data/model")
         return report["selected_micro_batch"]
-    atomic_json(state_path, {"phase": "pilot_throughput", "status": "measuring",
-                             "selection": "Train workload quantiles only", "updated_unix": time.time()})
-    with (local / "pilot-throughput.log").open("a", buffering=1) as log:
-        subprocess.run([sys.executable, "scripts/measure_training_throughput.py", "--train", train_path,
-                        "--selection", "workload_quantiles", "--output", str(report_path)],
-                       stdout=log, stderr=subprocess.STDOUT, check=True)
-    return json.loads(report_path.read_text())["selected_micro_batch"]
+
+    if report_path.exists():
+        report = json.loads(report_path.read_text())
+        verify_binding(report, run_plan, "Formal throughput report")
+        return validated(report)
+    # A completed raw measurement can survive an interruption before publication.
+    # It stays under already-bound run state until the final report is atomic.
+    raw_path = local / "pilot-throughput-result.json" if run_plan else report_path
+    if not raw_path.exists():
+        write_record(state_path, {"phase": "pilot_throughput", "status": "measuring",
+                                  "selection": "Train workload quantiles only", "updated_unix": time.time()}, run_plan)
+        with (local / "pilot-throughput.log").open("a", buffering=1) as log:
+            subprocess.run([sys.executable, "scripts/measure_training_throughput.py", "--train", str(train_path),
+                            "--selection", "workload_quantiles", "--output", str(raw_path)],
+                           stdout=log, stderr=subprocess.STDOUT, check=True)
+    report = json.loads(raw_path.read_text())
+    micro = validated(report)
+    if run_plan:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        write_record(report_path, report, run_plan)
+    return micro
+
+
+def seed_initializations(run_plan=None):
+    """Reuse frozen untrained snapshots; no run starts from pilot/overfit weights."""
+    source_report = Path("reports/training/seed-initializations.json")
+    if run_plan is None or not source_report.exists():
+        command = [sys.executable, "scripts/freeze_seed_initializations.py", "--output", str(source_report)]
+        local_source = Path("../laya-mlx/models/laya-multilingual")
+        if (local_source / "model.safetensors").exists():
+            command += ["--source", str(local_source)]
+        subprocess.run(command, check=True)
+    report = json.loads(source_report.read_text())
+    records = {row["seed"]: row for row in report["seeds"]}
+    seeds = run_plan.document["training_seeds"] if run_plan else [42, 43, 44]
+    if report.get("status") != "passed" or set(records) != set(seeds):
+        raise ValueError("The frozen initialization report does not cover the registered seeds")
+    for seed, row in records.items():
+        expected = Path("checkpoints/initial" if seed == 42 else f"checkpoints/initial-seed-{seed}")
+        if (Path(row["initial_model"]).resolve() != expected.resolve()
+                or row.get("initialization_seed") != seed or row.get("encoder_tensor_equality_to_seed42") is not True
+                or row["model_sha256"] != sha256_file(expected / "model.safetensors")):
+            raise ValueError("A frozen original-encoder seed initialization changed")
+    if run_plan:
+        path = run_plan.report_directory / source_report.name
+        bound = {**report, **run_plan.binding(), "source_report_sha256": sha256_file(source_report)}
+        if path.exists() and json.loads(path.read_text()) != bound:
+            raise ValueError("This run's original initialization binding changed")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write_record(path, bound, run_plan)
+    return records
 
 
 def main():
     global STATE_PATH
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--local-state", default="local/pipeline")
+    parser.add_argument("--local-state", help="Legacy state directory; planned runs use their registered run directory")
+    parser.add_argument("--run-plan", type=Path, help="Immutable registered production plan; omission preserves the original route")
     args = parser.parse_args()
-    local = Path(args.local_state)
+    run_plan = load_run_plan(args.run_plan) if args.run_plan else None
+    layout = stage_layout(run_plan, args.local_state)
+    local, paths, counts = layout["local"], layout["paths"], layout["counts"]
+    checkpoints = layout["checkpoints"]
     local.mkdir(parents=True, exist_ok=True)
     run_lock = (local / "pipeline.lock").open("w")
     fcntl.flock(run_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    freeze_run_plan(local, run_plan)
     (local / "pipeline.pid").write_text(str(os.getpid()) + "\n")
     if sys.platform == "darwin" and shutil.which("caffeinate"):
         watcher = subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())],
@@ -90,6 +203,8 @@ def main():
         (local / "caffeinate.pid").write_text(str(watcher.pid) + "\n")
     state_path = local / "status.json"
     STATE_PATH = state_path
+    # Engineering artifacts predate the production plan. Their exact original
+    # configuration and frozen initialization remain independently reusable.
     wait_for_snapshot("data/frozen/overfit-train-32.jsonl", 32, state_path, "overfit_preparation")
     throughput_path = Path("reports/training/throughput.json")
     if not throughput_path.exists():
@@ -99,72 +214,82 @@ def main():
                             "data/frozen/overfit-train-32.jsonl", "--output", str(throughput_path)],
                            stdout=log, stderr=subprocess.STDOUT, check=True)
     micro = json.loads(throughput_path.read_text())["selected_micro_batch"]
-    overfit = train_stage("overfit", "configs/overfit.yaml", "checkpoints/overfit", {"micro_batch_episodes": micro}, state_path, local)
+    overfit = train_stage("overfit", "configs/overfit.yaml", "checkpoints/overfit", {"micro_batch_episodes": micro}, state_path, local, run_plan=run_plan)
     overfit_metrics = json.loads(Path(overfit["best_checkpoint"], "dev_metrics.json").read_text())
     if overfit_metrics["decision_accuracy"] < 0.99:
         raise RuntimeError("32-episode overfit gate did not reach 99%; diagnose training before scaling")
-    wait_for_snapshot("data/frozen/pilot-train-5000.jsonl", 5000, state_path, "pilot_preparation")
-    micro = profile_formal_train("data/frozen/pilot-train-5000.jsonl", local, state_path)
-    wait_for_snapshot("data/frozen/dev.jsonl", 1000, state_path, "pilot_preparation", expected_split="dev")
-    pilot = train_stage("pilot", "configs/pilot.yaml", "checkpoints/pilot", {"micro_batch_episodes": micro}, state_path, local)
+    wait_for_snapshot(paths["pilot"], counts["pilot"], state_path, "pilot_preparation", run_plan=run_plan)
+    micro = profile_formal_train(paths["pilot"], local, state_path, run_plan=run_plan)
+    wait_for_snapshot(paths["dev"], counts["dev"], state_path, "pilot_preparation", expected_split="dev", run_plan=run_plan)
+    pilot_data = local / "frozen-pilot-data.json"
+    if run_plan:
+        freeze_experiment_data(pilot_data, {"pilot_train": paths["pilot"], "dev": paths["dev"]}, run_plan=run_plan)
+    pilot = train_stage("pilot", "configs/pilot.yaml", checkpoints / "pilot",
+                        formal_stage_changes("pilot", micro, run_plan=run_plan), state_path, local, run_plan=run_plan)
+    if run_plan:
+        verify_frozen_data(pilot_data, run_plan=run_plan)
     pilot_metrics = json.loads(Path(pilot["best_checkpoint"], "dev_metrics.json").read_text())
     if pilot_metrics["coverage"] == 0 or pilot_metrics["answerable_top1"] == 0:
         raise RuntimeError("Pilot learned no usable candidate selections; diagnose before scaling")
-    wait_for_snapshot("data/frozen/train-20000.jsonl", 20000, state_path, "main_preparation")
+    wait_for_snapshot(paths["train"], counts["train"], state_path, "main_preparation", run_plan=run_plan)
     experiment_data = local / "frozen-experiment-data.json"
-    freeze_experiment_data(experiment_data, {"pilot_train": "data/frozen/pilot-train-5000.jsonl",
-                                            "main_train": "data/frozen/train-20000.jsonl",
-                                            "dev": "data/frozen/dev.jsonl"})
-    atomic_json(local / "pilot-subset-verification.json",
-                verify_pilot_subset("data/frozen/pilot-train-5000.jsonl", "data/frozen/train-20000.jsonl"))
-    seed_report = Path("reports/training/seed-initializations.json")
-    initialization_command = [sys.executable, "scripts/freeze_seed_initializations.py", "--output", str(seed_report)]
-    local_source = Path("../laya-mlx/models/laya-multilingual")
-    if (local_source / "model.safetensors").exists():
-        initialization_command += ["--source", str(local_source)]
-    subprocess.run(initialization_command, check=True)
-    initializations = {row["seed"]: row for row in json.loads(seed_report.read_text())["seeds"]}
+    freeze_experiment_data(experiment_data, {"pilot_train": paths["pilot"], "main_train": paths["train"],
+                                            "dev": paths["dev"]}, run_plan=run_plan)
+    write_record(local / "pilot-subset-verification.json",
+                 verify_pilot_subset(paths["pilot"], paths["train"], run_plan=run_plan), run_plan)
+    initializations = seed_initializations(run_plan)
     runs = []
-    for seed in (42, 43, 44):
-        verify_frozen_data(experiment_data)
-        run = train_stage(f"main-seed-{seed}", "configs/main.yaml", f"checkpoints/main-seed-{seed}",
-                          {"seed": seed, "initial_model": initializations[seed]["initial_model"],
-                           "micro_batch_episodes": micro}, state_path, local)
+    for seed in (run_plan.document["training_seeds"] if run_plan else (42, 43, 44)):
+        verify_frozen_data(experiment_data, run_plan=run_plan)
+        run = train_stage(f"main-seed-{seed}", "configs/main.yaml", checkpoints / f"main-seed-{seed}",
+                          formal_stage_changes("main", micro, seed=seed, initial_model=initializations[seed]["initial_model"],
+                                               run_plan=run_plan), state_path, local, run_plan=run_plan)
         runs.append({"seed": seed, **run})
+    verify_frozen_data(experiment_data, run_plan=run_plan)
     selected = max(runs, key=lambda run: run["best_dev_key"])
-    v0 = Path("checkpoints/ranker-v0-selected")
+    v0 = checkpoints / "ranker-v0-selected"
     shutil.copytree(selected["best_checkpoint"], v0, dirs_exist_ok=True)
-    atomic_json(local / "ranker-v0-ready.json", {"checkpoint": str(v0), "selected_seed": selected["seed"],
-                                                "selected_by": "Dev only", "runs": runs,
-                                                "weight_sha256": sha256_file(v0 / "model.safetensors")})
+    write_record(local / "ranker-v0-ready.json", {"checkpoint": str(v0), "selected_seed": selected["seed"],
+                                                 "selected_by": "Dev only", "runs": runs,
+                                                 "weight_sha256": sha256_file(v0 / "model.safetensors")}, run_plan)
     # Teacher/data agent mines only a new training pool, not final Test failures.
-    wait_for_snapshot("data/frozen/hardening-train-10000.jsonl", 10000, state_path, "hardening_preparation")
-    verify_frozen_data(experiment_data)
-    atomic_json(local / "hardening-data-mixture.json",
-                verify_hardening_mix("data/frozen/train-20000.jsonl", "data/frozen/hardening-train-10000.jsonl"))
-    hardened = train_stage("hardening", "configs/hardening.yaml", "checkpoints/hardening",
-                           {"micro_batch_episodes": micro, "seed": selected["seed"]}, state_path, local)
+    wait_for_snapshot(paths["hardening"], counts["hardening"], state_path, "hardening_preparation", run_plan=run_plan)
+    verify_frozen_data(experiment_data, run_plan=run_plan)
+    write_record(local / "hardening-data-mixture.json",
+                 verify_hardening_mix(paths["train"], paths["hardening"], run_plan=run_plan), run_plan)
+    hardening_data = local / "frozen-hardening-data.json"
+    if run_plan:
+        freeze_experiment_data(hardening_data, {"hardening_train": paths["hardening"], "dev": paths["dev"]}, run_plan=run_plan)
+    hardened = train_stage("hardening", "configs/hardening.yaml", checkpoints / "hardening",
+                           formal_stage_changes("hardening", micro, seed=selected["seed"], run_plan=run_plan),
+                           state_path, local, run_plan=run_plan)
+    verify_frozen_data(experiment_data, run_plan=run_plan)
+    if run_plan:
+        verify_frozen_data(hardening_data, run_plan=run_plan)
     previous = json.loads((v0 / "dev_metrics.json").read_text())
     current = json.loads(Path(hardened["best_checkpoint"], "dev_metrics.json").read_text())
+    gates = run_plan.document["quality_gates"] if run_plan else {"minimum_dev_group_episodes": 20, "maximum_group_regression": .05}
     group_regressions = []
     for name, old in previous.get("groups", {}).items():
         new = current.get("groups", {}).get(name)
-        if old["episodes"] >= 20 and new and new["decision_accuracy"] < old["decision_accuracy"] - .05:
+        if (old["episodes"] >= gates["minimum_dev_group_episodes"] and new
+                and new["decision_accuracy"] < old["decision_accuracy"] - gates["maximum_group_regression"]):
             group_regressions.append(name)
     accept = current["selection_metric"] > previous["selection_metric"] and not group_regressions
-    release = Path("checkpoints/ranker-v1-candidate")
+    release = checkpoints / "ranker-v1-candidate"
     shutil.copytree(hardened["best_checkpoint"] if accept else v0, release, dirs_exist_ok=True)
-    atomic_json(local / "hardening-selection.json", {"accepted": accept, "group_regressions": group_regressions,
-                                                    "v0_dev": previous, "hardening_dev": current,
-                                                    "selection_rule": "Dev balanced accuracy improves; no >5pp regression in group n>=20"})
+    write_record(local / "hardening-selection.json", {"accepted": accept, "group_regressions": group_regressions,
+                                                     "v0_dev": previous, "hardening_dev": current,
+                                                     "selection_rule": "Dev balanced accuracy improves; no >5pp regression in group n>=20"}, run_plan)
+    verify_run_plan(run_plan)
     subprocess.run([sys.executable, "-m", "pastewhat_ranker.export", "--model", str(release), "--output", str(release / "mlx")], check=True)
-    atomic_json(local / "ready-for-calibration.json", {"reference_checkpoint": str(release),
-                                                     "deployment_checkpoint": str(release / "mlx"),
-                                                     "weight_sha256": sha256_file(release / "mlx" / "model.safetensors"),
-                                                     "selected_seed": selected["seed"], "hardening_accepted": accept,
-                                                     "status": "conversion_requires_independent_parity_and_calibration"})
-    atomic_json(state_path, {"phase": "calibration_handoff", "status": "training_stages_complete",
-                             "updated_unix": time.time()})
+    write_record(local / "ready-for-calibration.json", {"reference_checkpoint": str(release),
+                                                      "deployment_checkpoint": str(release / "mlx"),
+                                                      "weight_sha256": sha256_file(release / "mlx" / "model.safetensors"),
+                                                      "selected_seed": selected["seed"], "hardening_accepted": accept,
+                                                      "status": "conversion_requires_independent_parity_and_calibration"}, run_plan)
+    write_record(state_path, {"phase": "calibration_handoff", "status": "training_stages_complete",
+                              "updated_unix": time.time()}, run_plan)
 
 
 if __name__ == "__main__":
