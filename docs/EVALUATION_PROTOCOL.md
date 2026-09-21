@@ -33,7 +33,17 @@ range, and at most four bounded neighboring static strings. The authoring contex
 has no free-form `surroundingText`. Shared production Swift converts this evidence
 to `pastewhat-focus-v1` before student preprocessing. Raw capture remains only in
 generation provenance; it cannot give the teacher extra information. Unversioned
-earlier free-form drafts remain outside the formal v4 data state.
+earlier free-form drafts remain outside the formal data state.
+Formal v5 authoring supplies candidate payload fixtures, not declared candidate
+types: a literal text body, synthetic file basenames, or blank PNG dimensions.
+The same production Swift codec derives each candidate's text, kind and
+capabilities before any tokenizer budget or teacher label. Coarse native kinds
+are preserved even when a code/color string is classified as text. File/image
+summaries do not imply visible contents or a textual clipboard representation.
+Raw fixture hashes and shared native-source provenance accompany each episode;
+the independent audit replays both context and candidate projection exactly.
+Earlier rows with declared candidate metadata remain isolated with their original
+teacher audits and labels; none are moved into v5 without new generation/labels.
 The synthetic authoring domain excludes the exact pattern in which a nonempty
 selected value is duplicated as the entire unselected prefix with an empty suffix,
 or as the entire suffix with an empty prefix. Authors can mistakenly represent a

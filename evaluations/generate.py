@@ -19,15 +19,18 @@ from data_tools.teacher import TeacherClient, TeacherError, atomic_json, utc_now
 from evaluations.common import inference_request, sha256, validate_label, write_json, write_jsonl
 from pastewhat_ranker.preprocess import Preprocessor
 from tools.project_context import project_context
+from tools.project_candidates import project_candidates
 
 
 KINDS = {"text", "url", "email", "code", "command", "phone", "file", "image", "color"}
 SURFACES = {"unknown", "text", "recipient", "address_bar", "search", "code_editor", "shell_prompt", "chat_composer", "document", "cell", "color", "file_path", "phone"}
 LANGUAGES = ("English", "Simplified Chinese", "Spanish", "Japanese", "French", "German")
 COUNTS = tuple(range(1, 21))
-LITERAL_PASTE_PROTOCOL = "literal-paste-and-task-identity-v2"
-FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v2"
+LITERAL_PASTE_PROTOCOL = "literal-paste-and-task-identity-v3-native-payload"
+FAMILY_REVIEW_PROTOCOL = "blind-operation-literal-deployment-v3-native-payload"
 CAPTURE_PROTOCOL = "pastewhat-capture-authoring-v1"
+CANDIDATE_PROTOCOL = "native-synthetic-payload-v1"
+PROJECTION_PROVENANCE = Path(__file__).resolve().parents[1] / "tools/context_projection/provenance.json"
 
 
 class ProviderPaused(TeacherError):
@@ -77,6 +80,17 @@ beforeSelection="old", afterSelection="" means the field contains "oldold";
 pasting "new" produces "oldnew", NOT "new". Do not generate this duplicate-boundary
 authoring pattern. For a partial selection, keep only the actual unselected prefix
 and suffix around it, and ensure the candidate works with both unchanged.
+Author each candidate ONLY as {id,sourceCategory,payload}. Do not author text,
+kind or capabilities fields: production Swift derives them from payload bytes.
+payload is one of {type:"text",text:"the whole literal clipboard string"},
+{type:"file",names:["synthetic-basename.ext"]}, or
+{type:"image",width:320,height:240}. Code, commands, color strings, URLs, email
+and phone strings are text payloads. A literal filename is also a text payload;
+use a file payload only for genuine synthetic file objects, with 1-4 basenames
+and no directory separators. Images are genuine blank PNG fixtures: their only
+observable evidence is dimensions, never invented semantic pixel content. Prefer
+small dimensions, bounded by 4096 in each direction. Do not duplicate identical
+payloads within an episode; clipboard history deduplicates identical contents.
 No markdown code fences."""
 
 LABEL_SYSTEM = """You independently label clipboard recommendation episodes.
@@ -123,6 +137,13 @@ beforeSelection + the complete candidate + afterSelection. nearbyText contains
 observed static sibling labels/help. When selectionKnown is false, textWindow is
 visible but the insertion position is unknown. A clipped/incomplete representation
 does not authorize guessing omitted boundaries, intent, or syntax.
+Candidate text/kind/capabilities were produced by the application's native codec.
+Its coarse kind may be text even for a code snippet or a color string; do not
+invent another kind. For text-capable candidates, judge the literal characters
+inserted. For candidates without text capability, text is only a file/image
+summary, not the characters pasted. Do not insert that summary as if it were a
+text payload or infer unseen contents. Such a payload is usable only when the
+visible target accepts that payload type and available evidence establishes fit.
 """
 
 AUDIT_SYSTEM = """You independently audit a synthetic clipboard decision dataset.
@@ -177,6 +198,10 @@ or insertion point; nearbyText consists only of bounded static sibling labels.
 selectionKnown:false means textWindow is visible but caret placement is unknown.
 These JSON field names are a production representation, not invented cursor tokens.
 Do not infer missing fields or clipped portions of that representation.
+Candidate text, kind and capabilities come from real synthetic payload bytes
+through the production Swift codec. A coarse text kind for code or color is
+legitimate. A file/image summary does not reveal unseen semantic content and is
+not itself a textual clipboard representation without text capability.
 """
 
 
@@ -241,6 +266,8 @@ def passed_current_gates(episode: dict) -> bool:
             teacher.get("literal_paste_protocol") == LITERAL_PASTE_PROTOCOL and
             teacher.get("family_review_protocol") == FAMILY_REVIEW_PROTOCOL and
             episode.get("synthetic_metadata", {}).get("capture_authoring_protocol") == CAPTURE_PROTOCOL and
+            episode.get("synthetic_metadata", {}).get("candidate_payload_protocol") == CANDIDATE_PROTOCOL and
+            episode.get("synthetic_metadata", {}).get("candidate_projection_provenance_sha256") == sha256(PROJECTION_PROVENANCE) and
             not duplicated_selection_boundary(episode["context"]) and
             matches_label_quota(episode))
 
@@ -269,13 +296,16 @@ def generation_specs(family_index: int, start: int, count: int, allocation: int)
 
 
 def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partition_hash: str, preprocessor: Preprocessor) -> dict:
-    entries = raw.get("entries", [])
-    if len(entries) != spec["candidate_count"]:
+    authored_entries = raw.get("entries", [])
+    if len(authored_entries) != spec["candidate_count"]:
         raise ValueError("teacher did not supply requested candidate count")
+    payload_hash = hashlib.sha256(canonical(authored_entries)).hexdigest()
+    entries = project_candidates(authored_entries)
+    payloads = [canonical(entry["payload"]) for entry in authored_entries]
+    if len(set(payloads)) != len(payloads):
+        raise ValueError("Identical payloads cannot occupy multiple clipboard history slots")
     row_id = f"pw-v1-{split}-{family['id']}-{spec['slot']:04d}"
     for index, entry in enumerate(entries):
-        if entry.get("kind") not in KINDS:
-            raise ValueError("candidate kind outside production protocol")
         opaque = hashlib.sha256(f"{row_id}:candidate:{index}".encode()).hexdigest()[:10]
         entry["id"] = "c_" + opaque
     random.Random(spec["variation_seed"]).shuffle(entries)
@@ -289,6 +319,9 @@ def normalize_generated(raw: dict, spec: dict, split: str, family: dict, partiti
     episode.update(split=split, group=family["id"], parent_id=row_id,
                    synthetic_metadata={"language": spec["language"], "generator_spec": spec,
                                        "capture_authoring_protocol": CAPTURE_PROTOCOL,
+                                       "candidate_payload_protocol": CANDIDATE_PROTOCOL,
+                                       "candidate_projection_provenance_sha256": sha256(PROJECTION_PROVENANCE),
+                                       "raw_candidate_payloads_sha256": payload_hash,
                                        "raw_capture_sha256": hashlib.sha256(canonical(capture)).hexdigest(),
                                        "family_partition_sha256": partition_hash})
     return episode
@@ -495,8 +528,12 @@ class Generator:
                                                    "afterSelection": "Actual focused-control text after the known caret/selection; empty when at end or replacing the whole field",
                                                    "nearbyText": ["Prefer one or two short actual static sibling UI labels/helper strings, under 160 characters each; absolute max four, 240 each, 600 total. Include the observable task/constraints when select/no_match is requested, not a generic tool title alone."]},
                                 "capture_rules": "Known position: exactly beforeSelection,afterSelection,nearbyText. textWindow is built as beforeSelection + context.selectedText + afterSelection, and code computes exact UTF-16 offsets; do not supply numeric offsets. Empty standalone field uses empty before/after and empty selectedText. Unknown position instead uses exactly textWindow,nearbyText and empty context.selectedText. No AX access requires unknown position and entirely empty captured content. Total focused text <=1700 characters. All fragments must be actual field text, with no invented cursor markers or unselected fill-in-the-blank placeholders. Nearby text is genuinely displayed static UI text, not another editable field or distant document. Paste inserts the whole entry literally, with no implicit syntax edit or cursor movement.",
-                                "candidate_schema": {"id": "opaque, overwritten before labeling", "text": "whole clipboard entry", "kind": "A single string chosen from: " + ",".join(sorted(KINDS)),
-                                                     "capabilities": ["text"], "sourceCategory": "A single string from browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown; actual source app category, not identity"}}, ensure_ascii=False),
+                                "candidate_schema": {"id": "unique opaque string, overwritten before labeling",
+                                                     "sourceCategory": "A single string from browser,development,terminal,mail,messaging,writing,spreadsheet,creative,file_management,unknown; actual source app category, not identity",
+                                                     "payload": {"type": "text", "text": "whole literal clipboard string; commands/code/URLs/etc remain text payloads"}},
+                                "other_payload_shapes": [{"type": "file", "names": ["fictional-basename.ext"]},
+                                                         {"type": "image", "width": 320, "height": 240}],
+                                "candidate_rules": "Each entry has exactly id,sourceCategory,payload. Never self-declare kind/capabilities/text outside payload. Prefer text payloads; genuine files/images must not require unseen contents. Native Swift derives the five student-visible fields. Do not duplicate identical payloads."}, ensure_ascii=False),
                     max_tokens=24576, temperature=0.6, thinking="disabled",
                     phase="independent-generation", request_id=key + f"-generation-{attempt}",
                 )
@@ -678,6 +715,9 @@ class Generator:
                     "rejected_attempts": sum(len(row["rejected_attempts"]) for row in completed),
                     "preprocessing": self.preprocessor.manifest(), "generation_code_sha256": sha256(__file__),
                     "native_projection_sources": {str(path): sha256(path) for path in sorted(Path("tools/context_projection").glob("*.swift"))},
+                    "candidate_payload_protocol": CANDIDATE_PROTOCOL,
+                    "native_projection_provenance_sha256": sha256(PROJECTION_PROVENANCE),
+                    "candidate_projection_adapter_sha256": sha256("tools/project_candidates.py"),
                     "frozen_at": utc_now(), "human_validated": False, "student_results_seen": False}
         write_json(self.args.output.with_suffix(".manifest.json"), manifest)
         fingerprints = {
@@ -700,7 +740,7 @@ def main():
     parser.add_argument("--tokenizer", type=Path, default=Path("../laya-mlx/models/laya-multilingual/tokenizer"))
     parser.add_argument("--partition", type=Path, default=Path("data_tools/family_partition.json"))
     parser.add_argument("--audit", type=Path, default=Path("local/teacher"))
-    parser.add_argument("--state", type=Path, default=Path("local/evaluator-generation-v4"))
+    parser.add_argument("--state", type=Path, default=Path("local/evaluator-generation-v5"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=6)
     parser.add_argument("--workers", type=int, default=2)

@@ -24,8 +24,8 @@ from data_tools.rate_limit import AccountCoordinator
 from evaluations.generate import passed_current_gates
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE = ROOT / "local/evaluator-generation-v4"
-HELDOUT = ROOT / "local/evaluator-heldout-v4"
+STATE = ROOT / "local/evaluator-generation-v5"
+HELDOUT = ROOT / "local/evaluator-heldout-v5"
 PRODUCTION_READY = ROOT / "local/kimi-account-rate/production-ready.json"
 
 
@@ -96,7 +96,7 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.workers_per_split <= 2:
         raise SystemExit("Evaluator HTTP worker allocation must not exceed the coordinated two per split")
-    directory = ROOT / "local/evaluator-production-v4"
+    directory = ROOT / "local/evaluator-production-v5"
     directory.mkdir(parents=True, exist_ok=True)
     lock = (directory / ".supervisor.lock").open("a")
     try:

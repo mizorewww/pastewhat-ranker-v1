@@ -75,6 +75,7 @@ def main():
         "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
         "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
         "context_projection_adapter": Path("tools/project_context.py"),
+        "candidate_projection_adapter": Path("tools/project_candidates.py"),
         "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
         "calibration_audit": args.calibration_audit, "test_audit": args.test_audit,
     }.items()}
