@@ -1,0 +1,25 @@
+{
+  "version": "root-train-v6-staging-review-v1",
+  "source_sha256": "d1d518c2385872fe288bb6fff3273c3e452519e61113823dca2e7dbdd70de1d1",
+  "scope": "Train-only initial v6 authoring; no heldout examples or student scores",
+  "human_validated": false,
+  "decision": "do_not_scale_without_resolving_missing_scope_evidence",
+  "findings": [
+    {
+      "id": "train-main-v6-git_diff_selection-00001",
+      "status": "accepted_by_agent_review",
+      "reason": "No candidate compares two commit endpoints. Missing names cannot make any of the supplied commands satisfy that operation."
+    },
+    {
+      "id": "train-main-v6-git_diff_selection-00002",
+      "status": "accepted_by_agent_review",
+      "reason": "No staged-only comparison exists. HEAD-to-working-tree differences can lose staged changes when unstaged edits cancel them, so they are not equivalent."
+    },
+    {
+      "id": "train-main-v6-git_diff_selection-00003",
+      "status": "quarantine",
+      "reason": "The context does not identify the two commits or say any pair is acceptable. Candidate endpoints cannot fill in missing user intent; HEAD/a and a/b are distinct comparisons. Reverse name-only output also is not universally invariant under renames."
+    }
+  ],
+  "label_edits": 0
+}
