@@ -1,0 +1,66 @@
+{
+  "checks": [
+    {
+      "count_allocation": {
+        "dev": {
+          "missing_intent": 100,
+          "no_match": 200,
+          "select": 700
+        },
+        "train": {
+          "missing_intent": 2000,
+          "no_match": 4000,
+          "select": 14000
+        }
+      },
+      "nominal_dev": 1000,
+      "nominal_pilot": 5000,
+      "nominal_train": 20000,
+      "pilot_subset_preserved": true
+    },
+    {
+      "count_allocation": {
+        "dev": {
+          "missing_intent": 20,
+          "no_match": 40,
+          "select": 140
+        },
+        "train": {
+          "missing_intent": 100,
+          "no_match": 200,
+          "select": 700
+        }
+      },
+      "nominal_dev": 200,
+      "nominal_pilot": 500,
+      "nominal_train": 1000,
+      "pilot_subset_preserved": true
+    },
+    {
+      "count_allocation": {
+        "dev": {
+          "missing_intent": 16,
+          "no_match": 32,
+          "select": 112
+        },
+        "train": {
+          "missing_intent": 40,
+          "no_match": 80,
+          "select": 280
+        }
+      },
+      "nominal_dev": 160,
+      "nominal_pilot": 200,
+      "nominal_train": 400,
+      "pilot_subset_preserved": true
+    }
+  ],
+  "created_at": "2026-09-21T03:03:13.537186+00:00",
+  "meaning": "Memory-only structural verification of registered counts and subset selection; no plan registered, no model trained and no fake corpus written.",
+  "owned_splits_only": [
+    "train",
+    "dev"
+  ],
+  "protocol": "teacher-episodes-v6-compact-verdicts",
+  "snapshot_binding": "Flat run_id/run_plan_sha256 plus episodes/sha256/family_partition_sha256; manifest fsynced before immutable JSONL ready"
+}

@@ -261,3 +261,28 @@ recognized every semantic equivalence. A real temporary-Git execution review of
 two rejected Train episodes motivated the change; these diagnostics are not new
 formal training examples. Malformed JSON remains an audited rejection, never an
 agent-edited label response.
+
+A registered production run is supplied through `--run-plan` to generation,
+production supervision, freezing and provenance export. The immutable plan fixes
+target counts, pilot size, future hard-pool size, teacher protocol and source
+hashes. Family/action allocation uses the shared exact `run_contract` functions.
+A changed run identity gets its own generation namespace, content registry,
+rolling corpus directory and frozen snapshots. Original staging rows and the
+32-row engineering check are not implicitly promoted into a registered run.
+Rolling pools live under ignored `local/data-production/<run_id>/`; the pipeline
+reads only the immutable paths defined by `RunPlan.data_path`. Each final
+manifest contains flat `run_id`, `run_plan_sha256`, actual episode count, corpus
+SHA and family partition SHA. It is published before the atomic JSONL readiness
+signal. Pilot selection fixes exact family/action quotas and its rows remain
+byte-identical members of the final Train corpus.
+
+Following the endpoint compatibility measurements, formal calls explicitly
+request `response_format={"type":"json_object"}`. Every actual request parameter
+remains in its sanitized audit. Successful HTTP acceptance is not a promise of
+strict schema compliance: JSON parsing, exhaustive verdict mapping, native replay,
+independent labels, family isolation and local semantic rejections still apply.
+Five episodes with many candidates require enough completion room for both the
+teacher's internal reasoning and every verdict; formal label calls reserve16k
+completion tokens rather than silently truncating candidates or accepting a
+length-truncated response. This is a ceiling, not a target usage or a new student
+input budget.

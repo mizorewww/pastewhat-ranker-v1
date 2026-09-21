@@ -72,7 +72,7 @@ def review_group(group, family, client):
     partition = json.loads(PARTITION_PATH.read_text())
     taxonomy = [item for families in partition["families"].values() for item in families]
     allowed_ids = {item["id"] for item in taxonomy} | {"unknown"}
-    result = client.complete_json(AUDIT_SYSTEM, json.dumps({"operation_taxonomy": taxonomy, "episodes": visible}, ensure_ascii=False), phase="blind-family-and-deployment-review", request_id=sha256(canonical_bytes(visible)), max_tokens=8192)
+    result = client.complete_json(AUDIT_SYSTEM, json.dumps({"operation_taxonomy": taxonomy, "episodes": visible}, ensure_ascii=False), phase="blind-family-and-deployment-review", request_id=sha256(canonical_bytes(visible)), max_tokens=8192, response_format="json_object")
     items = result.parsed.get("reviews", [])
     by_id = {item.get("id"): item for item in items}
     if len(items) != len(group) or set(by_id) != {item["id"] for item in visible}:

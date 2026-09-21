@@ -20,6 +20,7 @@ import subprocess
 import time
 
 from pastewhat_ranker.preprocess import Preprocessor
+from run_contract import action_quotas, family_quotas, load_run_plan
 from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.authoring import AUTHORING_PROTOCOL, candidate_space, compile_compact_episode, owned_profile
 from data_tools.labeling import LABEL_PROTOCOL, VERDICT_LABEL_SYSTEM, derive_candidate_label
@@ -86,34 +87,44 @@ count, scenario and language on repairs. No labels, rationales or answer keys.
 
 LABEL_SYSTEM = VERDICT_LABEL_SYSTEM
 
+AUTHOR_OPERATION_GUIDANCE = {
+    "git_diff_selection": "When comparing commits, guidance must literally name the requested old/source and new/target revisions. Do not write only 'two commits', 'the specified revisions' or 'explicitly named' without their actual values. Candidate contents cannot supply missing user choices. Name-only diffs also need direction when renames can change the emitted names; do not assume reversing them is always equivalent. State patch/stat/name-only output when that distinction is required.",
+    "markdown_link": "For a select or no_match syntax task, show the exact literal destination and exact requested visible link label in guidance or selected text. Vary only Markdown syntax, link label and inline/reference form. Do not require guessing a website's contents from a URL, or create different query/fragment destinations as interchangeable answers. Omit fragment anchors entirely from this operation's authoring. If one link only is required, state exactly one link and no other prose or links.",
+}
 
-def build_plan(split, limit, batch_size, phase, *, target_override=None):
+
+def build_plan(split, limit, batch_size, phase, *, target_override=None, run_plan=None):
     partition = json.loads(PARTITION_PATH.read_text())
     families = partition["families"][split][:]
     random.Random(42).shuffle(families)
-    target = partition["targets"][split]
+    target = target_override or (run_plan.target(split) if run_plan else partition["targets"][split])
     if phase != "main":
-        target = target_override or 10000
+        target = target_override or (run_plan.document["hardening"]["pool_episodes"] if run_plan else 10000)
     quota, remainder = divmod(target, len(families))
-    counts = {family["id"]: quota + (i < remainder) for i, family in enumerate(families)}
+    counts = family_quotas(partition, split, target) if run_plan else {family["id"]: quota + (i < remainder) for i, family in enumerate(families)}
+    allocated = action_quotas(counts) if run_plan else None
     # Independent full-family permutations prevent language/count shortcuts.
     # Assign exact global action quotas before slicing work into HTTP batches.
     target_select = round(target * 0.7)
     select_base = {family["id"]: int(counts[family["id"]] * 0.7) for family in families}
     for family in families[:target_select - sum(select_base.values())]:
         select_base[family["id"]] += 1
+    if allocated:
+        select_base = {key: value["select"] for key, value in allocated.items()}
     schedules = {}
     for family in families:
         identifier = family["id"]
         count = counts[identifier]
 
         def rng(dimension):
-            # Preserve the already frozen main schedule. A later new pool has
-            # an independent schedule, not just renamed main episode IDs.
+            # Independent registered runs and later mining pools have new
+            # schedules, not merely renamed IDs from a previous dataset.
             namespace = "sampling-v6" if phase == "main" else f"sampling-v6/{phase}"
+            if run_plan:
+                namespace += "/" + run_plan.run_id
             return random.Random(int(sha256(f"{namespace}/42/{split}/{identifier}/{dimension}".encode())[:16], 16))
 
-        no_match_count = round(count * 0.2)
+        no_match_count = allocated[identifier]["no_match"] if allocated else round(count * 0.2)
         missing_count = count - select_base[identifier] - no_match_count
         scenarios = ["select"] * select_base[identifier] + ["no_match"] * no_match_count + ["ambiguous"] * (missing_count // 2) + ["insufficient_context"] * (missing_count - missing_count // 2)
         rng("labels").shuffle(scenarios)
@@ -142,11 +153,12 @@ def build_plan(split, limit, batch_size, phase, *, target_override=None):
             for index in range(offset, min(offset + batch_size, counts[family["id"]])):
                 if emitted >= limit:
                     break
-                identifier = f"{split}-{phase}-{CACHE_VERSION}-{family['id']}-{index:05d}"
+                namespace = CACHE_VERSION + ("-" + run_plan.run_id if run_plan else "")
+                identifier = f"{split}-{phase}-{namespace}-{family['id']}-{index:05d}"
                 plans.append({"id": identifier, **schedules[family["id"]][index], "variant_number": index})
                 emitted += 1
             if plans:
-                batches.append({"batch_id": f"{family['id']}-{offset:05d}-{len(plans):02d}", "family": family, "plans": plans})
+                batches.append({"batch_id": f"{family['id']}-{offset:05d}-{len(plans):02d}", "family": family, "plans": plans, **({"run_binding": run_plan.binding()} if run_plan else {})})
             if emitted >= limit:
                 return batches
     return batches
@@ -265,7 +277,7 @@ def blind_label_consensus(prepared, annotations, *, client, split, phase, reques
         mappings[identifier] = mapping
         shuffled.append({"id": identifier, "context": episode["context"], "entries": entries})
     shuffled.reverse()
-    result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": shuffled}, ensure_ascii=False), max_tokens=8192, phase=f"{split}-{phase}-blind-label", request_id=request_id)
+    result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": shuffled}, ensure_ascii=False), max_tokens=16384, response_format="json_object", phase=f"{split}-{phase}-blind-label", request_id=request_id)
     verification = validate_labels(result.parsed, shuffled, require_quoted=True)
     agreed, disagreements = set(), []
     for index, episode in enumerate(prepared):
@@ -283,11 +295,13 @@ def blind_label_consensus(prepared, annotations, *, client, split, phase, reques
     return agreed, disagreements, result
 
 
-def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, registry=None):
+def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, registry=None, run_plan=None):
     from data_tools.audit import AUDIT_SYSTEM, review_group
 
+    if run_plan:
+        run_plan.verify_unchanged()
     output_path = batch_dir / f"{batch['batch_id']}.json"
-    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "compact_authoring_sha256": sha256(Path(__file__).with_name("authoring.py").read_bytes()), "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "candidate_projection_provenance": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch}))
+    contract_hash = sha256(canonical_bytes({"prompt": PROMPT_VERSION, "compact_authoring_sha256": sha256(Path(__file__).with_name("authoring.py").read_bytes()), "operation_requirements_sha256": sha256(canonical_bytes(AUTHOR_OPERATION_GUIDANCE)), "author_prompt": sha256(GENERATOR_SYSTEM.encode()), "label_prompt": sha256(LABEL_SYSTEM.encode()), "audit_prompt": sha256(AUDIT_SYSTEM.encode()), "partition": sha256(PARTITION_PATH.read_bytes()), "native_projection_provenance": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "candidate_projection_provenance": sha256(CANDIDATE_PROJECTION_PATH.read_bytes()), "preprocess": preprocessor.manifest(), "batch": batch}))
     accepted, usage, rejected, starting_attempt = {}, {}, [], 0
     if output_path.is_file():
         stored = json.loads(output_path.read_text())
@@ -314,6 +328,8 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             starting_attempt = partial.get("attempts_completed", 0)
     last_error = ""
     for repair in range(starting_attempt, starting_attempt + 8):
+        if run_plan:
+            run_plan.verify_unchanged()
         pending = [plan for plan in batch["plans"] if plan["id"] not in accepted]
         if not pending:
             break
@@ -324,8 +340,8 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             positive_operation = batch["family"]["operation"].split(";")[0].split(", excluding")[0].split(" without anchors")[0]
             author_family = {"id": batch["family"]["id"], "operation": positive_operation}
             field_fixture = owned_profile(batch["family"]["id"])
-            user = json.dumps({"operation_family": author_family, "field_fixture": field_fixture, "plans": pending, "attempt": repair, "previous_validation_findings": last_error, "instructions": "Each episode uses slot equal to its plan id. Exercise only this operation in the fixed field. Preserve scenario_type and exact candidate count. Return only compact episode fields."}, ensure_ascii=False)
-            generation = client.complete_json(GENERATOR_SYSTEM, user, max_tokens=24576, temperature=1.0 if repair else 0.6, thinking=None if repair else "disabled", phase=f"{split}-{phase}-generate", request_id=f"{batch['batch_id']}-g{repair}")
+            user = json.dumps({"operation_family": author_family, "field_fixture": field_fixture, "operation_requirements": AUTHOR_OPERATION_GUIDANCE.get(batch["family"]["id"], ""), "plans": pending, "attempt": repair, "previous_validation_findings": last_error, "instructions": "Each episode uses slot equal to its plan id. Exercise only this operation in the fixed field. Preserve scenario_type and exact candidate count. Return only compact episode fields."}, ensure_ascii=False)
+            generation = client.complete_json(GENERATOR_SYSTEM, user, max_tokens=24576, response_format="json_object", temperature=1.0 if repair else 0.6, thinking=None if repair else "disabled", phase=f"{split}-{phase}-generate", request_id=f"{batch['batch_id']}-g{repair}")
             usage[f"generation-{generation.audit_id}"] = generation.usage
             raw = generation.parsed.get("episodes", [])
             generated_by_id = {episode.get("slot"): episode for episode in raw if isinstance(episode, dict)}
@@ -360,7 +376,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
             # Deliberately exclude operation family, intended scenario type,
             # generation rationale and labels from the independent label request.
             visible = [{"id": f"e{index + 1}", "context": episode["context"], "entries": episode["entries"]} for index, episode in enumerate(prepared)]
-            label_result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": visible}, ensure_ascii=False), max_tokens=8192, phase=f"{split}-{phase}-label", request_id=f"{batch['batch_id']}-l{repair}")
+            label_result = client.complete_json(LABEL_SYSTEM, json.dumps({"episodes": visible}, ensure_ascii=False), max_tokens=16384, response_format="json_object", phase=f"{split}-{phase}-label", request_id=f"{batch['batch_id']}-l{repair}")
             usage[f"label-{label_result.audit_id}"] = label_result.usage
             annotations = validate_labels(label_result.parsed, visible, require_quoted=True)
             agreed, disagreements, verification = blind_label_consensus(prepared, annotations, client=client, split=split, phase=phase, request_id=f"{batch['batch_id']}-v{repair}")
@@ -398,6 +414,7 @@ def generate_batch(batch, *, client, preprocessor, split, phase, batch_dir, regi
                 episode["parent_id"] = episode["id"]
                 second_reason = next(item["label"]["abstain_reason"] for item in verification.parsed["labels"] if item["id"] == f"v{index + 1}")
                 episode["provenance"] = {
+                    **(run_plan.binding() if run_plan else {}),
                     "teacher": "kimi-for-coding",
                     "capture_format": "pastewhat-focus-v1",
                     "candidate_payload_protocol": "native-synthetic-payload-v1",
@@ -526,7 +543,7 @@ def reconcile_saved_batches(batch_dir, batches, registry):
                 break
 
 
-def assemble(records, split, phase, limit, preprocessor):
+def assemble(records, split, phase, limit, preprocessor, run_plan=None):
     ordered = sorted(records, key=lambda record: record["batch_id"])
     episodes = [episode for record in ordered for episode in record["episodes"]]
     # Deterministic mixing prevents family-contiguous batches during training.
@@ -538,7 +555,8 @@ def assemble(records, split, phase, limit, preprocessor):
             raise ValueError(f"Duplicate visible episode {episode['id']} and {dedup[digest]}")
         dedup[digest] = episode["id"]
     name = split if phase == "main" else f"{split}_{phase}"
-    output = ROOT / "data" / f"{name}.jsonl"
+    directory = ROOT / "local/data-production" / run_plan.run_id if run_plan else ROOT / "data"
+    output = directory / f"{name}.jsonl"
     output.parent.mkdir(parents=True, exist_ok=True)
     payload = b"".join(canonical_bytes(episode) + b"\n" for episode in episodes)
     temporary = output.with_suffix(".jsonl.tmp")
@@ -552,8 +570,9 @@ def assemble(records, split, phase, limit, preprocessor):
         positive_kinds = {entry["kind"] for entry in episode["entries"] if entry["id"] in positives}
         hard_negative += any(entry["id"] not in positives and entry["kind"] in positive_kinds for entry in episode["entries"])
     manifest = {
+        **(run_plan.binding() if run_plan else {}),
         "split": split, "phase": phase, "status": "complete" if len(episodes) == limit else "partial", "episodes": len(episodes), "requested_in_this_run": limit,
-        "planned_full_split": json.loads(PARTITION_PATH.read_text())["targets"][split] if phase == "main" else 10000,
+        "planned_full_split": (run_plan.target(split) if phase == "main" else run_plan.document["hardening"]["pool_episodes"]) if run_plan else json.loads(PARTITION_PATH.read_text())["targets"][split] if phase == "main" else 10000,
         "file": str(output.relative_to(ROOT)), "sha256": sha256(payload), "created_at": utc_now(),
         "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()),
         "prompt_version": PROMPT_VERSION, "preprocessing": preprocessor.manifest(),
@@ -571,7 +590,7 @@ def assemble(records, split, phase, limit, preprocessor):
         "claim_boundary": "Synthetic data only. Deterministic variants are not independent conceptual families. No Calibration/Test examples were accessed by Train/Dev production.",
         "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
     }
-    atomic_json(ROOT / "data" / f"{name}.manifest.json", manifest)
+    atomic_json(directory / f"{name}.manifest.json", manifest)
     return manifest
 
 
@@ -579,6 +598,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--run-plan", help="Pre-registered production scale and immutable source bindings")
     parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--phase", choices=("main", "hard-pool"), default="main")
@@ -586,38 +606,48 @@ def main():
     parser.add_argument("--tokenizer", default=str(ROOT.parent / "laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
     partition = json.loads(PARTITION_PATH.read_text())
-    target = partition["targets"][args.split]
+    run_plan = load_run_plan(args.run_plan) if args.run_plan else None
+    if run_plan and run_plan.document["teacher_contract_version"] != PROMPT_VERSION:
+        raise SystemExit("Registered teacher protocol differs from the generator")
+    target = run_plan.target(args.split) if run_plan else partition["targets"][args.split]
     if args.phase == "hard-pool":
         if args.split != "train" or not args.v0_ready:
             raise SystemExit("A hard pool requires Train ownership and a frozen v0 handoff")
         ready_path = (ROOT / args.v0_ready).resolve()
-        if ready_path != ROOT / "local/pipeline/ranker-v0-ready.json":
+        pipeline_directory = ROOT / run_plan.pipeline_directory if run_plan else ROOT / "local/pipeline"
+        if ready_path != pipeline_directory / "ranker-v0-ready.json":
             raise SystemExit("Use the actual training pipeline's v0 handoff")
         ready = json.loads(ready_path.read_text())
-        if ready.get("selected_by") != "Dev only" or not (ROOT / "data/frozen/train-20000.jsonl").is_file():
+        original_train = ROOT / run_plan.data_path("train") if run_plan else ROOT / "data/frozen/train-20000.jsonl"
+        if run_plan and any(ready.get(key) != value for key, value in run_plan.binding().items()):
+            raise SystemExit("v0 handoff belongs to a different registered run")
+        if ready.get("selected_by") != "Dev only" or not original_train.is_file():
             raise SystemExit("The full original Train set and Dev-selected v0 must exist first")
         weight = ROOT / ready["checkpoint"] / "model.safetensors"
         with weight.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         if digest != ready["weight_sha256"]:
             raise SystemExit("v0 checkpoint weight differs from its frozen handoff")
-        target = 10000
+        target = run_plan.document["hardening"]["pool_episodes"] if run_plan else 10000
     limit = args.limit or target
     if not 1 <= limit <= target or not 1 <= args.batch_size <= 20 or not 1 <= args.workers <= 8:
         raise SystemExit("Invalid generation size or worker count")
     preprocessor = Preprocessor(args.tokenizer)
     client = TeacherClient(ROOT / "local" / "teacher" / args.split / args.phase)
-    batches = build_plan(args.split, limit, args.batch_size, args.phase, target_override=target)
+    batches = build_plan(args.split, limit, args.batch_size, args.phase, target_override=target, run_plan=run_plan)
     batch_dir = ROOT / "local" / "generated" / args.split / (args.phase + "-" + CACHE_VERSION)
+    if run_plan:
+        batch_dir /= run_plan.run_id
     batch_dir.mkdir(parents=True, exist_ok=True)
-    registry = ContentRegistry(ROOT / f"local/generated/train-dev-{CACHE_VERSION}-content.sqlite3")
+    registry_name = f"train-dev-{CACHE_VERSION}" + ("-" + run_plan.run_id if run_plan else "")
+    registry = ContentRegistry(ROOT / "local/generated" / (registry_name + "-content.sqlite3"))
     if args.phase == "hard-pool":
-        for line in (ROOT / "data/frozen/train-20000.jsonl").read_text().splitlines():
+        for line in original_train.read_text().splitlines():
             if registry.claim(json.loads(line)):
                 raise ValueError("Original frozen training contents conflict with the registry")
     # Frozen pilot bytes win over any later content collision. They are never
     # removed or rewritten by duplicate repair.
-    pilot_path = ROOT / "data/frozen/pilot-train-5000.jsonl"
+    pilot_path = ROOT / run_plan.data_path("pilot") if run_plan else ROOT / "data/frozen/pilot-train-5000.jsonl"
     if pilot_path.is_file():
         for line in pilot_path.read_text().splitlines():
             if registry.claim(json.loads(line)):
@@ -627,13 +657,13 @@ def main():
     started = time.monotonic()
     failures = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        futures = {executor.submit(generate_batch, batch, client=client, preprocessor=preprocessor, split=args.split, phase=args.phase, batch_dir=batch_dir, registry=registry): batch for batch in batches}
+        futures = {executor.submit(generate_batch, batch, client=client, preprocessor=preprocessor, split=args.split, phase=args.phase, batch_dir=batch_dir, registry=registry, run_plan=run_plan): batch for batch in batches}
         for future in as_completed(futures):
             batch = futures[future]
             try:
                 records.append(future.result())
                 completed = sum(len(record["episodes"]) for record in records)
-                manifest = assemble(records, args.split, args.phase, limit, preprocessor)
+                manifest = assemble(records, args.split, args.phase, limit, preprocessor, run_plan)
                 print(json.dumps({"split": args.split, "completed": completed, "target": limit, "labels": manifest["labels"], "elapsed_seconds": round(time.monotonic() - started, 1)}, ensure_ascii=False), flush=True)
             except Exception as exc:
                 failures.append({"batch_id": batch["batch_id"], "error": str(exc), "time": utc_now()})
