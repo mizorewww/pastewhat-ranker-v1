@@ -56,6 +56,24 @@ def train_stage(stage, template, output, changes, state_path, local):
     return json.loads(summary.read_text())
 
 
+def profile_formal_train(train_path, local, state_path):
+    report_path = Path("reports/training/pilot-throughput.json")
+    if report_path.exists():
+        report = json.loads(report_path.read_text())
+        if (report.get("training_data_sha256") != sha256_file(train_path)
+                or report.get("reference_model_sha256") != sha256_file("checkpoints/initial/model.safetensors")
+                or report.get("selection") != "workload_quantiles"):
+            raise ValueError("Formal throughput report does not match the frozen training data/model")
+        return report["selected_micro_batch"]
+    atomic_json(state_path, {"phase": "pilot_throughput", "status": "measuring",
+                             "selection": "Train workload quantiles only", "updated_unix": time.time()})
+    with (local / "pilot-throughput.log").open("a", buffering=1) as log:
+        subprocess.run([sys.executable, "scripts/measure_training_throughput.py", "--train", train_path,
+                        "--selection", "workload_quantiles", "--output", str(report_path)],
+                       stdout=log, stderr=subprocess.STDOUT, check=True)
+    return json.loads(report_path.read_text())["selected_micro_batch"]
+
+
 def main():
     global STATE_PATH
     parser = argparse.ArgumentParser(description=__doc__)
@@ -86,6 +104,7 @@ def main():
     if overfit_metrics["decision_accuracy"] < 0.99:
         raise RuntimeError("32-episode overfit gate did not reach 99%; diagnose training before scaling")
     wait_for_snapshot("data/frozen/pilot-train-5000.jsonl", 5000, state_path, "pilot_preparation")
+    micro = profile_formal_train("data/frozen/pilot-train-5000.jsonl", local, state_path)
     wait_for_snapshot("data/frozen/dev.jsonl", 1000, state_path, "pilot_preparation", expected_split="dev")
     pilot = train_stage("pilot", "configs/pilot.yaml", "checkpoints/pilot", {"micro_batch_episodes": micro}, state_path, local)
     pilot_metrics = json.loads(Path(pilot["best_checkpoint"], "dev_metrics.json").read_text())

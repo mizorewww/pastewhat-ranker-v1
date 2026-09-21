@@ -8,7 +8,7 @@ from pathlib import Path
 
 import torch
 
-from pastewhat_ranker.model import PasteWhatRanker, collate_encoded, group_loss
+from pastewhat_ranker.model import PasteWhatRanker, collate_encoded, group_loss, sha256_file
 from pastewhat_ranker.preprocess import Preprocessor
 from pastewhat_ranker.train import read_allowed_data
 
@@ -18,13 +18,27 @@ def main():
     parser.add_argument("--train", required=True)
     parser.add_argument("--model", default="checkpoints/initial")
     parser.add_argument("--output", default="reports/training/throughput.json")
+    parser.add_argument("--selection", choices=("first", "workload_quantiles"), default="first")
     args = parser.parse_args()
     torch.set_num_threads(8)
     p = Preprocessor(Path(args.model) / "tokenizer")
-    episodes = read_allowed_data(args.train, expected_split="train")[:32]
-    if len(episodes) < 16:
+    source_episodes = read_allowed_data(args.train, expected_split="train")
+    if len(source_episodes) < 16:
         raise ValueError("Need at least sixteen training episodes")
-    encoded = [p.encode_episode(episode) for episode in episodes]
+    if args.selection == "workload_quantiles":
+        source_encoded = [p.encode_episode(episode) for episode in source_episodes]
+        def workload(index):
+            lengths = list(map(len, source_encoded[index]["input_ids"]))
+            return sum(lengths) + len(lengths) * max(lengths) ** 2 / 64
+        ordered = sorted(range(len(source_episodes)), key=workload)
+        selected = [ordered[round(i * (len(ordered) - 1) / 15)] for i in range(16)]
+        episodes = [source_episodes[i] for i in selected]
+        encoded = [source_encoded[i] for i in selected]
+        del source_encoded
+    else:
+        episodes = source_episodes[:32]
+        encoded = [p.encode_episode(episode) for episode in episodes]
+    reference_sha = sha256_file(Path(args.model) / "model.safetensors")
     report = []
     for micro in (1, 2, 4):
         torch.manual_seed(42)
@@ -54,7 +68,13 @@ def main():
                        "mps_driver_bytes": torch.mps.driver_allocated_memory()})
         del optimizer, model
         torch.mps.empty_cache()
-    result = {"training_data": args.train, "candidate_counts": [len(e["entries"]) for e in episodes[:16]],
+    if reference_sha != sha256_file(Path(args.model) / "model.safetensors"):
+        raise ValueError("Throughput measurement must never alter the frozen initialization")
+    result = {"training_data": args.train, "training_data_sha256": sha256_file(args.train),
+              "reference_model_sha256": reference_sha, "selection": args.selection,
+              "source_episode_count": len(source_episodes), "profiled_episode_ids": [e["id"] for e in episodes[:16]],
+              "selection_uses_labels_or_dev_quality": False, "probe_weights_discarded": True,
+              "candidate_counts": [len(e["entries"]) for e in episodes[:16]],
               "pair_token_lengths": [list(map(len, e["input_ids"])) for e in encoded[:16]],
               "precision": "BF16 autocast, FP32 parameters/Adam moments", "gradient_checkpointing": True,
               "trials": report, "selected_micro_batch": min(report, key=lambda row: row["warm_seconds_per_episode"])["micro_batch_episodes"]}
