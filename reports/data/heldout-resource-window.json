@@ -38,11 +38,11 @@
         "known_responses": 13,
         "prompt_tokens": 42258,
         "completion_tokens": 23976,
-        "total_tokens": 66234,
-        "reported_reasoning_tokens": 0
+        "total_tokens": 66234
       },
       "new_failure_attempts": {},
-      "in_flight_usage_not_yet_observed": 2
+      "in_flight_usage_not_yet_observed": 2,
+      "separate_reasoning_tokens": "not reported by the Pi provider"
     },
     "test": {
       "workers": 2,
@@ -69,11 +69,11 @@
         "known_responses": 14,
         "prompt_tokens": 37269,
         "completion_tokens": 23605,
-        "total_tokens": 60874,
-        "reported_reasoning_tokens": 0
+        "total_tokens": 60874
       },
       "new_failure_attempts": {},
-      "in_flight_usage_not_yet_observed": 2
+      "in_flight_usage_not_yet_observed": 2,
+      "separate_reasoning_tokens": "not reported by the Pi provider"
     }
   },
   "shared_account": {
