@@ -1,0 +1,77 @@
+"""Freeze deployment artifacts before opening the final held-out test."""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+import subprocess
+
+from evaluations.common import sha256, write_json
+
+
+def directory_hashes(root: Path) -> dict[str, str]:
+    if not root.is_dir():
+        raise ValueError(f"Artifact root does not exist: {root}")
+    paths = sorted(path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts and path.name != ".DS_Store")
+    if not paths:
+        raise ValueError("Cannot freeze an empty artifact directory")
+    return {str(path.relative_to(root)): sha256(path) for path in paths}
+
+
+def verify_freeze(path: Path, dataset: Path | None = None) -> dict:
+    frozen = json.loads(path.read_text())
+    if frozen.get("status") != "frozen_for_final_test":
+        raise ValueError("Final Test requires an explicitly approved freeze")
+    for section in ("deployment", "baseline"):
+        root = Path(frozen[section]["root"])
+        actual = directory_hashes(root)
+        if actual != frozen[section]["files"]:
+            raise ValueError(f"Frozen {section} files changed")
+    for name, item in frozen["inputs"].items():
+        if sha256(item["path"]) != item["sha256"]:
+            raise ValueError(f"Frozen {name} changed")
+    if dataset and sha256(dataset) != frozen["inputs"]["test"]["sha256"]:
+        raise ValueError("The requested dataset is not the frozen final Test")
+    return frozen
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--deployment", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--baseline-commit", required=True)
+    parser.add_argument("--test", type=Path, required=True)
+    parser.add_argument("--calibration", type=Path, required=True)
+    parser.add_argument("--calibrator", type=Path, required=True)
+    parser.add_argument("--preprocess-source", type=Path, default=Path("src/pastewhat_ranker/preprocess.py"))
+    parser.add_argument("--family-partition", type=Path, default=Path("data_tools/family_partition.json"))
+    parser.add_argument("--authorization", required=True, help="Exact parent-agent freeze authorization reference, not a fabricated user approval")
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    calibrator = json.loads(args.calibrator.read_text())
+    if calibrator.get("version") != "pastewhat-calibrator-v1":
+        raise SystemExit("Expected the deployment-version correctness calibrator")
+    inputs = {name: {"path": str(path.resolve()), "sha256": sha256(path)} for name, path in {
+        "test": args.test, "calibration": args.calibration, "calibrator": args.calibrator,
+        "preprocess_source": args.preprocess_source, "family_partition": args.family_partition,
+        "evaluation_protocol": Path("docs/EVALUATION_PROTOCOL.md"),
+    }.items()}
+    record = {
+        "version": "pastewhat-release-freeze-v1", "status": "frozen_for_final_test",
+        "authorization": args.authorization, "frozen_at": datetime.now(timezone.utc).isoformat(),
+        "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "baseline_commit": args.baseline_commit,
+        "deployment": {"root": str(args.deployment.resolve()), "files": directory_hashes(args.deployment)},
+        "baseline": {"root": str(args.baseline.resolve()), "files": directory_hashes(args.baseline)},
+        "inputs": inputs, "calibration_status": calibrator["status"],
+        "quality_target": {"answerable_top1_delta": 0.05, "key_group_maximum_decline": 0.05,
+                           "key_group_minimum_answerable": 30, "recommendation_precision": 0.95},
+    }
+    write_json(args.output, record)
+    verify_freeze(args.output, args.test)
+    print(json.dumps({"frozen": True, "manifest_sha256": sha256(args.output), "calibration_status": calibrator["status"]}))
+
+
+if __name__ == "__main__":
+    main()
