@@ -1,0 +1,350 @@
+{
+  "accepted_per_minute": 18.99096656507213,
+  "completed_batches_after_restart": 24,
+  "early_throughput_snapshot_ready": false,
+  "elapsed_seconds": 751.936451,
+  "kimi_requests_started_after_pi_restore": 0,
+  "last_kimi_request_started_at": {
+    "dev": "2026-09-21T05:26:38.133898+00:00",
+    "train": "2026-09-21T05:28:28.834838+00:00"
+  },
+  "limitations": [
+    "This measures production throughput and acceptance gates, not model accuracy or generalization.",
+    "New completed batches include continuation of pre-switch pending work; their old reject events are reported separately.",
+    "The rolling-pool increase includes previously persisted Kimi-labeled rows that became visible on restart, not new Kimi requests.",
+    "All observed Pi responses in the window are counted, including invalid responses and the one root-requested Train review. Costs also include work in unfinished batches.",
+    "In-flight requests have unobserved final usage and are not terminal unknown failures.",
+    "Pi input/output/total counters are provider-reported; reasoning breakdown is not reported. Cache inclusion is not inferred and zero billing metadata is not a monetary measurement.",
+    "Existing accepted rows with explicit UI helper guidance are realistic captured inputs but do not establish accuracy on ordinary unprompted chat.",
+    "SWE-2 is a rolling remote model; runtime and request isolation are pinned, not remote model weights.",
+    "Full freeze still requires exact registered family/action quotas and immutable nested snapshots; current pool counts are not frozen dataset delivery."
+  ],
+  "new_pi_primary_accepted_total": 238,
+  "pi_window_cost": {
+    "by_phase": {
+      "v7-author": {
+        "completion_tokens": 66440,
+        "observed_responses": 41,
+        "prompt_tokens": 52517,
+        "total_tokens": 118957
+      },
+      "v7-label": {
+        "completion_tokens": 23850,
+        "observed_responses": 42,
+        "prompt_tokens": 175564,
+        "total_tokens": 199414
+      },
+      "v7-root-requested-blind-review": {
+        "completion_tokens": 279,
+        "observed_responses": 1,
+        "prompt_tokens": 1172,
+        "total_tokens": 1451
+      },
+      "v7-sampled-or-risk-review": {
+        "completion_tokens": 21926,
+        "observed_responses": 7,
+        "prompt_tokens": 27035,
+        "total_tokens": 48961
+      }
+    },
+    "by_response_model": {
+      "swe-2-high": {
+        "completion_tokens": 22205,
+        "observed_responses": 8,
+        "prompt_tokens": 28207,
+        "total_tokens": 50412
+      },
+      "swe-2-medium": {
+        "completion_tokens": 90290,
+        "observed_responses": 83,
+        "prompt_tokens": 228081,
+        "total_tokens": 318371
+      }
+    },
+    "current_statuses": {
+      "invalid_response": 1,
+      "request_started": 4,
+      "success": 90
+    },
+    "in_flight_with_lease": 4,
+    "incomplete_attempts": 4,
+    "known_tokens_per_new_accepted_in_open_pipeline_window": 1549.5084033613446,
+    "known_tokens_per_published_pool_delta": 1505.2367346938775,
+    "known_usage": {
+      "completion_tokens": 112495,
+      "prompt_tokens": 256288,
+      "total_tokens": 368783
+    },
+    "missing_usage_fields_across_observed_attempts": {
+      "reasoning_tokens": 91
+    },
+    "observed_response_attempts": 91,
+    "phase_missing_usage_fields": {},
+    "request_identity_records": 95,
+    "terminal_unknown_usage_attempts": 0,
+    "unique_process_attempts": 95
+  },
+  "published_pool_delta_total": 245,
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "Owned Train/Dev productive queues only. No Calibration/Test data or audits read.",
+  "snapshot_file_sha256": {
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/attempt-ledger.json": "8f3d87b46e37ffd8ea6cc92662c36804aa8e83b90cc0c94fc540e30c19990990",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/dev-accepted-rows.json": "3c59dfaecbe2dddf52b60c4dd51cbd9daf6692d4149ced9bfd8d7cdbf11305cb",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/dev-batch-records.json": "b860eb736da1be295633086dc7d3a7db41d0aa39c02e422f8f44ba997067a710",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/dev-pi-audits.json": "b25475edd0f1a0b9e2124bd300d79022a04589636da843e688f87fb1a8cfbf92",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/dev-rolling-manifest.json": "716168069708e51a98403f19e50eb03c9f5c5cc75100a028028f5764dfb8f2fb",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/exclusions.json": "976aceccc5a656a8260b2c94286edbee638d6fe38c214070da1878d17574ed48",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/incomplete-attempts.json": "107a83b1523581876b4c64cc9edb85341b990e1480eac2d8dbf93f2c08561bb0",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/terminal-unknown-attempts.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/train-accepted-rows.json": "e06682b73c2f5465d7d0e71185ca1699f566c2cf9249fdc8e591c44227e86432",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/train-batch-records.json": "b9c2e33d1d4d62fc3b7139133cd2c1cccb579231ead977894a51ec5969286aeb",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/train-pi-audits.json": "aa7696dfe58fc8c32c4e586c7b673179756663cd4ebf2687a80c1089924abcf5",
+    "local/v7/ranker-v1-efficient-20260921/pi-initial-window/train-rolling-manifest.json": "dfced0ee048121d921aed03315f64f1dac791803460e2c24a6a5a4e95346674d"
+  },
+  "splits": {
+    "dev": {
+      "baseline_published_accepted": 62,
+      "carry_in_completed_batch_rejection_events_may_predate_window": {
+        "Independent action does not match the registered sampling bucket": 5
+      },
+      "current_accepted_snapshot": 110,
+      "current_candidate_counts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "current_family_coverage": 8,
+      "formal_snapshot_ready": false,
+      "frozen_target": 2000,
+      "main_target": 2000,
+      "new_completed_batches": 5,
+      "new_pi_only_complete_accepted": 30,
+      "new_pi_only_complete_batches": 3,
+      "new_pi_only_complete_planned_slots": 30,
+      "new_pi_only_completed_batch_rejection_events": {
+        "Independent action does not match the registered sampling bucket": 1,
+        "Independent review disagrees": 1,
+        "Missing or duplicated author slot": 1,
+        "Python positive is not syntactically valid at the visible location": 1
+      },
+      "new_pi_primary_accepted": 48,
+      "new_pi_primary_accepted_by_planned_scenario": {
+        "ambiguous": 3,
+        "no_match": 10,
+        "select": 35
+      },
+      "new_pi_primary_accepted_per_minute": 3.830110903880094,
+      "new_pi_primary_actual_actions": {
+        "ambiguous": 2,
+        "insufficient_context": 1,
+        "no_match": 10,
+        "select": 35
+      },
+      "new_pi_primary_author_sources": {
+        "devin": 40,
+        "kimi-code": 8
+      },
+      "new_pi_primary_candidates_by_action": {
+        "abstain": {
+          "1": 1,
+          "10": 1,
+          "11": 1,
+          "13": 1,
+          "14": 1,
+          "15": 1,
+          "17": 1,
+          "2": 1,
+          "20": 1,
+          "3": 2,
+          "7": 1,
+          "9": 1
+        },
+        "select": {
+          "1": 2,
+          "10": 1,
+          "11": 1,
+          "12": 2,
+          "15": 2,
+          "17": 2,
+          "18": 3,
+          "19": 1,
+          "2": 5,
+          "20": 3,
+          "3": 2,
+          "4": 3,
+          "5": 3,
+          "6": 1,
+          "7": 1,
+          "8": 2,
+          "9": 1
+        }
+      },
+      "new_pi_primary_quality_paths": {
+        "single_pass": 48
+      },
+      "new_pi_primary_review_sources": {},
+      "new_pi_primary_select_all_positive": 12,
+      "new_pi_primary_select_mean_acceptable_fraction": 0.5264861287417678,
+      "new_pi_primary_selected_exact_positive": 0,
+      "new_pi_primary_selected_nonempty": 9,
+      "pi_author_calls_duplicating_saved_success_request_ids": 0,
+      "preexisting_kimi_primary_now_visible": 62,
+      "previously_pending_kimi_labeled_rows_published_after_restart": 0,
+      "published_pool_delta": 48,
+      "resumed_preexisting_batches_completed": 2,
+      "saved_kimi_author_audit_bytes_unchanged": true,
+      "saved_kimi_author_cache_records": 14
+    },
+    "train": {
+      "baseline_published_accepted": 217,
+      "carry_in_completed_batch_rejection_events_may_predate_window": {
+        "Actual candidate list must contain1–20 complete entries": 2,
+        "Author guidance must be 0–2 static strings within the native240-character per-string limit": 19,
+        "Independent action does not match the registered sampling bucket": 10,
+        "Independent review disagrees": 1
+      },
+      "current_accepted_snapshot": 414,
+      "current_candidate_counts": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "current_family_coverage": 40,
+      "formal_snapshot_ready": false,
+      "frozen_target": 5000,
+      "main_target": 20000,
+      "new_completed_batches": 19,
+      "new_pi_only_complete_accepted": 155,
+      "new_pi_only_complete_batches": 16,
+      "new_pi_only_complete_planned_slots": 160,
+      "new_pi_only_completed_batch_rejection_events": {
+        "Actual candidate list must contain1–20 complete entries": 2,
+        "Author guidance must be 0–2 static strings within the native240-character per-string limit": 1,
+        "Independent action does not match the registered sampling bucket": 16
+      },
+      "new_pi_primary_accepted": 190,
+      "new_pi_primary_accepted_by_planned_scenario": {
+        "ambiguous": 6,
+        "insufficient_context": 7,
+        "no_match": 37,
+        "select": 140
+      },
+      "new_pi_primary_accepted_per_minute": 15.160855661192036,
+      "new_pi_primary_actual_actions": {
+        "ambiguous": 2,
+        "insufficient_context": 11,
+        "no_match": 37,
+        "select": 140
+      },
+      "new_pi_primary_author_sources": {
+        "devin": 177,
+        "kimi-code": 13
+      },
+      "new_pi_primary_candidates_by_action": {
+        "abstain": {
+          "1": 1,
+          "10": 3,
+          "11": 2,
+          "12": 1,
+          "13": 1,
+          "14": 4,
+          "15": 3,
+          "16": 1,
+          "17": 1,
+          "18": 2,
+          "19": 3,
+          "2": 8,
+          "20": 1,
+          "3": 6,
+          "4": 3,
+          "5": 3,
+          "6": 5,
+          "7": 1,
+          "8": 1
+        },
+        "select": {
+          "1": 6,
+          "10": 11,
+          "11": 10,
+          "12": 8,
+          "13": 5,
+          "14": 9,
+          "15": 5,
+          "16": 10,
+          "17": 8,
+          "18": 4,
+          "19": 8,
+          "2": 5,
+          "20": 5,
+          "3": 11,
+          "4": 9,
+          "5": 6,
+          "6": 9,
+          "7": 3,
+          "8": 6,
+          "9": 2
+        }
+      },
+      "new_pi_primary_quality_paths": {
+        "sampled_reviewed": 27,
+        "single_pass": 163
+      },
+      "new_pi_primary_review_sources": {
+        "swe-2-high": 27
+      },
+      "new_pi_primary_select_all_positive": 15,
+      "new_pi_primary_select_mean_acceptable_fraction": 0.37945294680257086,
+      "new_pi_primary_selected_exact_positive": 3,
+      "new_pi_primary_selected_nonempty": 65,
+      "pi_author_calls_duplicating_saved_success_request_ids": 0,
+      "preexisting_kimi_primary_now_visible": 224,
+      "previously_pending_kimi_labeled_rows_published_after_restart": 7,
+      "published_pool_delta": 197,
+      "resumed_preexisting_batches_completed": 3,
+      "saved_kimi_author_audit_bytes_unchanged": true,
+      "saved_kimi_author_cache_records": 59
+    }
+  },
+  "teacher_transition": {
+    "path": "configs/teacher_transition_swe2.json",
+    "sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
+  },
+  "version": "pastewhat-pi-production-window-v1",
+  "window_end": "2026-09-21T07:06:02.585610+00:00",
+  "window_start": "2026-09-21T06:53:30.649159+00:00"
+}
