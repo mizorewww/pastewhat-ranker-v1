@@ -116,6 +116,9 @@ def publish(original, proposals, records, selection, plan, preprocessor, directo
     output = ROOT / plan.data_path("hardening")
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest = {**plan.binding(), "stage": "hardening", "split": "train", "episodes": len(chosen), "sha256": sha256(payload), "family_partition_sha256": sha256(partition_path.read_bytes()), "teacher_contract_version": PROTOCOL, "retained_original": len(old), "accepted_new": len(new), "original_rows_preserved_byte_for_byte": True, "mining_proposals_sha256": selection["proposals_sha256"], "confirmed_new": len(confirmed), "confirmation_rejected": sum(len(record["rejected"]) for record in records), "student_disagreement_is_not_teacher_truth": True, "human_validated": False, "labels": dict(Counter(row["label"]["decision"] for row in chosen)), "created_at": utc_now()}
+    correction = ROOT / "configs/teacher_correction_swe2_uid.json"
+    if correction.is_file():
+        manifest["teacher_correction"] = {"path": str(correction.relative_to(ROOT)), "sha256": sha256(correction.read_bytes())}
     atomic_json(output.with_suffix(".fingerprints.json"), {**plan.binding(), "content_sha256": sorted(fingerprints)})
     atomic_json(output.with_suffix(".manifest.json"), manifest)
     publish_bytes(output, payload)

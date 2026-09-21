@@ -1,0 +1,87 @@
+{
+  "all_formal_train_dev_snapshot_files_absent_at_quarantine": true,
+  "limitations": [
+    "A valid identity receipt proves the selected provider model UID and isolated input, not semantic label accuracy.",
+    "Usage from the excluded foreign-model call remains in the historical cost ledger.",
+    "Valid earlier teacher sources retain their original identity and evidence; no source revision is retroactively claimed."
+  ],
+  "offline_validation": {
+    "actual_v1_success_cache_replays": 4,
+    "covered_roles": [
+      "author",
+      "primary",
+      "review"
+    ],
+    "foreign_actual_uid_raw_receipt_rejected": true,
+    "foreign_actual_uid_success_cache_rejected": true,
+    "new_runtime_uses_correction_and_v2_bridge": true,
+    "original_cache_bytes_unchanged": true,
+    "provider_process_forbidden": true,
+    "returned_original_audit_id": true,
+    "teacher_api_calls": 0
+  },
+  "original_audit_and_batch_bytes_unchanged": true,
+  "original_labels_not_rewritten": true,
+  "owned_success_audit_inventory": {
+    "dev": {
+      "actual_model_counts": {
+        "swe-2-high": 22,
+        "swe-2-medium": 186
+      },
+      "foreign_audits": [],
+      "successful_pi_audits": 208
+    },
+    "train": {
+      "actual_model_counts": {
+        "claude-opus-5-medium": 1,
+        "swe-2-high": 39,
+        "swe-2-medium": 633
+      },
+      "foreign_audits": [
+        "534bb5436f48ef35e9e15527fb2f3de7f9f2da03812eac947c8d95a6f5392863"
+      ],
+      "successful_pi_audits": 673
+    }
+  },
+  "quarantined_accepted_train": [
+    {
+      "content_sha256": "1416fb48f2e0da1d386e5e8a3a5280c5b6bfebee9294d61a07aac8662c591c36",
+      "id": "train-v7-python_collection-00011",
+      "row_sha256": "534787c04f8595e3fdc1c6364d35a8a65533196a2d8ec50697395ab0f6a4fbc6",
+      "source_record": "local/v7/ranker-v1-efficient-20260921/batches/train/train-python_collection-0001.json",
+      "source_record_sha256": "fc74143a6640d1e55d76c2bf8a9202fc0a365912848be406fcfa857670a9c1e4"
+    },
+    {
+      "content_sha256": "ad1a0722d7c0d8af6c944a65e928d99ce5ca1f7ceaeae15c971d995dda76d3e4",
+      "id": "train-v7-python_collection-00012",
+      "row_sha256": "6d1fbc894b3fd0506a1bbed37709df6d7c242d96761da7bdca9f90648026bcd1",
+      "source_record": "local/v7/ranker-v1-efficient-20260921/batches/train/train-python_collection-0001.json",
+      "source_record_sha256": "fc74143a6640d1e55d76c2bf8a9202fc0a365912848be406fcfa857670a9c1e4"
+    },
+    {
+      "content_sha256": "987a56f1274ee2af3847c8d4025a365523fbda5b8ce19351b2bb67dfa97c2ea5",
+      "id": "train-v7-python_collection-00013",
+      "row_sha256": "079ad300bb6dbf01f9210f575c41f067339eee07a780ef1ca167b71f4e400e01",
+      "source_record": "local/v7/ranker-v1-efficient-20260921/batches/train/train-python_collection-0001.json",
+      "source_record_sha256": "fc74143a6640d1e55d76c2bf8a9202fc0a365912848be406fcfa857670a9c1e4"
+    },
+    {
+      "content_sha256": "6aa9fab9dfeb0e9f8e3c6506f56488a6cd2180e40ae24734789b1edfda63891b",
+      "id": "train-v7-python_collection-00016",
+      "row_sha256": "6ee14b7fb5efcbada1f107b798d178ecb03e127e52c6d597e0a86aafe0b198a6",
+      "source_record": "local/v7/ranker-v1-efficient-20260921/batches/train/train-python_collection-0001.json",
+      "source_record_sha256": "fc74143a6640d1e55d76c2bf8a9202fc0a365912848be406fcfa857670a9c1e4"
+    }
+  ],
+  "recorded_at": "2026-09-21T08:22:33.479357+00:00",
+  "rejected_source_audit_id": "534bb5436f48ef35e9e15527fb2f3de7f9f2da03812eac947c8d95a6f5392863",
+  "rejected_source_known_tokens_preserved": 5818,
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "Train and Dev only; no Calibration/Test examples or raw teacher responses inspected.",
+  "teacher_correction": {
+    "path": "configs/teacher_correction_swe2_uid.json",
+    "sha256": "f2850983a6675ccaff201976faf51e9d43dff3b7826692924a7e2009e7e73195"
+  },
+  "version": "pastewhat-pi-model-identity-correction-audit-v1"
+}

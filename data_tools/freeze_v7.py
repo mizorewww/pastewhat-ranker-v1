@@ -92,6 +92,9 @@ def try_freeze(plan, split, rows, *, preprocessor):
         manifest["teacher_sources"] = teacher_source_counts(chosen, audit_directory)
         transition = ROOT / "configs/teacher_transition_swe2.json"
         manifest["teacher_transition"] = {"path": str(transition.relative_to(ROOT)), "sha256": sha256(transition.read_bytes())}
+        correction = ROOT / "configs/teacher_correction_swe2_uid.json"
+        if correction.is_file():
+            manifest["teacher_correction"] = {"path": str(correction.relative_to(ROOT)), "sha256": sha256(correction.read_bytes())}
         manifest["teacher_evidence_file_sha256"] = evidence_hashes
         atomic_json(output.with_suffix(".manifest.json"), manifest)
         # JSONL is the readiness marker consumed by the GPU pipeline.

@@ -21,6 +21,11 @@ EXTENSION = ROOT / "tools/pi_teacher_extension.ts"
 PROVIDER_EXTENSION = ROOT.parent / "pi-devin/extensions/index.ts"
 RATE_DIRECTORY = ROOT / "local/pi-swe2-account-rate"
 POLICY_PATH = ROOT / "configs/teacher_transition_swe2.json"
+CORRECTION_PATH = ROOT / "configs/teacher_correction_swe2_uid.json"
+
+
+class PiModelIdentityError(ValueError):
+    pass
 
 
 def pi_coordinator():
@@ -130,6 +135,8 @@ def parse_pi_completion(stdout, receipt_bytes, bound_bytes, *, provider="devin",
     expected = {"version": "pastewhat-pi-teacher-receipt-v1", "transport": "pi-cli-json", "provider": provider, "requested_model": model, "request_sha256": sha256(bound_bytes), "max_tokens": bound["max_tokens"], "thinking": bound["thinking"], "provider_call_count": 1, "isolated": True, "context_message_count": 1, "tools_count": 0, "usage_source": "pi-devin-provider-reported-or-unknown"}
     if any(receipt.get(key) != value for key, value in expected.items()) or not isinstance(receipt.get("actual_model"), str) or not receipt["actual_model"]:
         raise ValueError("Pi receipt does not prove the exact single-call visible input")
+    if bound["thinking"] not in ("medium", "high", "max") or receipt["actual_model"] != model + "-" + bound["thinking"]:
+        raise PiModelIdentityError("Pi actual UID differs from the requested SWE-2 thinking variant")
     events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
     if any(not isinstance(event, dict) for event in events):
         raise ValueError("Pi output contains a non-event JSON value")
@@ -161,24 +168,59 @@ class PiTeacherClient:
         version = subprocess.run([self.binary, "--version"], capture_output=True, text=True, timeout=15, check=True).stdout.strip()
         self.policy = json.loads(POLICY_PATH.read_text())
         self.policy_sha256 = sha256(POLICY_PATH.read_bytes())
-        self.runtime = {"pi_version": version, "pi_executable_sha256": sha256(Path(self.binary).resolve().read_bytes()), "teacher_extension_sha256": sha256(EXTENSION.read_bytes()), "provider_extension_sha256": sha256(PROVIDER_EXTENSION.read_bytes())}
-        if self.policy.get("provider") != self.provider or self.policy.get("model") != self.model or self.policy.get("transport") != "pi-cli-json" or any(self.policy["runtime"].get(key) != value for key, value in self.runtime.items()):
+        self.correction = None
+        self.correction_sha256 = None
+        registered = self.policy["runtime"]
+        self.extension = EXTENSION
+        if CORRECTION_PATH.is_file():
+            self.correction = json.loads(CORRECTION_PATH.read_text())
+            self.correction_sha256 = sha256(CORRECTION_PATH.read_bytes())
+            expected_mapping = {level: "swe-2-" + level for level in ("medium", "high", "max")}
+            if self.correction.get("version") != "pastewhat-teacher-runtime-correction-v1" or self.correction.get("parent_transition") != {"path": str(POLICY_PATH.relative_to(ROOT)), "sha256": self.policy_sha256} or self.correction.get("expected_model_mapping") != expected_mapping or any(self.correction.get(key) != self.policy.get(key) for key in ("run_id", "run_plan_sha256")):
+                raise TeacherError("Pi runtime correction differs from its registered parent or exact model mapping")
+            registered = self.correction["runtime"]
+            self.extension = ROOT / registered["teacher_extension_path"]
+        self.runtime = {"pi_version": version, "pi_executable_sha256": sha256(Path(self.binary).resolve().read_bytes()), "teacher_extension_sha256": sha256(self.extension.read_bytes()), "provider_extension_sha256": sha256(PROVIDER_EXTENSION.read_bytes())}
+        if self.policy.get("provider") != self.provider or self.policy.get("model") != self.model or self.policy.get("transport") != "pi-cli-json" or any(registered.get(key) != value for key, value in self.runtime.items()):
             raise TeacherError("Pi transport runtime differs from the registered teacher transition")
-        pins_path = ROOT / self.policy["runtime"]["pins_path"]
-        if sha256(pins_path.read_bytes()) != self.policy["runtime"]["pins_sha256"]:
+        pins_path = ROOT / registered["pins_path"]
+        if sha256(pins_path.read_bytes()) != registered["pins_sha256"]:
             raise TeacherError("Pi transport source pins changed")
         pins = json.loads(pins_path.read_text())
         provider_root = ROOT / pins["provider"]["repository"]
         if any(sha256((provider_root / name).read_bytes()) != expected for name, expected in pins["provider"]["source_files"].items()):
             raise TeacherError("Pi transport provider source differs from pinned files")
-        self.source_files = [{"path": str(source.relative_to(ROOT)), "sha256": sha256(source.read_bytes())} for source in (POLICY_PATH, pins_path, EXTENSION)]
-        self.runtime.update(teacher_transition_sha256=self.policy_sha256, runtime_pins_sha256=self.policy["runtime"]["pins_sha256"], isolation_flags=["--offline", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-approve"], stdin="DEVNULL", telemetry="disabled", agent_system_prompt="Execute only the isolated bound teacher request.")
+        sources = [POLICY_PATH, pins_path, self.extension]
+        if self.correction is not None:
+            sources.append(CORRECTION_PATH)
+        self.source_files = [{"path": str(source.relative_to(ROOT)), "sha256": sha256(source.read_bytes())} for source in sources]
+        self.runtime.update(teacher_transition_sha256=self.policy_sha256, runtime_pins_sha256=registered["pins_sha256"], isolation_flags=["--offline", "--no-session", "--no-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-approve"], stdin="DEVNULL", telemetry="disabled", agent_system_prompt="Execute only the isolated bound teacher request.")
+        self.legacy_runtime = dict(self.runtime)
+        self.legacy_runtime.update(teacher_extension_sha256=self.policy["runtime"]["teacher_extension_sha256"], runtime_pins_sha256=self.policy["runtime"]["pins_sha256"])
+        if self.correction is not None:
+            self.runtime["teacher_correction_sha256"] = self.correction_sha256
 
     _result = staticmethod(TeacherClient._result)
 
     def _artifact(self, path, content):
         private_bytes(path, content)
         return {"path": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path), "sha256": sha256(content), "bytes": len(content)}
+
+    def _checked_cache(self, audit, identifier, bound_bytes):
+        verify_audit_identity(audit, identifier)
+        artifacts = audit["raw_event_files"] + [audit["receipt_file"], audit["bound_request_file"]]
+        contents = {}
+        for evidence in artifacts:
+            payload = (ROOT / evidence["path"]).read_bytes()
+            if sha256(payload) != evidence["sha256"]:
+                raise TeacherError("Pi cached response evidence changed")
+            contents[evidence["path"]] = payload
+        if contents[audit["bound_request_file"]["path"]] != bound_bytes or len(audit["raw_event_files"]) != 1:
+            raise TeacherError("Pi cached response is not the exact bound request")
+        replay = parse_pi_completion(contents[audit["raw_event_files"][0]["path"]], contents[audit["receipt_file"]["path"]], bound_bytes, provider=self.provider, model=self.model)
+        if replay["response_sha256"] != audit["response_sha256"] or replay["receipt"] != audit["receipt"]:
+            raise TeacherError("Pi cached response differs from its raw completion")
+        return self._result(audit, cache_hit=True)
 
     def complete_json(self, system, user, *, max_tokens=16384, temperature=1.0, thinking=None, reasoning_effort=None, response_format=None, phase, request_id):
         requested_effort = reasoning_effort or ("off" if thinking == "disabled" else "medium")
@@ -190,14 +232,29 @@ class PiTeacherClient:
         bound_bytes = canonical_bytes(bound)
         if sha256(POLICY_PATH.read_bytes()) != self.policy_sha256:
             raise TeacherError("Pi transport transition policy changed during production")
+        if self.correction is not None and sha256(CORRECTION_PATH.read_bytes()) != self.correction_sha256:
+            raise TeacherError("Pi transport correction changed during production")
         base = {"transport": "pi-cli-json", "provider": self.provider, "runtime": self.runtime, "source_files": self.source_files, "teacher_transition_sha256": self.policy_sha256, "request": request, "request_sha256": sha256(canonical_bytes(request)), "bound_request_sha256": sha256(bound_bytes), "phase": phase, "request_id": request_id, "requested_controls": {"temperature": temperature, "thinking": thinking, "reasoning_effort": reasoning_effort, "response_format": response_format}, "unapplied_controls": ["temperature", "response_format"], "effective_thinking": effective_effort}
+        if self.correction is not None:
+            base["teacher_correction"] = {"path": str(CORRECTION_PATH.relative_to(ROOT)), "sha256": self.correction_sha256}
         identifier = audit_identity(base)
         base["audit_id"] = identifier
         path = self.audit_dir / (identifier + ".json")
         previous = json.loads(path.read_text()) if path.exists() else None
         if previous and previous.get("status") == "success":
-            verify_audit_identity(previous, identifier)
-            return self._result(previous, cache_hit=True)
+            return self._checked_cache(previous, identifier, bound_bytes)
+        if self.correction is not None and previous is None:
+            legacy_id = audit_identity({**base, "runtime": self.legacy_runtime})
+            legacy_path = self.audit_dir / (legacy_id + ".json")
+            if legacy_path.exists():
+                legacy = json.loads(legacy_path.read_text())
+                if legacy.get("status") == "success":
+                    try:
+                        return self._checked_cache(legacy, legacy_id, bound_bytes)
+                    except (TeacherError, ValueError):
+                        # Preserve rejected historical evidence and use the
+                        # corrected provider for this still-unfinished request.
+                        pass
         history = list(previous.get("prior_observed_responses", [])) if previous else []
         if previous and previous.get("response") is not None:
             history.append({key: value for key, value in previous.items() if key != "prior_observed_responses"})
@@ -235,7 +292,7 @@ class PiTeacherClient:
                 private_bytes(request_file, bound_bytes)
                 environment = os.environ.copy()
                 environment.update(PASTEWHAT_PI_REQUEST_FILE=str(request_file), PASTEWHAT_PI_RECEIPT_FILE=str(receipt_file), PI_TELEMETRY="0")
-                command = [self.binary, "--provider", self.provider, "--model", self.model, "--thinking", effective_effort, "--mode", "json", "-p", "--offline", "--no-session", "--no-tools", "--no-extensions", "-e", str(EXTENSION), "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-approve", "--system-prompt", self.runtime["agent_system_prompt"], "Execute bound synthetic teacher request."]
+                command = [self.binary, "--provider", self.provider, "--model", self.model, "--thinking", effective_effort, "--mode", "json", "-p", "--offline", "--no-session", "--no-tools", "--no-extensions", "-e", str(self.extension), "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files", "--no-approve", "--system-prompt", self.runtime["agent_system_prompt"], "Execute bound synthetic teacher request."]
                 process = subprocess.Popen(command, cwd=working, env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
                 timed_out = False
                 try:
@@ -271,6 +328,13 @@ class PiTeacherClient:
             return result
         except TeacherError:
             raise
+        except PiModelIdentityError as error:
+            record = {**common, "status": "transport_error", "completed_at": utc_now(), "validation_error": str(error), "usage_known": False}
+            if "evidence" in locals():
+                record.update(evidence)
+            save(record)
+            record_pi_failure(self.coordinator, timed_out=False, stdout=b"", stderr=str(error).encode())
+            raise TeacherError(f"Pi transport failure; exact model identity rejected; audit {identifier}") from None
         except (OSError, ValueError, KeyError, TypeError) as error:
             record = {**common, "status": "invalid_response", "completed_at": utc_now(), "validation_error": str(error), "usage_known": False}
             if "evidence" in locals():

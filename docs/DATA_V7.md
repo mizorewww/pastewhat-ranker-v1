@@ -136,3 +136,16 @@ Actual request effort is retained in raw audits and new episode provenance.
 Existing accepted labels are unchanged. Later clients use a480s read timeout to
 reduce retries after the teacher has already spent substantial computation;
 retry count and the shared account cap are unchanged.
+
+The active Pi teacher also enforces its actual provider model UID. The append-only
+`configs/teacher_correction_swe2_uid.json` registers a separate v2 bridge and
+runtime pins; the original teacher transition and v1 files remain unchanged.
+Before dispatch, the bridge requires the exact requested `swe-2-medium`,
+`swe-2-high` or `swe-2-max` UID. Successful response parsing, cache replay and
+freezing check the same identity independently of the live model catalog.
+Valid v1 responses with identical visible request bytes can be replayed without
+a provider call and keep their original audit IDs. New requests bind the v2
+correction in their cache identity and source evidence. One observed foreign-UID
+completion contributed four Train rows, which were excluded without editing
+their original labels or audit bytes; its 5,818 known tokens remain in cost
+accounting. The aggregate record is `reports/data/pi-model-identity-quarantine.json`.

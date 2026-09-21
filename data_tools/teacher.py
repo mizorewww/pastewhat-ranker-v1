@@ -78,6 +78,20 @@ def audit_identity(audit: dict[str, Any]) -> str:
     return sha256(canonical_bytes({"endpoint": audit["endpoint"], "body": audit["request"]}))
 
 
+def verify_pi_model_identity(audit: dict[str, Any]) -> None:
+    """Validate the actual wire UID independently of a mutable live catalog."""
+    request = audit["request"]
+    effort = request.get("reasoning_effort")
+    receipt = audit.get("receipt") or {}
+    if request.get("model") != "swe-2" or effort not in ("medium", "high", "max"):
+        raise ValueError("Pi teacher request has an unregistered model or thinking level")
+    expected = "swe-2-" + effort
+    if receipt.get("actual_model") != expected or (audit.get("response") or {}).get("model") != expected:
+        raise ValueError("Pi teacher actual UID differs from requested SWE-2 thinking variant")
+    if audit.get("teacher_correction") and receipt.get("exact_uid_guard") != "swe-2-family-and-thinking-v1":
+        raise ValueError("Corrected Pi receipt is missing its provider-call UID guard")
+
+
 def verify_audit_identity(audit: dict[str, Any], identifier: str) -> None:
     if audit_identity(audit) != identifier or audit.get("audit_id") != identifier:
         raise ValueError("Teacher audit identity differs from its actual provider/request")
@@ -90,6 +104,8 @@ def verify_audit_identity(audit: dict[str, Any], identifier: str) -> None:
         bound = {"system": messages[0]["content"], "user": messages[1]["content"], "max_tokens": audit["request"]["max_tokens"], "thinking": audit["request"]["reasoning_effort"]}
         if sha256(canonical_bytes(bound)) != audit.get("bound_request_sha256"):
             raise ValueError("Pi bound input differs from normalized teacher input")
+        if audit.get("status") == "success":
+            verify_pi_model_identity(audit)
 
 
 def audit_source(audit: dict[str, Any]) -> dict[str, Any]:
@@ -330,6 +346,12 @@ class TeacherClient:
 
     @staticmethod
     def _result(audit: dict[str, Any], *, cache_hit: bool) -> TeacherResult:
+        if audit.get("transport") == "pi-cli-json":
+            try:
+                verify_audit_identity(audit, audit["audit_id"])
+                verify_pi_model_identity(audit)
+            except ValueError as error:
+                raise TeacherError(str(error)) from None
         response = audit["response"]
         choices = response.get("choices", [])
         if len(choices) != 1:
