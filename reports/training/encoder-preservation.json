@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "max_absolute_error": 0.0,
+  "comparison": "full encoder hidden states against frozen original Laya encoder, SDPA FP32 MPS",
+  "pairs": 5,
+  "strict_encoder_tensor_count": 134,
+  "original_typed_decision_heads_not_used": true
+}

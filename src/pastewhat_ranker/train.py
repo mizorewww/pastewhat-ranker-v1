@@ -219,7 +219,19 @@ def run(config, output, resume=False):
         recovery = torch.load(latest / "optimizer.pt", map_location="cpu", weights_only=False)
         state = recovery["state"]
         if state["completed"]:
-            return json.loads((output / "training_summary.json").read_text())
+            summary_path = output / "training_summary.json"
+            if summary_path.exists():
+                return json.loads(summary_path.read_text())
+            # The atomic completed checkpoint may survive a termination just
+            # before its redundant human-readable summary was written.
+            recovered = {"status": "completed", "global_steps": state["global_step"],
+                         "seen_episodes_including_head_warmup": state["seen_episodes"],
+                         "best_dev_key": state["best_key"], "elapsed_this_process_seconds": None,
+                         "best_checkpoint": str(output / "best"), "manifest": str(output / "run_manifest.json"),
+                         "engineering_overfit": bool(config.get("engineering_overfit", False)),
+                         "summary_recovered_from_completed_checkpoint": True}
+            atomic_json(summary_path, recovered)
+            return recovered
         optimizer = make_optimizer(model, config, state["phase"])
         optimizer.load_state_dict(recovery["optimizer"])
         torch.set_rng_state(recovery["torch_rng"])

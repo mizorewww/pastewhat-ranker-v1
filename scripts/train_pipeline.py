@@ -6,7 +6,9 @@ Calibration. Hard-example data must be produced independently after ranker-v0.
 """
 
 import argparse
+import fcntl
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -56,6 +58,9 @@ def main():
     args = parser.parse_args()
     local = Path(args.local_state)
     local.mkdir(parents=True, exist_ok=True)
+    run_lock = (local / "pipeline.lock").open("w")
+    fcntl.flock(run_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    (local / "pipeline.pid").write_text(str(os.getpid()) + "\n")
     state_path = local / "status.json"
     wait_for_snapshot("data/frozen/overfit-train-32.jsonl", 32, state_path, "overfit_preparation")
     throughput_path = Path("reports/training/throughput.json")
