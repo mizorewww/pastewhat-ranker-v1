@@ -15,7 +15,7 @@ import random
 import threading
 
 from data_tools.content import content_fingerprint
-from data_tools.teacher import TeacherClient, atomic_json
+from data_tools.teacher import TeacherClient, atomic_json, make_teacher_client
 from evaluations.authoring_v7 import candidate_space, mother_task, profile_for_spec, recipe_id
 from evaluations.common import sha256
 from run_contract import action_quotas, family_quotas, load_run_plan
@@ -164,7 +164,7 @@ def main():
         if previous != source_binding:
             atomic_json(directory / "producer-revisions" / (previous["shared_producer_sha256"] + ".json"), previous)
     atomic_json(binding_path, source_binding)
-    client = TeacherClient(Path("local/teacher-v7") / plan.run_id / args.split)
+    client = make_teacher_client(Path("local/teacher-v7") / plan.run_id / args.split)
     preprocessor = Preprocessor(args.tokenizer)
     content_ids = {}
     already_accepted = set()

@@ -20,7 +20,7 @@ import time
 
 from data_tools.teacher import atomic_json
 from evaluations.common import sha256, write_json
-from evaluations.freeze import directory_hashes, heldout_audit_inputs, verify_freeze
+from evaluations.freeze import directory_hashes, heldout_audit_inputs, teacher_transition_inputs, verify_freeze
 from evaluations.training_provenance import training_handoff_inputs
 from run_contract import load_run_plan
 
@@ -139,6 +139,10 @@ class Pipeline:
     def data_manifest(self):
         result = {**self.plan.binding(), "teacher_contract_version": self.plan.document["teacher_contract_version"],
                   "human_validated": False, "splits": {}}
+        transition_inputs = teacher_transition_inputs(self.plan)
+        if transition_inputs:
+            result["teacher_transition"] = file_record(transition_inputs["teacher_transition"])
+            result["pi_runtime_pins"] = file_record(transition_inputs["pi_runtime_pins"])
         for split in ("train", "dev", "calibration", "test"):
             source = (self.plan.data_path(split).with_suffix(".manifest.json") if split in {"train", "dev"}
                       else Path("data/evaluator-manifests") / self.plan.run_id / (split + ".manifest.json"))
@@ -148,6 +152,10 @@ class Pipeline:
                 raise ValueError("A complete split manifest differs from the registered run: " + split)
             result["splits"][split] = {key: value[key] for key in ("episodes", "sha256", "human_validated", "teacher_contract_version")}
             result["splits"][split]["source_manifest"] = file_record(source)
+            if transition_inputs:
+                if not value.get("teacher_sources"):
+                    raise ValueError("A complete split lacks its actual per-role teacher distribution: " + split)
+                result["splits"][split]["teacher_sources"] = value["teacher_sources"]
         path = self.reports / "data_manifest.json"
         immutable_json(path, result)
         return path

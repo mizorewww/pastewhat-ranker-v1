@@ -39,6 +39,10 @@ def slices(episodes: list[dict], predictions: list[dict]) -> dict:
             groups["language/" + metadata.get("language", "unspecified")].append(outcome)
         variant = episode.get("provenance", {}).get("observation_variant", metadata.get("observation_variant", "unspecified"))
         groups["observation_variant/" + variant].append(outcome)
+        provenance = episode.get("provenance", {})
+        primary_source = provenance.get("teacher_sources", {}).get("primary") or {}
+        teacher_model = primary_source.get("response_model", provenance.get("teacher_model", "unspecified"))
+        groups["primary_teacher_model/" + teacher_model].append(outcome)
         if len(episode["label"]["acceptable_ids"]) > 1:
             groups["multiple_acceptable_candidates"].append(outcome)
         positives = set(episode["label"]["acceptable_ids"])

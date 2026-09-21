@@ -18,6 +18,35 @@ import hashlib
 
 
 V7_CONTRACT = "teacher-episodes-v7-batched-decisions"
+TEACHER_TRANSITION = Path("configs/teacher_transition_swe2.json")
+TEACHER_TRANSITION_SHA = "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250"
+
+
+def teacher_transition_inputs(plan):
+    """Bind the append-only provider change without changing the registered run."""
+    if plan.run_id != "ranker-v1-efficient-20260921":
+        return {}
+    if sha256(TEACHER_TRANSITION) != TEACHER_TRANSITION_SHA:
+        raise ValueError("The registered teacher transition policy changed")
+    transition = json.loads(TEACHER_TRANSITION.read_text())
+    if any(transition.get(key) != value for key, value in plan.binding().items()):
+        raise ValueError("Teacher transition belongs to another registered run")
+    pins_path = Path(transition["runtime"]["pins_path"])
+    if sha256(pins_path) != transition["runtime"]["pins_sha256"]:
+        raise ValueError("The registered Pi runtime pins changed")
+    pins = json.loads(pins_path.read_text())
+    records = {"pi_teacher_bridge": pins["teacher_extension"]}
+    provider_root = Path(pins["provider"]["repository"])
+    records.update({"pi_provider_source_" + str(index): {"path": str(provider_root / name), "sha256": digest}
+                    for index, (name, digest) in enumerate(sorted(pins["provider"]["source_files"].items()))})
+    inputs = {"teacher_transition": TEACHER_TRANSITION, "pi_runtime_pins": pins_path,
+              "pi_teacher_client_source": Path("data_tools/pi_teacher.py")}
+    for name, record in records.items():
+        path = Path(record["path"])
+        if sha256(path) != record["sha256"]:
+            raise ValueError("A registered Pi provider source changed")
+        inputs[name] = path
+    return inputs
 
 
 def heldout_audit_inputs(plan, split, episodes, audit):
@@ -42,6 +71,7 @@ def heldout_audit_inputs(plan, split, episodes, audit):
               "teacher_rate_control_source": Path("data_tools/rate_limit.py"),
               "observation_adapter": Path("data_tools/observations.py"),
               "v7_evaluation_protocol": Path("docs/EVALUATION_V7.md")}
+    inputs.update(teacher_transition_inputs(plan))
     for index, (path, expected_hash) in enumerate(sorted(evidence.items())):
         if sha256(path) != expected_hash:
             raise ValueError("An audited v7 source or teacher response changed before final freeze")

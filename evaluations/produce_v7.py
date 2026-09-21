@@ -16,8 +16,7 @@ from pathlib import Path
 import time
 
 from data_tools.content import ContentRegistry, content_fingerprint
-from data_tools.rate_limit import AccountCoordinator
-from data_tools.teacher import TeacherClient, TeacherError, atomic_json, canonical_bytes, observed_responses, utc_now
+from data_tools.teacher import TeacherClient, TeacherError, atomic_json, audit_source, canonical_bytes, make_teacher_client, observed_responses, utc_now
 from data_tools.v7 import produce_batch
 from evaluations.common import sha256, write_json
 from evaluations.generate_v7 import (
@@ -63,6 +62,7 @@ def retained(directory, plan, split):
 
 def usage_summary(directory):
     totals, phases, statuses, models, unknown = Counter(), {}, Counter(), Counter(), Counter()
+    provider_usage, failures = {}, Counter()
     elapsed, starts, ends = [], [], []
     authored = 0
     for path in directory.glob("*.json"):
@@ -73,16 +73,37 @@ def usage_summary(directory):
         for observed in observed_responses(raw):
             response = observed.get("response") or {}
             usage = response.get("usage") or {}
+            source = audit_source(observed)
+            source_key = canonical_bytes({key: source[key] for key in ("transport", "provider", "requested_model", "response_model")}).decode()
+            provider = provider_usage.setdefault(source_key, {"counts": Counter(), "semantics": Counter()})
+            provider["counts"]["observed_completions"] += 1
+            totals["observed_completions"] += 1
+            models[response.get("model", "unspecified")] += 1
+            provider["semantics"][observed.get("accounting_semantics", "Kimi-reported usage; reasoning is included in completion_tokens")] += 1
             if usage:
-                models[response.get("model", "unspecified")] += 1
                 phase["known_responses"] += 1
                 totals["known_responses"] += 1
+                provider["counts"]["responses_with_reported_usage"] += 1
                 for name in ("prompt_tokens", "completion_tokens", "total_tokens"):
-                    totals[name] += usage.get(name, 0)
-                    phase[name] += usage.get(name, 0)
-                reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
-                totals["reported_reasoning_tokens"] += reasoning
-                phase["reported_reasoning_tokens"] += reasoning
+                    value = usage.get(name)
+                    if type(value) in (int, float) and value >= 0:
+                        totals[name] += value
+                        phase[name] += value
+                        provider["counts"][name] += value
+                        provider["counts"][name + "_reported_responses"] += 1
+                reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
+                if type(reasoning) in (int, float) and reasoning >= 0:
+                    totals["reported_reasoning_tokens"] += reasoning
+                    phase["reported_reasoning_tokens"] += reasoning
+                    provider["counts"]["reported_reasoning_tokens"] += reasoning
+                    provider["counts"]["reasoning_reported_responses"] += 1
+            else:
+                unknown["observed_completion_without_reported_usage"] += 1
+                provider["counts"]["responses_without_reported_usage"] += 1
+            for name in ("cacheRead", "cacheWrite"):
+                value = (observed.get("raw_usage") or {}).get(name)
+                if type(value) in (int, float) and value >= 0:
+                    provider["counts"]["reported_" + name] += value
             if observed.get("elapsed_seconds") is not None:
                 elapsed.append(observed["elapsed_seconds"])
                 phase["elapsed_seconds"] += observed["elapsed_seconds"]
@@ -94,20 +115,40 @@ def usage_summary(directory):
                 parsed = TeacherClient._result(observed, cache_hit=True).parsed
                 authored += len(parsed.get("episodes", [])) if isinstance(parsed, dict) else 0
         for attempt in raw.get("attempts", []):
-            if attempt.get("error_type"):
-                unknown[attempt["error_type"]] += 1
-            elif attempt.get("http_status"):
-                unknown["HTTP_" + str(attempt["http_status"])] += 1
+            category = attempt.get("error_type") or ("HTTP_" + str(attempt["http_status"]) if attempt.get("http_status") else None)
+            if category:
+                failures[category] += 1
+                if attempt.get("usage_known") is not True:
+                    unknown[category] += 1
         if raw.get("status") == "request_started":
             unknown["request_started_unobserved_completion"] += 1
     return {"request_records": sum(statuses.values()), "statuses": dict(statuses),
             "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()},
+            "by_provider_model": [{**json.loads(source), **dict(value["counts"]), "accounting_semantics": dict(value["semantics"])}
+                                  for source, value in sorted(provider_usage.items())],
             "unknown_usage_attempt_events": dict(unknown), "response_models": dict(models),
+            "failure_attempt_events": dict(failures),
             "authored_draft_rows_including_repairs": authored,
             "first_request_at": min(starts, default=None), "latest_completion_at": max(ends, default=None),
             "summed_request_elapsed_seconds": sum(elapsed),
             "response_accounting": "Each distinct observed completion, including retained invalid responses; successful cache reads do not add usage. Transport/HTTP unknown attempts come only from the top-level accumulated attempt ledger.",
-            "reasoning_tokens_are_included_in_completion_tokens": True}
+            "reasoning_accounting": "Only explicitly reported reasoning counters are summed; Kimi includes them in completion_tokens. Pi reasoning and cache inclusion are not inferred.",
+            "token_totals_are_reported_counters_not_a_billing_estimate": True}
+
+
+def teacher_source_counts(rows, audit_directory):
+    sources = {}
+    counts = {role: Counter() for role in ("author", "primary", "review")}
+    for row in rows:
+        for role, key in (("author", "author_audit_id"), ("primary", "label_audit_id"), ("review", "review_audit_id")):
+            identifier = row["provenance"].get(key)
+            if not identifier:
+                continue
+            if identifier not in sources:
+                sources[identifier] = audit_source(json.loads((audit_directory / (identifier + ".json")).read_text()))
+            counts[role][canonical_bytes(sources[identifier]).decode()] += 1
+    return {role: [{**json.loads(source), "episodes": count} for source, count in sorted(values.items())]
+            for role, values in counts.items() if values}
 
 
 def progress(directory, plan, split):
@@ -120,6 +161,7 @@ def progress(directory, plan, split):
         "completed_batch_records": len(completed),
         "rejection_event_counts": dict(Counter(str(row["reason"]) for record in completed for row in record["rejected"])),
         "quality_paths": dict(Counter(row["provenance"]["quality_path"] for row in rows)),
+        "teacher_sources": teacher_source_counts(rows, Path("local/teacher-v7") / plan.run_id / split),
         "actual_actions": dict(Counter(actions(row) for row in rows)),
         "families": dict(Counter(row["family_id"] for row in rows)),
         "observation_variants": dict(Counter(row["provenance"]["observation_variant"] for row in rows)),
@@ -196,6 +238,8 @@ def freeze_data(directory, plan, split, tokenizer):
         "teacher_contract_version": CONTRACT, "family_partition_sha256": sha256("data_tools/family_partition.json"),
         "families": report["families"], "actual_actions": report["actual_actions"],
         "quality_paths": report["quality_paths"], "observation_variants": report["observation_variants"],
+        "teacher_sources": audit["teacher_sources"],
+        "teacher_transition": {"path": "configs/teacher_transition_swe2.json", "sha256": sha256("configs/teacher_transition_swe2.json")},
         "audit_path": str(audit_path), "audit_sha256": sha256(audit_path),
         "teacher_audit_bundle_sha256": audit["teacher_audit_bundle_sha256"],
         "human_validated": False, "student_inference_used": False}
@@ -247,7 +291,7 @@ def main():
         else:
             raise SystemExit("The bounded heldout producer is still active; wait for natural completion")
     atomic_json(directory / "production-process.json", {**plan.binding(), "pid": os.getpid(), "started_at": utc_now(), "workers": args.workers, "max_situations": args.max_situations, "student_inference_used": False})
-    client = TeacherClient(Path("local/teacher-v7") / plan.run_id / args.split)
+    client = make_teacher_client(Path("local/teacher-v7") / plan.run_id / args.split)
     preprocessor = Preprocessor(args.tokenizer)
     registry = ContentRegistry(directory.parent / "heldout-content.sqlite3")
     for _, record in records(directory, plan.run_id):
@@ -263,7 +307,7 @@ def main():
         pending = list(sources)
         failures = 0
         while pending:
-            account = AccountCoordinator().status()
+            account = client.coordinator.status()
             if account["paused"]:
                 time.sleep(30)
                 continue
@@ -289,7 +333,7 @@ def main():
                         raise
             except TeacherError:
                 failures += 1
-                if failures >= 3 and not AccountCoordinator().status()["paused"]:
+                if failures >= 3 and not client.coordinator.status()["paused"]:
                     raise
                 time.sleep(30)
 

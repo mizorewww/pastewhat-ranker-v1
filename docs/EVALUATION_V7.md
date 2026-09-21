@@ -24,10 +24,34 @@ accepted situation can fill a logical slot. Exhausting the finite budget leaves
 an explicit incomplete result; it does not silently lower quotas.
 
 The producer resumes successful author responses from raw audits and obeys the
-shared account cooldown. It writes a final private JSONL only at complete
+selected provider's shared account cooldown. It writes a final private JSONL only at complete
 registered quotas, replays its sources/labels, and publishes aggregate manifests
 and content fingerprints. This data freeze does not authorize student Test
 scoring. Final inference still requires the separately authorized model freeze.
+
+The append-only `configs/teacher_transition_swe2.json` records the user's switch
+to Pi's `devin/swe-2` for subsequent calls. It leaves the original run, family
+partition, sampling and quotas unchanged. The original 58 Calibration and 67
+Test rows and their Kimi audits remain unchanged. A cached Kimi author fixture
+may receive a new SWE-2 primary label or review; provenance records each role
+separately. New calls have no Kimi fallback. Pi uses independent account state,
+so changing providers does not clear or shorten Kimi's provider limit.
+
+Pi requests run without workspace context, earlier turns or tools. The pinned
+bridge supplies the exact declared system prompt and one bound user message at
+the provider boundary. Audits preserve the bound request, complete JSON event
+stream, single-call receipt and their hashes. Independent replay reconstructs
+the normalized result from exactly one final assistant `message_end`, never
+from streaming deltas. Effective medium/high/max model variants and runtime
+source hashes are recorded; these are rolling remote models, not pinned weights.
+The registered mapping turns disabled/low authoring or primary-label requests
+into SWE-2 medium, while independent high-effort reviews use SWE-2 high.
+
+Known usage is counted once for each observed completion, including replies
+rejected by receipt, process or label validation. Timeout and other failed
+attempts retain unknown usage explicitly when no counters were observed.
+Reports separate provider/model counters and preserve raw cache counters;
+they do not infer reasoning/cache inclusion or dollar cost from Pi metadata.
 
 Each batch gets one author request and one independent compact blind label
 request after native projection and student budgeting. Candidate IDs and order
@@ -80,14 +104,20 @@ For final audit, retain and bind:
 |---|---|
 | Owner binding | Run ID/hash, protocol, family partition, recipe and profile hashes |
 | Batch record | Exact source spec/hash, planned IDs/counts/languages/observation states, accepted/rejected rows, at most two author attempts |
-| Per-row provenance | Mother-task ID, source family/spec hash, author/label audit IDs, optional blind decision-review and separate source-audit IDs, native/preprocess/visible hashes, observation variant, quality path, actual model alias |
-| Teacher audits | Original request/response hashes and known usage, including invalid responses and unknown attempts |
+| Per-row provenance | Mother-task ID, source family/spec hash, author/label audit IDs, optional blind decision-review and separate source-audit IDs, native/preprocess/visible hashes, observation variant, quality path, actual per-role provider/model/effort |
+| Teacher audits | Original request/response hashes and known usage, including invalid responses and unknown attempts; Pi bound prompt, raw events and single-call receipt |
+| Teacher transition | Append-only policy, pinned bridge/provider sources and per-role aggregate source distributions; historical Kimi rows are not rewritten |
 | Aggregate audit | Complete split and actual action/observation counts, duplicate check, raw author→native→budget replay, compact label mapping, sampled/risk review agreement and source-scope checks |
 
 Final freeze uses a protocol branch: v7 binds these batch/owner/audit artifacts
 and shared source files rather than requiring the v6 per-row classifier and
 exhaustive verdict fields. The old branch stays available for historical v6
 audits. All quality, calibration and paired-comparison thresholds stay unchanged.
+The final freeze also binds the teacher-transition policy and Pi source pins.
+Split manifests and the release data manifest retain actual author, primary
+and review source distributions, and Test reporting includes primary-model
+slices without using them to select a threshold or checkpoint. Public packaging
+copies the policy, pins and aggregates; private teacher requests remain private.
 Semantic sampling reports its actual numerator and denominator; it is not a
 human-validation or real-world accuracy claim.
 

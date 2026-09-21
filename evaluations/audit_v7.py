@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from datetime import datetime
 from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
 
 from data_tools.content import content_fingerprint
-from data_tools.teacher import TeacherClient, canonical_bytes
+from data_tools.teacher import TeacherClient, audit_source, canonical_bytes, verify_audit_identity
 from data_tools.v7 import PROTOCOL, prepare_author_batch, same_action, validate_labels
 from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation
 from pastewhat_ranker.preprocess import Preprocessor
@@ -25,16 +26,97 @@ class BatchAuditor:
         self.audit_root = Path("local/teacher-v7") / plan.run_id / split
         self.bound_files = {}
 
+    def bind_file(self, record):
+        path = Path(record["path"])
+        content = path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != record["sha256"] or ("bytes" in record and len(content) != record["bytes"]):
+            raise ValueError("A raw teacher evidence file changed")
+        self.bound_files[str(path)] = record["sha256"]
+        return content
+
+    def verify_pi_evidence(self, raw):
+        """Replay the final assistant event; streaming deltas never count twice."""
+        from data_tools.pi_teacher import normalize_usage
+        from evaluations.freeze import TEACHER_TRANSITION, TEACHER_TRANSITION_SHA, teacher_transition_inputs
+        for path in teacher_transition_inputs(self.plan).values():
+            self.bound_files[str(path)] = sha256(path)
+        transition = json.loads(TEACHER_TRANSITION.read_text())
+        pins = json.loads(Path(transition["runtime"]["pins_path"]).read_text())
+        if raw.get("teacher_transition_sha256") != TEACHER_TRANSITION_SHA:
+            raise ValueError("The Pi audit lacks the registered teacher-transition binding")
+        source_paths = set()
+        for record in raw["source_files"]:
+            self.bind_file(record)
+            source_paths.add(Path(record["path"]).resolve())
+        required = {TEACHER_TRANSITION.resolve(), Path(transition["runtime"]["pins_path"]).resolve(),
+                    Path(pins["teacher_extension"]["path"]).resolve()}
+        if not required <= source_paths:
+            raise ValueError("The Pi audit lacks its pinned bridge and public policy evidence")
+        if (raw["provider"] != transition["provider"] or raw["request"]["model"] != transition["model"] or
+                any(raw["runtime"].get(key) != value for key, value in transition["runtime"].items()
+                    if key not in {"pins_path", "pins_sha256"})):
+            raise ValueError("The Pi call used an unregistered provider or runtime")
+        events = []
+        for record in raw["raw_event_files"]:
+            events.extend(json.loads(line) for line in self.bind_file(record).splitlines() if line.strip())
+        endings = [event["message"] for event in events
+                   if event.get("type") == "message_end" and event.get("message", {}).get("role") == "assistant"]
+        if len(endings) != 1:
+            raise ValueError("Accepted Pi data requires exactly one final assistant completion")
+        receipt = json.loads(self.bind_file(raw["receipt_file"]))
+        request = raw["request"]
+        bound = {"system": request["messages"][0]["content"], "user": request["messages"][1]["content"],
+                 "max_tokens": request["max_tokens"], "thinking": request["reasoning_effort"]}
+        if self.bind_file(raw["bound_request_file"]) != canonical_bytes(bound):
+            raise ValueError("The Pi process received different bound prompt bytes")
+        expected_receipt = {"version": "pastewhat-pi-teacher-receipt-v1", "transport": "pi-cli-json",
+            "provider": raw["provider"], "requested_model": request["model"],
+            "request_sha256": raw["bound_request_sha256"], "max_tokens": request["max_tokens"],
+            "thinking": request["reasoning_effort"], "provider_call_count": 1, "isolated": True,
+            "context_message_count": 1, "tools_count": 0,
+            "usage_source": "pi-devin-provider-reported-or-unknown"}
+        if receipt != raw["receipt"] or any(receipt.get(key) != value for key, value in expected_receipt.items()):
+            raise ValueError("The Pi receipt does not prove the exact isolated request")
+        if receipt["actual_model"] != pins["model_mapping"][request["reasoning_effort"]]:
+            raise ValueError("The effective Pi model differs from its registered thinking mapping")
+        message = endings[0]
+        if (message.get("stopReason") != "stop" or message.get("provider") != raw["provider"] or message.get("model") != request["model"] or
+                any(item.get("type") == "toolCall" for item in message.get("content", []))):
+            raise ValueError("The final Pi message used an unexpected model or tool")
+        usage, semantics = normalize_usage(message.get("usage"))
+        text = "\n".join(item["text"] for item in message.get("content", []) if item.get("type") == "text")
+        normalized = {"model": receipt["actual_model"], "choices": [{"finish_reason": message.get("stopReason"),
+            "message": {"role": "assistant", "content": text}}], "usage": usage}
+        if (normalized != raw["response"] or hashlib.sha256(canonical_bytes(normalized)).hexdigest() != raw["response_sha256"] or
+                message.get("usage") != raw.get("raw_usage") or semantics != raw.get("accounting_semantics")):
+            raise ValueError("The normalized Pi result or usage differs from its original final event")
+
     @lru_cache(maxsize=None)
-    def teacher(self, identifier):
+    def teacher_audit(self, identifier):
         path = self.audit_root / (identifier + ".json")
         raw = json.loads(path.read_text())
-        if (raw.get("status") != "success" or
-                hashlib.sha256(canonical_bytes({"endpoint": raw["endpoint"], "body": raw["request"]})).hexdigest() != identifier or
-                hashlib.sha256(canonical_bytes(raw["request"])).hexdigest() != raw["request_sha256"]):
+        if raw.get("status") != "success":
             raise ValueError("Accepted heldout data references an invalid teacher audit")
+        verify_audit_identity(raw, identifier)
         self.bound_files[str(path)] = sha256(path)
+        if raw.get("transport") == "pi-cli-json":
+            self.verify_pi_evidence(raw)
+        elif self.plan.run_id == "ranker-v1-efficient-20260921":
+            from evaluations.freeze import TEACHER_TRANSITION
+            transition = json.loads(TEACHER_TRANSITION.read_text())
+            if datetime.fromisoformat(raw["started_at"]) > datetime.fromisoformat(transition["registered_at"]):
+                raise ValueError("A new Kimi request was dispatched after its registered retirement")
+        return raw
+
+    @lru_cache(maxsize=None)
+    def teacher(self, identifier):
+        raw = self.teacher_audit(identifier)
         return json.loads(raw["request"]["messages"][1]["content"]), TeacherClient._result(raw, cache_hit=True).parsed
+
+    def sources(self, episode):
+        provenance = episode["provenance"]
+        return {role: audit_source(self.teacher_audit(provenance[key])) if provenance.get(key) else None
+                for role, key in (("author", "author_audit_id"), ("primary", "label_audit_id"), ("review", "review_audit_id"))}
 
     def decision(self, identifier, episode):
         request, response = self.teacher(identifier)
@@ -119,6 +201,13 @@ class BatchAuditor:
                 raise ValueError("A predetermined sampled batch skipped independent review")
             if provenance.get("review_audit_id") and not same_action(self.decision(provenance["review_audit_id"], episode), episode["label"]):
                 raise ValueError("The independent sampled/risk reviewer disagrees")
+            sources = self.sources(episode)
+            if sources["primary"]["response_model"] != provenance["teacher_model"]:
+                raise ValueError("The recorded teacher model differs from the actual primary response")
+            if "teacher_sources" in provenance and provenance["teacher_sources"] != sources:
+                raise ValueError("Per-role teacher provenance differs from the actual audits")
+            if any(value and value["transport"] == "pi-cli-json" for value in sources.values()) and "teacher_sources" not in provenance:
+                raise ValueError("Pi-produced data requires explicit per-role teacher provenance")
             actual = len(episode["entries"])
             if not 1 <= actual <= 20:
                 raise ValueError("The complete candidate set violates deployment bounds")
@@ -162,6 +251,9 @@ def registered_sources(plan, split, partition, auditor):
         owner_evidence.append(exclusions)
     for path in [*(Path(value) for value in sources), directory / "owner-binding.json", *owner_evidence]:
         auditor.bound_files[str(path)] = sha256(path)
+    from evaluations.freeze import teacher_transition_inputs
+    for path in teacher_transition_inputs(plan).values():
+        auditor.bound_files[str(path)] = sha256(path)
     return specifications, initial
 
 
@@ -204,6 +296,7 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
     specifications, initial_slots = registered_sources(plan, split, partition_document, auditor)
     fingerprints = set()
     qualities, variants, counts = Counter(), Counter(), Counter()
+    source_counts = defaultdict(Counter)
     logical_slots = set()
     exclusion_path = Path("local/evaluator-quality-exclusions") / (split + ".json")
     exclusions = set(json.loads(exclusion_path.read_text())["content_fingerprints"]) if exclusion_path.exists() else set()
@@ -224,6 +317,9 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
         qualities[row["provenance"]["quality_path"]] += 1
         variants[row["provenance"]["observation_variant"]] += 1
         counts[len(row["entries"])] += 1
+        for role, source in auditor.sources(row).items():
+            if source:
+                source_counts[role][canonical_bytes(source).decode()] += 1
     if variants["no_accessibility"] != len(episodes) * 4 // 100 or variants["generic_field"] != len(episodes) * 2 // 100:
         raise ValueError("The initial registered observation allocation changed")
     if logical_slots != set(initial_slots):
@@ -233,6 +329,8 @@ def audit_dataset(data, *, plan, split, tokenizer, partition):
             "episodes": len(episodes), "data_sha256": sha256(data), "partition_sha256": sha256(partition),
             "teacher_contract_version": PROTOCOL, "registered_allocation": allocation,
             "quality_counts": dict(qualities), "observation_counts": dict(variants), "actual_candidate_counts": dict(counts),
+            "teacher_sources": {role: [{**json.loads(source), "episodes": count} for source, count in sorted(values.items())]
+                                for role, values in sorted(source_counts.items())},
             "teacher_and_batch_files": auditor.bound_files,
             "teacher_audit_bundle_sha256": hashlib.sha256(canonical_bytes(auditor.bound_files)).hexdigest(),
             "human_validated": False, "student_inference_used": False,
