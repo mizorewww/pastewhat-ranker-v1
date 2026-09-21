@@ -56,6 +56,8 @@ def main():
         required_audits = ("generation_audit_id", "label_audit_id", "blind_label_audit_id", "family_review_audit_id")
         if any(not episode.get("provenance", {}).get(key) for key in required_audits):
             raise ValueError("An episode has not passed all teacher review gates")
+        if not args.overfit and (episode["provenance"].get("family_review_protocol") != "blind-68-operation-classification" or episode["provenance"].get("observed_family_id") != episode["family_id"]):
+            raise ValueError("Production data requires a blind observed-family match")
         prepared = preprocessor.prepare_episode(episode)
         if prepared["preprocessing"]["visible_sha256"] != episode["provenance"]["label_visible_sha256"]:
             raise ValueError("Teacher and student visible input differs")
@@ -101,6 +103,19 @@ def main():
         if episode not in chosen:
             chosen.append(episode)
     random.Random(42).shuffle(chosen)
+    selected = [episode for episode in chosen if episode["label"]["decision"] == "select"]
+    with_same_kind_negative = 0
+    for episode in selected:
+        positives = set(episode["label"]["acceptable_ids"])
+        positive_kinds = {entry["kind"] for entry in episode["entries"] if entry["id"] in positives}
+        with_same_kind_negative += any(entry["id"] not in positives and entry["kind"] in positive_kinds for entry in episode["entries"])
+    if not args.overfit:
+        if not selected or with_same_kind_negative / len(selected) < 0.5:
+            raise ValueError("At least half of selectable episodes must contain a same-kind negative")
+        labels = Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)
+        fractions = (labels["select"] / len(chosen), labels["no_match"] / len(chosen), (labels["ambiguous"] + labels["insufficient_context"]) / len(chosen))
+        if any(abs(actual - target) > 0.025 for actual, target in zip(fractions, (0.7, 0.2, 0.1), strict=True)):
+            raise ValueError("Observed labels fall outside the predeclared 70/20/10 tolerance of 2.5 percentage points")
     data = b"".join(canonical_bytes(episode) + b"\n" for episode in chosen)
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.is_file() and output.read_bytes() != data:
@@ -110,6 +125,8 @@ def main():
     publish_bytes(fingerprint_path, b"".join(canonical_bytes(item) + b"\n" for item in fingerprints))
     manifest = {"split": args.split, "episodes": len(chosen), "sha256": sha256(data), "source_sha256": sha256(payload), "created_at": utc_now(), "path": str(output.relative_to(ROOT)), "family_partition_sha256": sha256(PARTITION_PATH.read_bytes()), "families": dict(Counter(episode["family_id"] for episode in chosen)), "labels": dict(Counter(episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"] for episode in chosen)), "multiple_positive_episodes": sum(len(episode["label"]["acceptable_ids"]) > 1 for episode in chosen), "candidate_counts": dict(Counter(len(episode["entries"]) for episode in chosen)), "fingerprints": str(fingerprint_path.relative_to(ROOT)), "preprocessing": preprocessor.manifest(), "human_validated": False, "review": "Two blind teacher label passes plus independent family/deployment review and programmatic invariants."}
     manifest["source_path"] = str(source.relative_to(ROOT))
+    manifest["select_with_same_kind_negative"] = with_same_kind_negative
+    manifest["context_coverage"] = {"no_accessibility": sum(not episode["context"]["hasAccessibility"] for episode in chosen), "with_selection": sum(bool(episode["context"]["selectedText"]) for episode in chosen), "application_categories": dict(Counter(episode["context"]["applicationCategory"] for episode in chosen)), "input_surfaces": dict(Counter(episode["context"]["inputSurface"] for episode in chosen))}
     manifest["purpose"] = "engineering-overfit-check, not representative evaluation" if args.overfit else "frozen training/development data"
     if pilot_proof:
         manifest["pilot_subset"] = pilot_proof
