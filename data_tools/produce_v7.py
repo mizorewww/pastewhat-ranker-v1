@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 
-from data_tools.rate_limit import AccountCoordinator
+from data_tools.pi_teacher import pi_coordinator
 from data_tools.teacher import atomic_json, utc_now
 from data_tools.v7 import ROOT
 from run_contract import load_run_plan
@@ -44,7 +44,7 @@ def main():
         launch = base / f"{name}.bulk-launch.json"
         if launch.exists():
             processes[name] = json.loads(launch.read_text())
-    coordinator = AccountCoordinator()
+    coordinator = pi_coordinator()
     while True:
         plan.verify_unchanged()
         account = coordinator.status()

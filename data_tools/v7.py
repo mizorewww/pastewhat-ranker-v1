@@ -15,7 +15,7 @@ import random
 from data_tools.authoring import compile_compact_episode
 from data_tools.content import content_fingerprint
 from data_tools.observations import apply_observation_variant
-from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now, TeacherError
+from data_tools.teacher import atomic_json, audit_source, canonical_bytes, sha256, utc_now, TeacherError
 from pastewhat_ranker.calibration import has_semantic_context
 from tools.project_context import project_context
 from tools.project_candidates import project_candidates
@@ -208,6 +208,8 @@ def program_issue(episode, label, family):
 
 def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached_author=None, author_cache=None):
     destination = Path(destination)
+    if hasattr(client, "policy") and any(client.policy.get(key) != value for key, value in spec["run_binding"].items()):
+        raise ValueError("Teacher transition belongs to a different registered run")
     digest = sha256(canonical_bytes(spec))
     if destination.is_file():
         record = json.loads(destination.read_text())
@@ -221,10 +223,12 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
     terminal = set(record.get("unrecoverable_label_ids", []))
     usage = Counter(record["usage"])
     request_efforts = {}
+    request_sources = {}
 
     def remember(result):
         audit = json.loads((client.audit_dir / (result.audit_id + ".json")).read_text())
         request_efforts[result.audit_id] = audit["request"].get("reasoning_effort", "disabled")
+        request_sources[result.audit_id] = audit_source(audit)
         if result.audit_id not in record["audit_ids"]:
             record["audit_ids"].append(result.audit_id)
             usage.update({key: result.usage.get(key, 0) for key in ("prompt_tokens", "completion_tokens", "total_tokens")})
@@ -283,6 +287,7 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
                     row["provenance"] = {**spec["run_binding"], "teacher_contract_version": PROTOCOL, "mother_task_id": spec["mother_task"]["id"], "source_family": spec["family_id"], "source_spec_sha256": digest, "author_audit_id": author.audit_id, "label_audit_id": primary.audit_id, "review_audit_id": review.audit_id if row["id"] in reviewed else None, "native_projection_sha256": sha256((ROOT / "tools/context_projection/provenance.json").read_bytes()), "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "visible_sha256": row["preprocessing"]["visible_sha256"], "observation_variant": plan.get("observation_variant", "standard"), "planned_candidate_count": plan["candidate_count"], "actual_candidate_count": len(row["entries"]), "candidate_count_delta": len(row["entries"]) - plan["candidate_count"], "quota_slot_id": plan.get("quota_slot_id", plan["id"]), "quality_path": quality, "teacher_model": primary.model, "human_validated": False}
                     row["provenance"]["primary_reasoning_effort"] = request_efforts[primary.audit_id]
                     row["provenance"]["review_reasoning_effort"] = request_efforts[review.audit_id] if review else None
+                    row["provenance"]["teacher_sources"] = {"author": request_sources[author.audit_id], "primary": request_sources[primary.audit_id], "review": request_sources[review.audit_id] if review else None}
                     accepted[row["id"]] = row
         except TeacherError as error:
             record.update(accepted=list(accepted.values()), usage=dict(usage))

@@ -6,7 +6,7 @@ import json
 
 from data_tools.content import content_fingerprint
 from data_tools.freeze import choose_registered, publish_bytes
-from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
+from data_tools.teacher import atomic_json, canonical_bytes, sha256, teacher_source_counts, utc_now, verify_audit_identity
 from data_tools.v7 import PROTOCOL, ROOT, validate_labels
 
 
@@ -69,6 +69,18 @@ def try_freeze(plan, split, rows, *, preprocessor):
             raise ValueError("Duplicate visible content in a frozen stage")
         audit_directory = ROOT / "local/v7" / plan.run_id / "teacher" / split
         audit_hashes = {identifier: sha256((audit_directory / (identifier + ".json")).read_bytes()) for identifier in sorted(audits)}
+        evidence_hashes = {}
+        for identifier in sorted(audits):
+            audit = json.loads((audit_directory / (identifier + ".json")).read_text())
+            verify_audit_identity(audit, identifier)
+            if audit.get("transport") == "pi-cli-json":
+                files = audit["source_files"] + audit["raw_event_files"] + [audit["receipt_file"], audit["bound_request_file"]]
+                for evidence in files:
+                    evidence_path = ROOT / evidence["path"]
+                    actual = sha256(evidence_path.read_bytes())
+                    if actual != evidence["sha256"]:
+                        raise ValueError("Pi source/request/event evidence changed before freeze")
+                    evidence_hashes[evidence["path"]] = actual
         chosen.sort(key=lambda row: sha256(row["id"].encode()))
         payload = b"".join(canonical_bytes(row) + b"\n" for row in chosen)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -77,6 +89,10 @@ def try_freeze(plan, split, rows, *, preprocessor):
         manifest = {**plan.binding(), "split": split, "stage": stage, "episodes": count, "sha256": sha256(payload), "family_partition_sha256": sha256(partition_path.read_bytes()), "teacher_contract_version": PROTOCOL, "native_projection_sha256": plan.document["projection_provenance_sha256"], "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "fingerprints_sha256": sha256(fingerprint_path.read_bytes()), "teacher_audit_file_sha256": audit_hashes, "contains_earlier_snapshot_ids": required, "quality_paths": dict(Counter(row["provenance"]["quality_path"] for row in chosen)), "created_at": utc_now(), "human_validated": False}
         if throughput_coverage:
             manifest["throughput_coverage"] = throughput_coverage
+        manifest["teacher_sources"] = teacher_source_counts(chosen, audit_directory)
+        transition = ROOT / "configs/teacher_transition_swe2.json"
+        manifest["teacher_transition"] = {"path": str(transition.relative_to(ROOT)), "sha256": sha256(transition.read_bytes())}
+        manifest["teacher_evidence_file_sha256"] = evidence_hashes
         atomic_json(output.with_suffix(".manifest.json"), manifest)
         # JSONL is the readiness marker consumed by the GPU pipeline.
         publish_bytes(output, payload)

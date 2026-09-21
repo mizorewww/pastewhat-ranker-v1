@@ -1,0 +1,28 @@
+{
+  "actual_model": "swe-2-medium",
+  "all_zero_provider_usage_is_unknown": true,
+  "documented_transient_errors_checked": [
+    "Devin stream ended without an EOS trailer",
+    "fetch failed",
+    "ECONNREFUSED",
+    "ENOTFOUND"
+  ],
+  "existing_engineering_labels_replayed": 6,
+  "existing_reported_tokens_preserved": 2680,
+  "mode": "Offline replay of Root single real smoke; no new teacher calls",
+  "observed_usage_survives_validation_rejection": true,
+  "pi_and_kimi_cache_identities_differ": true,
+  "pinned_runtime_locally_verified_without_generation": true,
+  "policy_sha256": "7932e617ed3cd7257ec9076289f01c05cc39da4d5dd665d7897b20e8b800c250",
+  "provider_errors_exclude_synthetic_content": true,
+  "receipt_tools_tampering_rejected": true,
+  "source_sha256": {
+    "data_tools/pi_teacher.py": "4b205c08535cb1e62186e17b1cf3c6618db0daf133d3f878e90e4d180d04913a",
+    "data_tools/teacher.py": "55f8d70c5028ec54c315cb74d7b43f4f3576c73dc94adb76a84141ed0b8f7b79",
+    "data_tools/v7.py": "916e4d080c8343d0d89ca38ab3fe0f29d32f11727917bdd46b268df16099d158"
+  },
+  "temporary_scaffold_removed": true,
+  "transient_backoff_is_bounded_not_permanent": true,
+  "verified_at": "2026-09-21T06:52:21.296165+00:00",
+  "zero_exit_assistant_error_detected_as_transport": true
+}

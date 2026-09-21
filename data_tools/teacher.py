@@ -59,6 +59,8 @@ def observed_responses(audit: dict[str, Any]):
     records = list(audit.get("prior_observed_responses", []))
     if audit.get("response") is not None:
         records.append(audit)
+    else:
+        records.extend(audit.get("observed_completions", []))
     seen = set()
     for record in records:
         identity = record.get("attempt_id") or (
@@ -68,6 +70,58 @@ def observed_responses(audit: dict[str, Any]):
         if identity not in seen:
             seen.add(identity)
             yield record
+
+
+def audit_identity(audit: dict[str, Any]) -> str:
+    if audit.get("transport") == "pi-cli-json":
+        return sha256(canonical_bytes({"transport": audit["transport"], "provider": audit["provider"], "runtime": audit["runtime"], "request": audit["request"]}))
+    return sha256(canonical_bytes({"endpoint": audit["endpoint"], "body": audit["request"]}))
+
+
+def verify_audit_identity(audit: dict[str, Any], identifier: str) -> None:
+    if audit_identity(audit) != identifier or audit.get("audit_id") != identifier:
+        raise ValueError("Teacher audit identity differs from its actual provider/request")
+    if sha256(canonical_bytes(audit["request"])) != audit.get("request_sha256"):
+        raise ValueError("Teacher request SHA changed")
+    if audit.get("transport") == "pi-cli-json":
+        messages = audit["request"]["messages"]
+        if len(messages) != 2 or messages[0]["role"] != "system" or messages[1]["role"] != "user":
+            raise ValueError("Pi teacher must contain only the declared system and user")
+        bound = {"system": messages[0]["content"], "user": messages[1]["content"], "max_tokens": audit["request"]["max_tokens"], "thinking": audit["request"]["reasoning_effort"]}
+        if sha256(canonical_bytes(bound)) != audit.get("bound_request_sha256"):
+            raise ValueError("Pi bound input differs from normalized teacher input")
+
+
+def audit_source(audit: dict[str, Any]) -> dict[str, Any]:
+    request = audit["request"]
+    return {"transport": audit.get("transport", "openai-compatible-http"), "provider": audit.get("provider", "kimi-code"), "requested_model": request["model"], "response_model": (audit.get("response") or {}).get("model", "unknown"), "reasoning_effort": request.get("reasoning_effort", "disabled" if request.get("thinking", {}).get("type") == "disabled" else "unknown")}
+
+
+def teacher_source_counts(rows, audit_directory):
+    from collections import Counter
+    directory = Path(audit_directory)
+    cache, counts = {}, {role: Counter() for role in ("author", "primary", "review")}
+    for row in rows:
+        provenance = row["provenance"]
+        sources = provenance.get("teacher_sources")
+        for role, key in (("author", "author_audit_id"), ("primary", "label_audit_id"), ("review", "review_audit_id")):
+            identifier = provenance.get(key)
+            if not identifier:
+                continue
+            if sources is not None:
+                source = sources[role]
+            else:
+                if identifier not in cache:
+                    cache[identifier] = audit_source(json.loads((directory / (identifier + ".json")).read_text()))
+                source = cache[identifier]
+            counts[role][canonical_bytes(source)] += 1
+    return {role: [{**json.loads(source), "episodes": count} for source, count in sorted(group.items())] for role, group in counts.items()}
+
+
+def make_teacher_client(audit_dir: str | Path):
+    """The explicitly selected active v7 provider; legacy Kimi stays readable."""
+    from data_tools.pi_teacher import PiTeacherClient
+    return PiTeacherClient(audit_dir)
 
 
 class TeacherError(RuntimeError):

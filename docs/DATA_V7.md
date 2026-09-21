@@ -5,6 +5,27 @@ evaluation owner produces 2,000 Calibration and 3,000 Test episodes. These are
 targets, not completed counts. Earlier runs and their audits remain engineering
 history and are excluded from this run.
 
+After the user's explicit provider change, future calls use Pi's `devin/swe-2`
+through the frozen `configs/teacher_transition_swe2.json` policy. Existing
+accepted Kimi rows stay unchanged; successful cached Kimi author fixtures may be
+reused, with new primary/review decisions supplied by SWE-2. New rows record the
+actual teacher separately for each role. The source sampling, native projection,
+student budget, label contract and split quotas are unchanged.
+Pi runs in a private empty directory with tools, sessions, extensions other than
+the pinned teacher bridge, skills and workspace context disabled. The bridge
+replaces the provider input with exactly the declared system prompt and one user
+message, forces the output budget, and limits each process to one provider call.
+The raw bound request, event stream and isolation receipt are retained with
+hashes. This provider supports medium/high/max; prior off/disabled/low requests
+map explicitly to medium and the mapping participates in cache identity.
+Pi's coordinator and provider-aware cache are independent of Kimi's preserved
+quota state. There is no Kimi fallback or automatic Kimi restart.
+Observed completion usage survives invalid labels, receipt failures and nonzero
+process exits; all-zero provider counters mean unknown usage, and cost metadata
+zeros are not a billing statement. Known temporary transport failures receive
+bounded backoff with the same pending source and cache. Authentication, account
+restrictions or unclassified configuration failures remain visible for repair.
+
 `teacher-episodes-v7-batched-decisions` batches ten complete paste decisions in
 one author call. Code projects the author fixtures through the unchanged native
 candidate/context adapters and the student's token budget before one independent

@@ -15,7 +15,7 @@ import time
 
 from data_tools.content import content_fingerprint
 from data_tools.freeze import choose_registered, publish_bytes
-from data_tools.teacher import TeacherClient, atomic_json, canonical_bytes, sha256, utc_now
+from data_tools.teacher import atomic_json, audit_source, canonical_bytes, make_teacher_client, sha256, utc_now
 from data_tools.v7 import PROTOCOL, ROOT, label_with_one_repair, remap_labels, same_action, visible_batch
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import load_run_plan
@@ -63,7 +63,7 @@ def run(command, log, plan):
 
 
 def review(group, client, directory, plan):
-    digest = sha256(canonical_bytes({"rows": group, "binding": plan.binding(), "protocol": PROTOCOL}))
+    digest = sha256(canonical_bytes({"rows": group, "binding": plan.binding(), "protocol": PROTOCOL, "teacher_runtime": getattr(client, "runtime", None)}))
     path = directory / (digest + ".json")
     if path.exists():
         return json.loads(path.read_text())
@@ -76,6 +76,8 @@ def review(group, client, directory, plan):
     for row in group:
         observed = labels.get(row["id"])
         evidence = {"id": row["id"], "content_sha256": content_fingerprint(row), "original_label": row["label"], "observed_label": observed, "audit_id": audit_for.get(row["id"])}
+        if evidence["audit_id"]:
+            evidence["teacher_source"] = audit_source(json.loads((client.audit_dir / (evidence["audit_id"] + ".json")).read_text()))
         if observed is not None and same_action(row["label"], observed):
             accepted.append(evidence)
         else:
@@ -171,7 +173,7 @@ def main():
     proposals = read_train(mining / "proposals.jsonl", plan)
     if sha256((mining / "proposals.jsonl").read_bytes()) != selection["proposals_sha256"]:
         raise ValueError("Cached proposals changed")
-    client = TeacherClient(directory / "teacher")
+    client = make_teacher_client(directory / "teacher")
     records = []
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = [executor.submit(review, proposals[index:index + 10], client, directory / "reviews", plan) for index in range(0, len(proposals), 10)]
