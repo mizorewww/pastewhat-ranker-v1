@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-09-21T05:33:20.227192+00:00",
+  "deduplicated_by_observed_attempt_id": true,
+  "historical_limit": "This verifies forward retention. It cannot reconstruct previously overwritten responses or establish that any historical response was lost.",
+  "invalid_responses_preserved": 2,
+  "known_tokens_counted": 59,
+  "known_tokens_expected": 59,
+  "mode": "offline simulated HTTP responses; no network or credentials used",
+  "observed_completions": 3,
+  "raw_response_hashes_preserved": true,
+  "scenario": "Two invalid responses to the same request body, then success, then successful cache replay",
+  "simulated_http_attempts": 3,
+  "source_sha256": {
+    "generate_v7.py": "c119ef42be0fe8da3a3328d98b0ea056161dbb80008b1a9940c693b101e5bd46",
+    "teacher.py": "a67e906b655d2394faf01c08ba4b6be1021ab0d7d1bc37b42bf3413f23e8faed"
+  },
+  "successful_cache_added_http_attempts": 0,
+  "temporary_verification_scaffold_removed": true
+}

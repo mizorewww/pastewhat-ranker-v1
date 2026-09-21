@@ -63,6 +63,13 @@ repairs as well as successful authoring and labeling. Reasoning tokens are a
 subset of completion tokens. Unknown transport-attempt usage remains unknown;
 cache replay is not another billable request. No dollar estimate follows from a
 token count without verified billing evidence.
+If an observed invalid response is followed by another attempt with the same
+request body, its complete response and usage remain in
+`prior_observed_responses`. Each new HTTP completion has an attempt ID;
+`observed_responses()` enumerates these once, while successful cache replay adds
+none. Aggregate request-body record counts and observed completion counts are
+reported separately. This forward fix cannot reconstruct an earlier response
+that might already have been overwritten.
 
 Run the bounded owned check with:
 

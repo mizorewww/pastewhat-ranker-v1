@@ -15,7 +15,7 @@ from data_tools.authoring import candidate_space, owned_profile
 from data_tools.content import ContentRegistry, content_fingerprint
 from data_tools.freeze import publish_bytes
 from data_tools.freeze_v7 import try_freeze
-from data_tools.teacher import TeacherClient, atomic_json, canonical_bytes, sha256, utc_now
+from data_tools.teacher import TeacherClient, atomic_json, canonical_bytes, observed_responses, sha256, utc_now
 from data_tools.rate_limit import AccountCoordinator
 from data_tools.v7 import PROTOCOL, produce_batch
 from pastewhat_ranker.preprocess import Preprocessor
@@ -71,21 +71,25 @@ def make_specs(plan, split, batch_size=10, *, target=None, namespace=""):
 def usage_summary(directory):
     totals, phases, statuses, models = Counter(), {}, Counter(), Counter()
     transport_unknown, http_without_usage, started = 0, 0, Counter()
+    observed_count, prior_count = 0, 0
     with AccountCoordinator()._state() as state:
         leases = dict(state["leases"])
     for path in directory.glob("*.json"):
         audit = json.loads(path.read_text())
         statuses[audit.get("status", "unknown")] += 1
-        usage = (audit.get("response") or {}).get("usage") or {}
-        if usage:
-            phase = phases.setdefault(audit.get("phase", "unknown"), Counter())
-            for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
-                totals[key] += usage.get(key, 0)
-                phase[key] += usage.get(key, 0)
-            reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
-            totals["reported_reasoning_tokens"] += reasoning
-            phase["reported_reasoning_tokens"] += reasoning
-            models[(audit.get("response") or {}).get("model", "unknown")] += 1
+        prior_count += len(audit.get("prior_observed_responses", []))
+        for observed in observed_responses(audit):
+            observed_count += 1
+            usage = (observed.get("response") or {}).get("usage") or {}
+            if usage:
+                phase = phases.setdefault(observed.get("phase", "unknown"), Counter())
+                for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                    totals[key] += usage.get(key, 0)
+                    phase[key] += usage.get(key, 0)
+                reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0)
+                totals["reported_reasoning_tokens"] += reasoning
+                phase["reported_reasoning_tokens"] += reasoning
+                models[(observed.get("response") or {}).get("model", "unknown")] += 1
         transport_unknown += sum("error_type" in attempt and not attempt.get("http_status") for attempt in audit.get("attempts", []))
         http_without_usage += sum(bool(attempt.get("http_status")) for attempt in audit.get("attempts", []))
         if audit.get("status") == "request_started":
@@ -98,7 +102,7 @@ def usage_summary(directory):
                 except (ProcessLookupError, PermissionError):
                     alive = False
                 started["live_process_completion_pending" if alive else "orphaned_started_unknown_usage"] += 1
-    return {"request_records": sum(statuses.values()), "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": transport_unknown, "http_error_attempts_without_usage": http_without_usage, "unfinished_started_requests": dict(started)}
+    return {"request_records": sum(statuses.values()), "observed_response_records": observed_count, "prior_observed_response_records": prior_count, "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": transport_unknown, "http_error_attempts_without_usage": http_without_usage, "unfinished_started_requests": dict(started)}
 
 
 def replacement_specs(originals, rows, round_number):

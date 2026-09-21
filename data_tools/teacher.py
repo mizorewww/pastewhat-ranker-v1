@@ -49,6 +49,27 @@ def atomic_json(path: Path, value: Any) -> None:
     temporary.replace(path)
 
 
+def observed_responses(audit: dict[str, Any]):
+    """Yield each observed HTTP completion, including a prior invalid answer.
+
+    Successful body-hash cache replay creates no new completion. A repeated
+    body after invalid JSON can create one; retaining the earlier response
+    keeps its usage and evidence available when the current audit is replaced.
+    """
+    records = list(audit.get("prior_observed_responses", []))
+    if audit.get("response") is not None:
+        records.append(audit)
+    seen = set()
+    for record in records:
+        identity = record.get("attempt_id") or (
+            record.get("audit_id"), record.get("started_at"),
+            record.get("completed_at"), record.get("response_sha256"),
+        )
+        if identity not in seen:
+            seen.add(identity)
+            yield record
+
+
 class TeacherError(RuntimeError):
     pass
 
@@ -153,6 +174,15 @@ class TeacherClient:
                 return self._result(audit, cache_hit=True)
             previous = audit
         attempts = list(previous.get("attempts", [])) if previous else []
+        prior_responses = list(previous.get("prior_observed_responses", [])) if previous else []
+        if previous and previous.get("response") is not None:
+            prior_responses.append({key: value for key, value in previous.items() if key != "prior_observed_responses"})
+
+        def save_audit(audit):
+            if prior_responses:
+                audit["prior_observed_responses"] = prior_responses
+            atomic_json(path, audit)
+
         if previous and previous.get("status") == "request_started":
             attempts.append({"error_type": "previous_started_attempt_has_no_observed_completion", "started_at": previous.get("attempt_started_at"), "pid": previous.get("pid"), "usage_known": False})
         started = utc_now()
@@ -176,7 +206,7 @@ class TeacherClient:
             # Persist the exact sanitized request before opening the connection.
             # If a worker is interrupted, its unknown response/usage remains
             # visible instead of disappearing from the production history.
-            atomic_json(path, {"status": "request_started", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "attempt_started_at": utc_now(), "pid": os.getpid(), "lease_id": lease, "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
+            save_audit({"status": "request_started", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "attempt_started_at": utc_now(), "pid": os.getpid(), "lease_id": lease, "attempt_id": lease, "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
             try:
                 try:
                     with urlopen(request, timeout=self.timeout) as response:
@@ -188,6 +218,7 @@ class TeacherClient:
                 audit = {
                     "status": "success",
                     "audit_id": audit_id,
+                    "attempt_id": lease,
                     "phase": phase,
                     "request_id": request_id,
                     "started_at": started,
@@ -210,9 +241,9 @@ class TeacherClient:
                 except TeacherError as exc:
                     audit["status"] = "invalid_response"
                     audit["validation_error"] = str(exc)
-                    atomic_json(path, audit)
+                    save_audit(audit)
                     raise
-                atomic_json(path, audit)
+                save_audit(audit)
                 return result
             except HTTPError as exc:
                 raw_error = exc.read()
@@ -229,16 +260,16 @@ class TeacherClient:
                 # A later acquire may wait for quota/operator maintenance. Save
                 # this observed response before that wait, rather than leaving
                 # the completed attempt falsely marked as still in flight.
-                atomic_json(path, {"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": True, "last_attempt_usage_known": False})
+                save_audit({"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": True, "last_attempt_usage_known": False})
                 if not retryable or attempt + 1 == self.max_attempts:
-                    atomic_json(path, {"status": "http_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
+                    save_audit({"status": "http_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi HTTP {exc.code}; audit {audit_id}; no response accepted") from None
                 time.sleep(delay)
             except (URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as exc:
                 attempts.append({"attempt": attempt + 1, "error_type": type(exc).__name__, "elapsed_seconds": time.monotonic() - before})
-                atomic_json(path, {"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": False, "last_attempt_usage_known": False})
+                save_audit({"status": "retry_wait", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "last_attempt_completed_at": utc_now(), "pid": os.getpid(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts, "last_attempt_response_observed": False, "last_attempt_usage_known": False})
                 if attempt + 1 == self.max_attempts:
-                    atomic_json(path, {"status": "transport_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
+                    save_audit({"status": "transport_error", "audit_id": audit_id, "phase": phase, "request_id": request_id, "started_at": started, "completed_at": utc_now(), "endpoint": self.endpoint, "request": body, "request_sha256": sha256(request_bytes), "attempts": attempts})
                     raise TeacherError(f"Kimi transport error; audit {audit_id}; no response accepted") from None
                 time.sleep(min(60.0, 2 ** (attempt + 1) + random.random()))
         raise AssertionError("Unreachable request state")
