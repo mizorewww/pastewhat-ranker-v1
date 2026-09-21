@@ -129,6 +129,11 @@ def content_fingerprint(episode: dict) -> str:
     return hashlib.sha256(canonical({"context": episode["context"], "entries": entries})).hexdigest()
 
 
+def independent_exclusions(split: str) -> set[str]:
+    path = Path("local/evaluator-quality-exclusions") / (split + ".json")
+    return set(json.loads(path.read_text())["content_fingerprints"]) if path.is_file() else set()
+
+
 def matches_label_quota(episode: dict) -> bool:
     desired = episode["synthetic_metadata"]["generator_spec"]["desired_decision"]
     actual = episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"]
@@ -184,6 +189,7 @@ def passed_current_gates(episode: dict) -> bool:
             episode.get("synthetic_metadata", {}).get("compact_profiles_sha256") == sha256(PROFILE_PATH) and
             episode.get("synthetic_metadata", {}).get("compact_builder_sha256") == sha256(BUILDER_PATH) and
             current_observation(episode) and
+            content_fingerprint(episode) not in independent_exclusions(episode["split"]) and
             not duplicated_selection_boundary(episode["context"]) and
             matches_label_quota(episode))
 
@@ -298,6 +304,7 @@ class Generator:
 
     def claim_unique_content(self, episode: dict) -> bool:
         fingerprint = content_fingerprint(episode)
+        self.rejected_content.update(independent_exclusions(self.args.split))
         if fingerprint in self.rejected_content:
             return False
         with self.lock:
