@@ -18,6 +18,7 @@ import sys
 import time
 
 from data_tools.teacher import atomic_json, utc_now
+from data_tools.rate_limit import AccountCoordinator
 from evaluations.generate import matches_label_quota
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,7 +74,8 @@ def main():
     atomic_json(directory / "process.json", {"pid": os.getpid(), "started_at": utc_now(),
                 "workers_per_split": args.workers_per_split, "targets": splits,
                 "student_test_inference_allowed": False})
-    children = {split: launch(split, args.workers_per_split, directory) for split in splits}
+    coordinator = AccountCoordinator()
+    children = {}
     restarts, next_restart, audits = Counter(), {split: 0.0 for split in splits}, {}
     started = time.monotonic()
     initial = {split: progress(split)["accepted_with_all_current_gates"] for split in splits}
@@ -90,16 +92,17 @@ def main():
     signal.signal(signal.SIGINT, stop)
     while not stopping:
         elapsed = max(1.0, time.monotonic() - started)
+        account = coordinator.status()
         status = {"updated_at": utc_now(), "elapsed_seconds": round(elapsed, 1), "splits": {},
-                  "student_test_inference_allowed": False}
+                  "student_test_inference_allowed": False, "provider_account": account}
         for split, target in splits.items():
             current = progress(split)
-            child, log = children[split]
-            exit_code = child.poll()
+            child, log = children.get(split, (None, None))
+            exit_code = child.poll() if child else None
             gained = current["accepted_with_all_current_gates"] - initial[split]
             rate = gained / elapsed if gained > 0 else 0.0
             data = ROOT / "data" / (split + ".jsonl")
-            current.update(target=target, child_pid=child.pid, child_exit_code=exit_code,
+            current.update(target=target, child_pid=child.pid if child else None, child_exit_code=exit_code,
                            supervisor_restarts=restarts[split], accepted_per_hour=round(rate * 3600, 2),
                            estimated_remaining_seconds=round((target - current["accepted_with_all_current_gates"]) / rate) if rate else None)
             if data.is_file():
@@ -116,12 +119,15 @@ def main():
                         audits[split] = {"status": "passed" if result.returncode == 0 else "failed_requires_evaluator", "report": str(report.relative_to(ROOT))}
                 current["data_status"] = "frozen"
                 current["audit"] = audits[split]
-            elif exit_code is not None:
+            elif child is None or exit_code is not None:
                 if current["accepted_with_all_current_gates"] >= target:
                     current["data_status"] = "freeze_validation_failed_requires_evaluator"
+                elif account["paused"]:
+                    current["data_status"] = "provider_paused_until_external_change" if account["blocked_until_external_change"] else "provider_cooldown"
                 elif time.monotonic() >= next_restart[split]:
-                    log.close()
-                    restarts[split] += 1
+                    if log:
+                        log.close()
+                        restarts[split] += 1
                     next_restart[split] = time.monotonic() + min(900, 30 * 2 ** min(restarts[split], 5))
                     children[split] = launch(split, args.workers_per_split, directory)
                     current["data_status"] = "resuming_unfilled_slots"
