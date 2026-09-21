@@ -1,0 +1,34 @@
+{
+  "version": "heldout-observation-assignment-aggregate-v1",
+  "run_id": "ranker-v1-local-20260921",
+  "run_plan_sha256": "0095dcd6c15c7cdb28a8d1ee71443783e9d2f3ec666ca225c377521313c8f2f6",
+  "splits": {
+    "calibration": {
+      "assignment_sha256": "1c32ac2db7db515ec876f89b137cb6b9ae13c6007c180317b564262a484b4458",
+      "counts": {
+        "no_accessibility": 16,
+        "generic_field": 8
+      },
+      "families": 8,
+      "eligible_missing_slots_before_assignment": 38,
+      "minimum_eligible_per_family": 3,
+      "prior_dispatched_slots_untouched": 18,
+      "assigned_at": "2026-09-21T04:03:39.460478+00:00"
+    },
+    "test": {
+      "assignment_sha256": "e45c1a47b05993ca4d17ac864cc13671fbbf9ff306bf646fc0f9a35492c6dad7",
+      "counts": {
+        "no_accessibility": 24,
+        "generic_field": 12
+      },
+      "families": 12,
+      "eligible_missing_slots_before_assignment": 58,
+      "minimum_eligible_per_family": 3,
+      "prior_dispatched_slots_untouched": 18,
+      "assigned_at": "2026-09-21T04:03:39.477564+00:00"
+    }
+  },
+  "student_scores_used": false,
+  "existing_observations_or_labels_changed": false,
+  "human_validated": false
+}

@@ -1,0 +1,134 @@
+{
+  "version": "heldout-historical-kimi-usage-reconciliation-v1",
+  "generated_at": "2026-09-21T04:07:47.300470+00:00",
+  "scope": "all local evaluator Calibration/Test audits, including historical staging, discarded versions, regeneration, verification and current formal run; not an account billing statement",
+  "physical_audit_records": 527,
+  "deduplicated_audit_records": 527,
+  "duplicate_records_ignored": 0,
+  "usage": {
+    "audit_records": 527,
+    "known_usage_responses": 522,
+    "prompt_tokens": 1253954,
+    "completion_tokens": 811658,
+    "total_tokens": 2065612,
+    "known_reasoning_tokens": 495226,
+    "reasoning_breakdown_unreported_responses": 149,
+    "cached_prompt_tokens": 470916,
+    "recorded_previous_attempts_without_usage": 11,
+    "minimum_http_attempts": 538,
+    "attempts_without_usage": 16,
+    "terminal_attempt_usage_unknown": 5
+  },
+  "response_model_counts": {
+    "kimi-for-coding": 522
+  },
+  "by_phase": {
+    "blind-permuted-post-truncation-label": {
+      "audit_records": 116,
+      "known_usage_responses": 113,
+      "prompt_tokens": 238471,
+      "completion_tokens": 223390,
+      "total_tokens": 461861,
+      "known_reasoning_tokens": 183323,
+      "reasoning_breakdown_unreported_responses": 0,
+      "cached_prompt_tokens": 60822,
+      "recorded_previous_attempts_without_usage": 2,
+      "minimum_http_attempts": 118,
+      "attempts_without_usage": 5,
+      "terminal_attempt_usage_unknown": 3
+    },
+    "independent-label-audit": {
+      "audit_records": 70,
+      "known_usage_responses": 70,
+      "prompt_tokens": 260514,
+      "completion_tokens": 87030,
+      "total_tokens": 347544,
+      "known_reasoning_tokens": 70482,
+      "reasoning_breakdown_unreported_responses": 0,
+      "cached_prompt_tokens": 123392,
+      "recorded_previous_attempts_without_usage": 0,
+      "minimum_http_attempts": 70,
+      "attempts_without_usage": 0
+    },
+    "blind-operation-classification": {
+      "audit_records": 51,
+      "known_usage_responses": 51,
+      "prompt_tokens": 229993,
+      "completion_tokens": 34603,
+      "total_tokens": 264596,
+      "known_reasoning_tokens": 24572,
+      "reasoning_breakdown_unreported_responses": 0,
+      "cached_prompt_tokens": 113152,
+      "recorded_previous_attempts_without_usage": 0,
+      "minimum_http_attempts": 51,
+      "attempts_without_usage": 0
+    },
+    "independent-generation": {
+      "audit_records": 155,
+      "known_usage_responses": 154,
+      "prompt_tokens": 229142,
+      "completion_tokens": 205192,
+      "total_tokens": 434334,
+      "known_reasoning_tokens": 11661,
+      "reasoning_breakdown_unreported_responses": 146,
+      "cached_prompt_tokens": 102735,
+      "recorded_previous_attempts_without_usage": 1,
+      "minimum_http_attempts": 156,
+      "attempts_without_usage": 2,
+      "terminal_attempt_usage_unknown": 1
+    },
+    "post-truncation-label": {
+      "audit_records": 132,
+      "known_usage_responses": 131,
+      "prompt_tokens": 292683,
+      "completion_tokens": 260742,
+      "total_tokens": 553425,
+      "known_reasoning_tokens": 205188,
+      "reasoning_breakdown_unreported_responses": 0,
+      "cached_prompt_tokens": 69535,
+      "recorded_previous_attempts_without_usage": 8,
+      "minimum_http_attempts": 140,
+      "attempts_without_usage": 9,
+      "terminal_attempt_usage_unknown": 1
+    },
+    "unlabelled-author-candidate-count-repair": {
+      "audit_records": 3,
+      "known_usage_responses": 3,
+      "prompt_tokens": 3151,
+      "completion_tokens": 701,
+      "total_tokens": 3852,
+      "known_reasoning_tokens": 0,
+      "reasoning_breakdown_unreported_responses": 3,
+      "cached_prompt_tokens": 1280,
+      "recorded_previous_attempts_without_usage": 0,
+      "minimum_http_attempts": 3,
+      "attempts_without_usage": 0
+    }
+  },
+  "unknown_usage_attempts_by_kind": {
+    "TimeoutError": 10,
+    "request_started": 5,
+    "URLError": 1
+  },
+  "authored_draft_rows_before_quality_gates": {
+    "independent-generation": 525,
+    "unlabelled-author-candidate-count-repair": 3
+  },
+  "current_formal_retained": {
+    "calibration": 2,
+    "test": 10
+  },
+  "current_formal_independent_exclusions": {
+    "calibration": 5,
+    "test": 0
+  },
+  "interpretation": {
+    "reasoning_is_subset_of_completion": true,
+    "cached_prompt_is_subset_of_prompt": true,
+    "missing_usage_is_not_zero": true,
+    "no_dollar_estimate": true,
+    "no_student_test_scores_used": true,
+    "draft_rows_include_repeated_slot_attempts_and_are_not_unique_accepted_episodes": true,
+    "generic_teacher_probe_and_json_format_probe_excluded": true
+  }
+}
