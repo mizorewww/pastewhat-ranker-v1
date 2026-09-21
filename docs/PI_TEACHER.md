@@ -41,6 +41,24 @@ counters remain unknown. Pi's zero-valued cost metadata is not a verified
 billing statement. Private raw responses and reasoning stay in ignored audit
 storage and never enter student features or public model bundles.
 
+An actual label call at 07:12:43 UTC exposed an identity-check defect: Pi's
+family was `swe-2`, but the live thinking map resolved `medium` to
+`claude-opus-5-medium`. Matching the resolver to that same map did not enforce
+the requested family. Four contributed Train rows are excluded before formal
+training; the original response and its 5,818 reported tokens remain recorded.
+The independent heldout receipt scan found no foreign UID.
+
+The append-only [UID correction](../configs/teacher_correction_swe2_uid.json)
+adds [v2 source pins](../provenance/pi-swe2-runtime-v2.json) and a
+[new bridge](../tools/pi_teacher_extension_v2.ts). Both the catalog mapping and
+resolved UID must equal the fixed `swe-2-medium`, `swe-2-high` or `swe-2-max`
+for the requested effort before the provider is called. The validated map is
+copied before delegation. Original policy, pins and bridge bytes remain intact.
+The [offline regression](../reports/engineering/pi-exact-uid-guard.json)
+reproduces the v1 defect and checks the v2 guard with zero real teacher calls.
+Valid earlier caches retain their original source identity; their raw receipt
+must prove the expected actual UID before reuse.
+
 The new provider initially ran through a separate coordinator with at most six
 simultaneous requests. Its first measured Train/Dev production window accepted
 238 new Pi-labeled episodes in 12.53 minutes, reporting 368,783 tokens across all

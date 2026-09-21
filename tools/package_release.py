@@ -117,6 +117,24 @@ def teacher_provenance_files(frozen: dict, plan) -> tuple[list[tuple[Path, str]]
         raise ValueError("Teacher runtime pins differ from the transition policy")
     copies = [(policy_path, "provenance/teacher-transition.json"),
               (pins_path, "provenance/pi-swe2-runtime.json")]
+    correction_path = ROOT / "configs/teacher_correction_swe2_uid.json"
+    correction = read_json(correction_path)
+    if (correction.get("version") != "pastewhat-teacher-runtime-correction-v1"
+            or any(correction.get(key) != value for key, value in plan.binding().items())
+            or correction.get("parent_transition") != {"path": str(policy_path.relative_to(ROOT)), "sha256": digest(policy_path)}
+            or correction.get("expected_model_mapping") != {level: "swe-2-" + level for level in ("medium", "high", "max")}):
+        raise ValueError("Teacher UID correction differs from the registered teacher and run")
+    active_pins = ROOT / "provenance/pi-swe2-runtime-v2.json"
+    active_bridge = ROOT / "tools/pi_teacher_extension_v2.ts"
+    active_runtime = correction["runtime"]
+    if (active_runtime.get("pins_path") != str(active_pins.relative_to(ROOT))
+            or active_runtime.get("pins_sha256") != digest(active_pins)
+            or active_runtime.get("teacher_extension_path") != str(active_bridge.relative_to(ROOT))
+            or active_runtime.get("teacher_extension_sha256") != digest(active_bridge)):
+        raise ValueError("Teacher UID correction source pins changed")
+    copies.extend(((correction_path, "provenance/teacher-correction.json"),
+                   (active_pins, "provenance/pi-swe2-runtime-v2.json"),
+                   (active_bridge, "provenance/pi_teacher_extension_v2.ts")))
     resource_path = ROOT / "configs/resource_supplement_swe2.json"
     resources = read_json(resource_path)
     if (resources.get("version") != "pastewhat-resource-supplement-v1"
@@ -145,6 +163,9 @@ def teacher_provenance_files(frozen: dict, plan) -> tuple[list[tuple[Path, str]]
              "transport": policy["transport"], "provider": policy["provider"],
              "requested_model": policy["model"], "effective_model_mapping": pins["model_mapping"],
              "resource_supplement_sha256": digest(resource_path),
+             "runtime_correction_sha256": digest(correction_path),
+             "active_runtime_pins_sha256": digest(active_pins),
+             "actual_uid_guard": correction["exact_uid_guard"],
              "source_counts": "See actual author/primary/reviewer distributions in data_manifest.json"}
     return copies, index
 
@@ -170,7 +191,11 @@ def model_card(metrics: dict, release_status: str, release_commit: str, manifest
         "The bundled `provenance/teacher-transition.json` and runtime pins document the change; "
         "`data_manifest.json` reports actual teacher sources separately for each role. "
         "The scheduling-only `provenance/teacher-resources.json` supplement records local concurrency "
-        "limits and fallback behavior without changing the dataset contract or cache identity."
+        "limits and fallback behavior without changing the dataset contract or cache identity. "
+        "The appended `provenance/teacher-correction.json` requires an exact SWE-2 backend UID "
+        "matching the requested effort before dispatch. Four Train rows contributed by one earlier "
+        "foreign-UID label response were excluded before formal training; its original usage and "
+        "audit remain historical evidence, not retained SWE-2 labels."
         if manifest.get("teacher_transition") else "The teacher is `kimi-for-coding`."
     )
     return f"""---
