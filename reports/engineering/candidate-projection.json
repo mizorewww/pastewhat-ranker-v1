@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "purpose": "native authoring integration only; no accuracy or generalization claim",
+  "human_validated": false,
+  "native_commit": "737c736dfcc520b960efc49858d0ff5e74fee337",
+  "projection_provenance_sha256": "4e6709ab9de2022c96e10827b493cf78ef7761485aa62b0a931513cd5115eb6e",
+  "checks": [
+    {
+      "name": "complete_1_candidate_mapping",
+      "passed": true
+    },
+    {
+      "name": "complete_5_candidate_mapping",
+      "passed": true
+    },
+    {
+      "name": "complete_10_candidate_mapping",
+      "passed": true
+    },
+    {
+      "name": "complete_20_candidate_mapping",
+      "passed": true
+    },
+    {
+      "name": "real_file_url_and_encoded_png_metadata",
+      "passed": true
+    },
+    {
+      "name": "twenty_approved_train_effort_inputs_identical_under_payload_projection",
+      "passed": true,
+      "cases": 20
+    },
+    {
+      "name": "invalid_or_teacher_asserted_metadata_rejected",
+      "passed": true,
+      "cases": 15
+    },
+    {
+      "name": "context_projection_compiles_with_shared_models",
+      "passed": true
+    }
+  ],
+  "temporary_test_files_created": false
+}

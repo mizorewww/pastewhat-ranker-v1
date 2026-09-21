@@ -190,8 +190,8 @@ def assemble(args) -> dict:
         for name in ("model.safetensors", "config.json", "preprocess.json", "conversion.json", "calibrator.json"):
             copy_file(args.deployment / name, staging / "mlx" / name)
         copy_file(calibrator_path, staging / "calibrator.json")
-        for name in ("Models.swift", "RecommendationContext.swift", "FocusText.swift",
-                     "ProjectSyntheticContext.swift", "README.md", "provenance.json"):
+        for name in ("Models.swift", "RecommendationContext.swift", "FocusText.swift", "CandidateProjection.swift",
+                     "ProjectSyntheticContext.swift", "ProjectSyntheticCandidates.swift", "README.md", "provenance.json"):
             copy_file(ROOT / "tools/context_projection" / name, staging / "context_projection" / name)
         for source, destination in (
             (args.metrics, "metrics.json"), (args.data_manifest, "data_manifest.json"),

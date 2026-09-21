@@ -20,7 +20,8 @@ SOURCE = ROOT / "tools/context_projection"
 
 @functools.lru_cache(maxsize=1)
 def executable() -> Path:
-    sources = [SOURCE / name for name in ("Models.swift", "RecommendationContext.swift", "FocusText.swift", "ProjectSyntheticContext.swift")]
+    sources = [SOURCE / name for name in ("Models.swift", "RecommendationContext.swift", "FocusText.swift",
+                                         "CandidateProjection.swift", "ProjectSyntheticContext.swift")]
     digest = hashlib.sha256(b"".join(path.read_bytes() for path in sources)).hexdigest()
     directory = ROOT / "local/native-projection" / digest
     directory.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,9 @@
 # Production Swift projection
 
-`Models.swift`, `RecommendationContext.swift` and `FocusText.swift` are unmodified
-copies from [PasteWhat commit c0657c0](https://github.com/mizorewww/pastewhat/tree/c0657c0/Sources/PasteWhat).
+`Models.swift`, `RecommendationContext.swift`, `FocusText.swift` and
+`CandidateProjection.swift` are unmodified copies from
+[PasteWhat](https://github.com/mizorewww/pastewhat/tree/main/Sources/PasteWhat).
+The exact source commit is recorded in `provenance.json`.
 `provenance.json` records source hashes and the bounded AX reader hash. The wrapper
 uses the actual field-to-surface projection and selection formatter. It supplies
 no host name or bundle ID, and preserves a validated synthetic application category.
@@ -76,3 +78,46 @@ The JSONL CLI accepts either a projected context or an object containing only
 `context` and `capture`. Compilation uses a process lock and a source-hashed cache
 under ignored `local/`. It reads no clipboard history or running applications.
 A Swift toolchain is needed only for generating new projected synthetic data.
+
+## Candidate payload projection
+
+Call `tools.project_candidates.project_candidates(entries)` alongside the context
+projection, before token budgeting or teacher labeling. Each authoring entry has
+exactly `id`, `sourceCategory`, and `payload`. The only payload variants are:
+
+```json
+{"type":"text","text":"git branch"}
+{"type":"file","names":["Quarterly report.pdf","Outline.docx"]}
+{"type":"image","width":1920,"height":1080}
+```
+
+The wrapper builds actual UTF-8 pasteboard data, synthetic file URL data, or a
+blank grayscale PNG in memory. It passes these bytes to the same
+`CandidateProjection.project` function the application uses. The result contains
+only the deployed candidate fields: `id`, `text`, `kind`, `capabilities`, and
+`sourceCategory`. Authoring payloads remain audit evidence and are not model
+features. No real clipboard, user file, application, or image asset is read.
+
+Text classification uses the application's existing rules, without a teacher
+override. For example, `git branch` is `command`, while `cp a b`, an expression
+such as `set(items)`, and `rgb(0, 0, 0)` are `text`. A filename typed into a text
+payload remains text. File payload summaries come from actual URL basenames;
+they do not include a made-up description or a hidden file path. Each file
+fixture has 1–20 distinct basenames, at most 255 UTF-8 bytes per name, without
+path separators or newlines. Synthetic URLs are never opened or created.
+
+Image fixtures have positive integer dimensions, at most 8,192 per side and
+16,777,216 pixels total. Core Graphics and ImageIO encode those blank pixels as
+PNG. The production codec then reads the resulting PNG's metadata to obtain
+the summary. The author cannot supply image semantics, an observed dimension
+string, a kind, or capabilities. Actual application PNG/TIFF metadata can also
+be missing, invalid, multi-frame, or inconsistent across representations; the
+native implementation withholds dimensions in those cases. It never infers
+the image's subject, performs OCR, or treats a PDF page size as pixel dimensions.
+
+The payload protocol is `pastewhat-native-payload-v1`. The common provenance
+file binds its Swift sources and `tools/project_candidates.py`. The JSONL CLI
+accepts one array of authored entries per line and returns its projected array.
+Audits replay the original fixture through the pinned code, budget the result,
+and verify the exact student-visible fields used for the labels. Changing this
+projection invalidates old labels unless that exact visible result is unchanged.

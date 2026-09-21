@@ -59,25 +59,19 @@ struct ClipboardEntry: Codable, Identifiable, Sendable {
     var searchText: String { "\(text) \(sourceApp) \(kind.label)" }
 
     var candidate: RecommendationCandidate {
+        var value = rankerCandidate
+        let text = value.text
         let excerpt = text.count > 2400 ? String(text.prefix(1600)) + "\n…\n" + String(text.suffix(800)) : text
-        let types = Set(payloads.flatMap { $0.representations.keys })
-        var capabilities: [String] = []
-        if types.contains(where: { ["public.utf8-plain-text", "public.utf16-plain-text", "public.plain-text", "public.url"].contains($0) }) {
-            capabilities.append("text")
-        }
-        if types.contains(where: { ["public.png", "public.tiff", "public.jpeg", "com.compuserve.gif"].contains($0) }) {
-            capabilities.append("image")
-        }
-        if types.contains("public.file-url") { capabilities.append("file") }
-        if types.contains(where: { ["public.rtf", "com.apple.flat-rtfd", "public.html"].contains($0) }) {
-            capabilities.append("richText")
-            if !capabilities.contains("text") { capabilities.append("text") }
-        }
-        if capabilities.isEmpty {
-            capabilities = [kind == .image ? "image" : kind == .file ? "file" : "text"]
-        }
-        return RecommendationCandidate(id: id.uuidString, text: excerpt, kind: kind.rawValue,
-                                       capabilities: capabilities,
+        value.text = excerpt
+        return value
+    }
+
+    var rankerCandidate: RecommendationCandidate {
+        // The dedicated model shares one tokenizer-based preprocessing contract
+        // with its teacher. Do not insert the older Laya head/tail excerpt here.
+        let projection = CandidateProjection.project(payloads)
+        return RecommendationCandidate(id: id.uuidString, text: projection.text, kind: projection.kind.rawValue,
+                                       capabilities: projection.capabilities,
                                        sourceCategory: ApplicationCategory.classify(bundleID: sourceBundleID ?? ""))
     }
 }

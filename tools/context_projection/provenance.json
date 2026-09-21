@@ -1,13 +1,22 @@
 {
   "repository": "https://github.com/mizorewww/pastewhat",
-  "commit": "c0657c0ce0e667e8fe452cd3e6efa033e5c6ed2f",
+  "commit": "737c736dfcc520b960efc49858d0ff5e74fee337",
   "capture_format": "pastewhat-focus-v1",
   "sources": {
+    "CandidateProjection.swift": "d2b9051135414da56e5c6f5c0a52c15d71cd57f562a3fd1a2ad81956ae9a59eb",
     "FocusText.swift": "2eb7a7baa337e311de003811460606e8f76ef2411e52c17327eac43bd428addd",
-    "Models.swift": "942e3f8b0a1538d3726309c9af2af2d076d4aec2cd6bad1e5a04e201535e7cf8",
+    "Models.swift": "9b6f5474813c74bb563e24cf566d95cc36e8a5d360674a55ab29288ce972688a",
+    "ProjectSyntheticCandidates.swift": "cc263d9c16d29a21b57913fdf1218a5535cf22e02f68e02d51c493636578f9e8",
     "ProjectSyntheticContext.swift": "e4bef1145637f2cb9930b01c6be69f65b05536687f4bcbcda18d54d69292935f",
     "RecommendationContext.swift": "0b72cd4c7e7c4859b68ed41ce3eed52b28f00557698b72a3a93bdf7a1f206561"
   },
   "capture_reader_sha256": "04f272ee664ba74fd0022019ba003c1f87bfa219f271f6cdbf6b2fc5f4466f4d",
-  "authoring_adapter_sha256": "7893f7a0fb7f250ca78233423e1590a6da0b8f065d745030c7c1394c9295cdb6"
+  "authoring_adapter_sha256": "8dde12a94bae45d36035e6a1887d5bb9dd8f43751b31d52e66e996e0af4e913c",
+  "candidate_projection_format": "pastewhat-native-payload-v1",
+  "candidate_adapter_sha256": "7e19bafaf422d2017b81c55416e88e82b8558ff922f35bea3f1a52dff11cbf04",
+  "candidate_capture_sha256": "6357372523ffea8fb79909e561b48f1d2f32e22ca27f1b015e7baf0a12f7f46c",
+  "synthetic_fixture_runtime": {
+    "platform": "27.2",
+    "swift": "Apple Swift version 6.4 (swiftlang-6.4.0.23.5 clang-2100.3.23.3)\nTarget: arm64-apple-macosx27.2.0"
+  }
 }
