@@ -20,6 +20,8 @@ import yaml
 from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.train import atomic_json, read_allowed_data, verify_completed_run
 
+STATE_PATH = None
+
 
 def wait_for_snapshot(path, count, state_path, phase, expected_split="train"):
     path = Path(path)
@@ -53,6 +55,7 @@ def train_stage(stage, template, output, changes, state_path, local):
 
 
 def main():
+    global STATE_PATH
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--local-state", default="local/pipeline")
     args = parser.parse_args()
@@ -66,6 +69,7 @@ def main():
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         (local / "caffeinate.pid").write_text(str(watcher.pid) + "\n")
     state_path = local / "status.json"
+    STATE_PATH = state_path
     wait_for_snapshot("data/frozen/overfit-train-32.jsonl", 32, state_path, "overfit_preparation")
     throughput_path = Path("reports/training/throughput.json")
     if not throughput_path.exists():
@@ -125,4 +129,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as error:
+        if STATE_PATH is not None:
+            previous = json.loads(STATE_PATH.read_text()) if STATE_PATH.exists() else {}
+            atomic_json(STATE_PATH, {**previous, "status": "failed_requires_diagnosis",
+                                     "error": f"{type(error).__name__}: {error}",
+                                     "updated_unix": time.time()})
+        raise
