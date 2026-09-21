@@ -8,6 +8,7 @@ Calibration is deliberately a separate, frozen deployment policy.
 import argparse
 import json
 import math
+import resource
 import sys
 import time
 from pathlib import Path
@@ -54,11 +55,20 @@ class RankerScorer:
             scores = logits[0].cpu().tolist()
         if not all(math.isfinite(value) for value in scores):
             raise ValueError("Nonfinite ranker scores")
-        return {"id": episode.get("id"),
+        result = {"id": episode.get("id"),
                 "candidateScores": [{"id": entry["id"], "score": float(score)}
                                     for entry, score in zip(prepared["entries"], scores[:-1])],
                 "abstainScore": float(scores[-1]), "latencyMS": (time.perf_counter() - start) * 1000,
                 "runtime": self.backend, "error": None}
+        maximum_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        result["memory"] = {"processPeakRSSBytes": int(maximum_rss if sys.platform == "darwin" else maximum_rss * 1024),
+                            "scope": "process lifetime; MLX allocator peaks since process initialization"}
+        if self.backend == "mlx":
+            # Scores were mx.eval'ed above. These are MLX allocator counters in
+            # unified memory, not a claim about separate physical GPU VRAM.
+            result["memory"].update(mlxPeakAllocatedBytes=int(mx.get_peak_memory()),
+                                    mlxActiveAllocatedBytes=int(mx.get_active_memory()))
+        return result
 
 
 def main():
