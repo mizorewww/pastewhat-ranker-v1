@@ -56,8 +56,15 @@ Train borrow slots once other splits have frozen, and retains the same v0 gates
 for hard-example scoring. A real 429 lowers the effective cap to the previously
 healthy 6 and applies backoff; restart does not silently raise it again. Resource
 settings are audit metadata and do not invalidate successful teacher caches.
-These are local scheduling limits, not a claim about provider entitlement or
-measured speed at 12. The next actual production window measures the effect.
+These are local scheduling limits, not a claim about provider entitlement.
+After a natural drain, production resumed at 07:30:49 UTC. The first measured
+4.49-minute window accepted 208 new Train/Dev episodes, or 46.31 per minute,
+with 267,948 reported tokens and no new completed attempts with unknown usage.
+The prior six-slot window observed 18.99 episodes per minute. Different source
+cohorts, queue carry-in and cache reuse limit the comparison; it is not a
+controlled speedup experiment. See the [activation record](../reports/data/resource-activation.json),
+[production window](../reports/data/resource-production-window.json) and the
+independent [heldout verification](../reports/data/heldout-resource-window.json).
 
 Kimi producers remain retired and their quota state is retained. There is no
 automatic Kimi fallback.
