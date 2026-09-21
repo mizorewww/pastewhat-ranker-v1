@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "stage": "post-overfit engineering invariants on Train only",
+  "records": [
+    {
+      "backend": "torch",
+      "episode_id": "train-main-http_method-00003",
+      "candidates": 6,
+      "permuted_score_max_error": 0.0,
+      "padding_score_max_error": 0.0
+    },
+    {
+      "backend": "torch",
+      "episode_id": "train-overfit-repair-design_color_syntax-00001",
+      "candidates": 20,
+      "permuted_score_max_error": 0.0,
+      "padding_score_max_error": 0.0
+    },
+    {
+      "backend": "mlx",
+      "episode_id": "train-main-http_method-00003",
+      "candidates": 6,
+      "permuted_score_max_error": 0.0,
+      "padding_score_max_error": 0.0078125
+    },
+    {
+      "backend": "mlx",
+      "episode_id": "train-overfit-repair-design_color_syntax-00001",
+      "candidates": 20,
+      "permuted_score_max_error": 0.0,
+      "padding_score_max_error": 0.0
+    }
+  ]
+}
