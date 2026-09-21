@@ -1,0 +1,1101 @@
+{
+  "version": "train-git-diff-independent-review-v1",
+  "created_utc": "2026-09-21T02:31:17.194474+00:00",
+  "scope": "Engineering semantic review of exactly five explicitly authorized Train candidates; not a model benchmark, human validation, Calibration review, or Test review.",
+  "reviewer": "ranker_training agent, independent from data authoring and teacher labeling",
+  "repository_commit_before_report": "26dd24f0e0bdee0bacdbded6978ddfe79a688a46",
+  "input": {
+    "path": "local/train_v5_initial_review.jsonl",
+    "sha256": "f29057c32260b77900a1fe2605385a24e3fae654e355b5415968319112a0dca3",
+    "episodes": 5,
+    "candidate_commands": 46,
+    "labels_modified": false,
+    "calibration_or_test_read": false
+  },
+  "aggregate": {
+    "label_supported_episodes": 3,
+    "quarantine_episodes": 2,
+    "definite_missing_positive_episodes": 1,
+    "underspecified_format_episodes": 1,
+    "quarantine_ids": [
+      "train-main-v5-git_diff_selection-00000",
+      "train-main-v5-git_diff_selection-00004"
+    ]
+  },
+  "documentation": [
+    {
+      "url": "https://git-scm.com/docs/git-diff",
+      "accessed_utc": "2026-09-21T02:31:17.200544+00:00",
+      "lookup": "Context7 library Git resolved /git/htmldocs, then docs; primary git-scm manual inspected.",
+      "facts": [
+        "The no-commit form compares working tree to index.",
+        "--cached compares index with one commit; --staged is synonymous.",
+        "Two named commits specify the comparison endpoints.",
+        "Patch is the default output; --stat selects diffstat.",
+        "--exit-code returns 1 for differences without disabling output; --quiet disables output."
+      ]
+    },
+    {
+      "url": "https://git-scm.com/docs/git-show",
+      "accessed_utc": "2026-09-21T02:31:17.200555+00:00",
+      "facts": [
+        "Commit show output describes that commit and its parent-relative change; it is not a general substitute for two arbitrary endpoints."
+      ]
+    }
+  ],
+  "execution": {
+    "git_version": "git version 2.55.0",
+    "commit_topology": "base -> middle -> new (HEAD); 00002 uses base/new, 00004 uses new/parent middle",
+    "commits": {
+      "base": "695cc81fbb39b3ff77945af36ebad8f55df252f9",
+      "middle": "4f802663bd0d78b7a482906ff02d98730f4b008a",
+      "new": "5971ead2b590ce86444a2d6e10266a4bdb7ac2f5"
+    },
+    "synthetic_revision_substitution": {
+      "a1b2c3d": "695cc81fbb39b3ff77945af36ebad8f55df252f9",
+      "e4f5a6b": "5971ead2b590ce86444a2d6e10266a4bdb7ac2f5",
+      "1a2b3c4": "4f802663bd0d78b7a482906ff02d98730f4b008a",
+      "9f8e7d6": "5971ead2b590ce86444a2d6e10266a4bdb7ac2f5",
+      "3fa9c21": "695cc81fbb39b3ff77945af36ebad8f55df252f9",
+      "8be04d7": "5971ead2b590ce86444a2d6e10266a4bdb7ac2f5"
+    },
+    "content": {
+      "base": {
+        "tracked.txt": "original line\ncommon line\n",
+        "middle-only.txt": "middle baseline\n",
+        "staged-only.txt": "stage baseline\n",
+        "unstaged-only.txt": "work baseline\n"
+      },
+      "middle_change": {
+        "middle-only.txt": "middle changed\n"
+      },
+      "new_change": {
+        "tracked.txt": "changed line\ncommon line\n"
+      },
+      "staged_change": {
+        "staged-only.txt": "stage new\n"
+      },
+      "unstaged_change": {
+        "unstaged-only.txt": "work new\n"
+      },
+      "untracked": {
+        "untracked.txt": "untracked noise\n"
+      }
+    },
+    "isolated_git_config": true,
+    "network_used": false,
+    "readonly_candidate_allowlist": [
+      "diff",
+      "show",
+      "log",
+      "status"
+    ],
+    "index_head_and_working_files_unchanged_after_candidate_execution": true,
+    "temporary_repository_deleted_after_review": true,
+    "candidate_executions": 46,
+    "original_training_input_unchanged": true,
+    "critical_evidence": {
+      "reverse_plain_vs_exit_code": {
+        "episode_id": "train-main-v5-git_diff_selection-00004",
+        "candidate_ids": [
+          "c8",
+          "c12"
+        ],
+        "stdout_identical": true,
+        "stdout_sha256": "dfe1f269dfe3bb61156c8e78408678ba1b2019249226a6d32fb0a1abaa00ebac",
+        "stdout_bytes": 163,
+        "returncodes": [
+          0,
+          1
+        ],
+        "stdout": "diff --git a/tracked.txt b/tracked.txt\nindex 1e29f70..6fe9682 100644\n--- a/tracked.txt\n+++ b/tracked.txt\n@@ -1,2 +1,2 @@\n-changed line\n+original line\n common line\n"
+      },
+      "unstaged_stat": {
+        "episode_id": "train-main-v5-git_diff_selection-00000",
+        "candidate_id": "c7",
+        "returncode": 0,
+        "stdout": " unstaged-only.txt | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+        "same_comparison_scope_as_c8": true,
+        "patch_hunks_present": false
+      }
+    }
+  },
+  "episode_reviews": [
+    {
+      "id": "train-main-v5-git_diff_selection-00000",
+      "family_id": "git_diff_selection",
+      "review_status": "quarantine_output_format_underspecified",
+      "recommended_data_action": "Reauthor a new episode with an observable format requirement, or independently relabel the existing visible episode; do not preserve the current singleton label automatically.",
+      "existing_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c8"
+        ],
+        "decision": "select"
+      },
+      "independent_acceptable_ids": null,
+      "uncertain_acceptable_ids": [
+        "c7",
+        "c8"
+      ],
+      "reason": "c8 is definitely usable. c7 compares exactly the same working-tree versus index scope and reports a diffstat. The visible request says show unstaged changes but never requires line hunks or a patch, so its exclusion needs an unstated format preference. Under the broad literal reading both c7 and c8 are acceptable; this review quarantines the episode instead of declaring an authoritative replacement label.",
+      "literal_paste": {
+        "selection_known": true,
+        "empty_before_and_after": true,
+        "empty_selected_text": true,
+        "finding": "Every command is pasted intact into a known empty field; no quote repair, caret movement, or deletion is needed."
+      },
+      "candidate_assessments": [
+        {
+          "id": "c1",
+          "assessment": "HEAD comparison also includes staged changes; not the requested index baseline."
+        },
+        {
+          "id": "c2",
+          "assessment": "Commit history/commit patches, explicitly outside the requested scope."
+        },
+        {
+          "id": "c3",
+          "assessment": "Staged changes against HEAD, wrong comparison."
+        },
+        {
+          "id": "c4",
+          "assessment": "Same staged comparison as c3, wrong scope."
+        },
+        {
+          "id": "c5",
+          "assessment": "Latest commit metadata/patch, not working tree against index."
+        },
+        {
+          "id": "c6",
+          "assessment": "Status mixes staged, unstaged, and untracked state; does not restrict output to the requested comparison."
+        },
+        {
+          "id": "c7",
+          "assessment": "Plausibly acceptable: correct unstaged comparison, summarized as diffstat; context does not reject this format."
+        },
+        {
+          "id": "c8",
+          "assessment": "Definitely acceptable: complete unstaged patch."
+        }
+      ]
+    },
+    {
+      "id": "train-main-v5-git_diff_selection-00001",
+      "family_id": "git_diff_selection",
+      "review_status": "label_supported",
+      "recommended_data_action": "Retain after the ordinary independent quality gates.",
+      "existing_label": {
+        "abstain_reason": "insufficient_context",
+        "acceptable_ids": [],
+        "decision": "abstain"
+      },
+      "independent_acceptable_ids": [],
+      "uncertain_acceptable_ids": [],
+      "reason": "Shell prompt and app category do not reveal whether unstaged, staged, HEAD-relative, commit-to-commit, or summary output is wanted. The existing insufficient_context abstention is supported.",
+      "literal_paste": {
+        "selection_known": false,
+        "empty_before_and_after": null,
+        "empty_selected_text": true,
+        "finding": "No visible caret/window or task establishes the requested comparison; abstention is appropriate."
+      },
+      "candidate_assessments": [
+        {
+          "id": "c1",
+          "assessment": "Valid-looking command with no observable evidence that this comparison/output is requested; do not infer intent from candidate availability."
+        },
+        {
+          "id": "c2",
+          "assessment": "Valid-looking command with no observable evidence that this comparison/output is requested; do not infer intent from candidate availability."
+        },
+        {
+          "id": "c3",
+          "assessment": "Valid-looking command with no observable evidence that this comparison/output is requested; do not infer intent from candidate availability."
+        },
+        {
+          "id": "c4",
+          "assessment": "Valid-looking command with no observable evidence that this comparison/output is requested; do not infer intent from candidate availability."
+        },
+        {
+          "id": "c5",
+          "assessment": "Valid-looking command with no observable evidence that this comparison/output is requested; do not infer intent from candidate availability."
+        }
+      ]
+    },
+    {
+      "id": "train-main-v5-git_diff_selection-00002",
+      "family_id": "git_diff_selection",
+      "review_status": "label_supported",
+      "recommended_data_action": "Retain after the ordinary independent quality gates. Remove the superfluous phrase either diff form in future authoring unless two forms are actually offered.",
+      "existing_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c1"
+        ],
+        "decision": "select"
+      },
+      "independent_acceptable_ids": [
+        "c1"
+      ],
+      "uncertain_acceptable_ids": [],
+      "reason": "The visible request explicitly specifies old/source, new/target, direction, and patch output. Only c1 guarantees that comparison. c4 (git show new) does not establish the requested old baseline; the context never says old is the parent. In the counterexample fixture an intervening commit makes git show new omit part of the requested patch.",
+      "literal_paste": {
+        "selection_known": true,
+        "empty_before_and_after": true,
+        "empty_selected_text": true,
+        "finding": "Every command is pasted intact into a known empty field; no quote repair, caret movement, or deletion is needed."
+      },
+      "candidate_assessments": [
+        {
+          "id": "c1",
+          "assessment": "Acceptable: complete forward patch between the two named endpoints."
+        },
+        {
+          "id": "c2",
+          "assessment": "Shows old commit relative to its own parent, not old-to-new."
+        },
+        {
+          "id": "c3",
+          "assessment": "Invalid syntax: --cached takes one optional comparison commit, not two endpoints; observed exit 129."
+        },
+        {
+          "id": "c4",
+          "assessment": "Not guaranteed: git show new uses the parent of new, and the requested old commit is not stated to be that parent."
+        },
+        {
+          "id": "c5",
+          "assessment": "Filenames only, missing the explicitly requested patch."
+        },
+        {
+          "id": "c6",
+          "assessment": "Diffstat only, missing the explicitly requested patch."
+        },
+        {
+          "id": "c7",
+          "assessment": "Commit log, missing the requested patch."
+        },
+        {
+          "id": "c8",
+          "assessment": "Reversed endpoints, wrong direction."
+        }
+      ]
+    },
+    {
+      "id": "train-main-v5-git_diff_selection-00003",
+      "family_id": "git_diff_selection",
+      "review_status": "label_supported",
+      "recommended_data_action": "Retain after the ordinary independent quality gates.",
+      "existing_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c2",
+          "c6"
+        ],
+        "decision": "select"
+      },
+      "independent_acceptable_ids": [
+        "c2",
+        "c6"
+      ],
+      "uncertain_acceptable_ids": [],
+      "reason": "--cached and --staged are documented synonyms and their patch outputs were byte-identical. The visible context explicitly requests staged changes with plain patch output, excluding name-only/stat alternatives.",
+      "literal_paste": {
+        "selection_known": true,
+        "empty_before_and_after": true,
+        "empty_selected_text": true,
+        "finding": "Every command is pasted intact into a known empty field; no quote repair, caret movement, or deletion is needed."
+      },
+      "candidate_assessments": [
+        {
+          "id": "c1",
+          "assessment": "Unstaged comparison, wrong scope."
+        },
+        {
+          "id": "c2",
+          "assessment": "Acceptable: staged patch against HEAD."
+        },
+        {
+          "id": "c3",
+          "assessment": "Filenames only, explicitly excluded output."
+        },
+        {
+          "id": "c4",
+          "assessment": "Diffstat only, not the requested plain patch."
+        },
+        {
+          "id": "c5",
+          "assessment": "Status rather than staged patch."
+        },
+        {
+          "id": "c6",
+          "assessment": "Acceptable: synonym of --cached with byte-identical output."
+        },
+        {
+          "id": "c7",
+          "assessment": "Invalid git log option --cached; observed exit 128."
+        },
+        {
+          "id": "c8",
+          "assessment": "Includes unstaged as well as staged changes, wrong scope."
+        },
+        {
+          "id": "c9",
+          "assessment": "Latest commit summary/metadata, wrong source and output."
+        }
+      ]
+    },
+    {
+      "id": "train-main-v5-git_diff_selection-00004",
+      "family_id": "git_diff_selection",
+      "review_status": "quarantine_definite_missing_positive",
+      "recommended_data_action": "Quarantine and obtain new independent labels for the unchanged visible episode; require the verifier to include all directly usable candidates. Do not hand-edit the dataset label.",
+      "existing_label": {
+        "abstain_reason": null,
+        "acceptable_ids": [
+          "c8"
+        ],
+        "decision": "select"
+      },
+      "independent_acceptable_ids": [
+        "c8",
+        "c12"
+      ],
+      "uncertain_acceptable_ids": [],
+      "reason": "Both commands produce the exact reverse patch between new and its stated parent, with no commit metadata, statistics, index, or working-tree changes. --exit-code changes the process status to 1 when a difference exists and does not suppress patch output. No visible shell control flow, success-status requirement, or script policy makes that status disqualifying.",
+      "literal_paste": {
+        "selection_known": true,
+        "empty_before_and_after": true,
+        "empty_selected_text": true,
+        "finding": "Every command is pasted intact into a known empty field; no quote repair, caret movement, or deletion is needed."
+      },
+      "candidate_assessments": [
+        {
+          "id": "c1",
+          "assessment": "Staged comparison rather than named commits."
+        },
+        {
+          "id": "c2",
+          "assessment": "Invalid --cached two-endpoint syntax; observed exit 129."
+        },
+        {
+          "id": "c3",
+          "assessment": "HEAD versus working tree, includes forbidden local changes."
+        },
+        {
+          "id": "c4",
+          "assessment": "Raw object/mode summary, not patch body."
+        },
+        {
+          "id": "c5",
+          "assessment": "Parent-to-child forward patch, wrong requested direction."
+        },
+        {
+          "id": "c6",
+          "assessment": "Commit metadata and filenames rather than reverse patch."
+        },
+        {
+          "id": "c7",
+          "assessment": "Commit metadata/history and forward patch, explicitly excluded."
+        },
+        {
+          "id": "c8",
+          "assessment": "Acceptable: named child-to-parent reverse patch."
+        },
+        {
+          "id": "c9",
+          "assessment": "Commit metadata/statistics, explicitly excluded."
+        },
+        {
+          "id": "c10",
+          "assessment": "Filenames only, not patch body."
+        },
+        {
+          "id": "c11",
+          "assessment": "Parent-to-child forward patch, wrong direction."
+        },
+        {
+          "id": "c12",
+          "assessment": "Acceptable: byte-identical reverse patch; only the unconstrained exit status differs."
+        },
+        {
+          "id": "c13",
+          "assessment": "Short statistics, explicitly excluded."
+        },
+        {
+          "id": "c14",
+          "assessment": "Commit history summary, no patch."
+        },
+        {
+          "id": "c15",
+          "assessment": "Commit metadata and parent-to-child patch, wrong direction/output."
+        },
+        {
+          "id": "c16",
+          "assessment": "Diffstat rather than patch, explicitly excluded."
+        }
+      ]
+    }
+  ],
+  "authoring_and_gate_constraints": [
+    {
+      "constraint": "State the output requirement in observable context when format distinguishes candidates.",
+      "implementation": "If a negative differs only by --stat/--name-only/--raw, require actual nearby field guidance saying unified patch/line hunks or the intended summary form before labeling. Without that requirement, quarantine singleton labels that depend on an unstated format preference."
+    },
+    {
+      "constraint": "Do not use --exit-code as a negative when only display output is requested.",
+      "implementation": "For a plain git diff and its --exit-code counterpart with identical endpoints/path filters, require the same acceptability unless the visible context explicitly constrains exit status or shell control flow. If the desired task truly requires exit 0 despite changes, author that requirement as a new episode before independent labeling; do not append it to rescue an existing label."
+    },
+    {
+      "constraint": "Evaluate all candidates, including equivalent forms.",
+      "implementation": "A post-teacher semantic audit must independently check known equivalences such as --cached/--staged and ordinary/--exit-code output. Flag positive-versus-negative disagreement within unconstrained equivalent behavior; request teacher relabeling or discard the episode, never silently patch label IDs."
+    },
+    {
+      "constraint": "Do not infer commit ancestry or clean repository state.",
+      "implementation": "Use at least a two-edge commit fixture to distinguish git show new from diff old new, and simultaneous staged/unstaged changes to distinguish HEAD/index/working-tree scope. These fixtures refute equivalence assumptions; their hidden state must not be treated as extra teacher-visible evidence."
+    },
+    {
+      "constraint": "Separate observable task semantics from literal paste validity.",
+      "implementation": "Require known empty insertion or exact selected replacement for complete commands. Preserve before/candidate/after literally. Missing task context remains abstention even if one familiar command is first or most common."
+    },
+    {
+      "constraint": "Keep repairs isolated from acceptance data and do not bake label-dependent wording shortcuts.",
+      "implementation": "Regenerate or relabel only the affected Train authoring records. Do not inspect Cal/Test. Vary explicit format/status requirements according to the task across select/abstain outcomes; never append a fixed phrase only to positive examples."
+    }
+  ],
+  "limitations": [
+    "Only five Train episodes were reviewed; the finding is not an estimate of global label accuracy.",
+    "One deliberately discriminating vanilla-Git fixture was used; execution supports semantic counterexamples and output equality but does not prove all repository/configuration cases.",
+    "Fictional seven-character revision tokens were substituted one-to-one with real fixture commits; dataset strings and labels were unchanged.",
+    "For 00000 the current singleton is unsupported without an implicit patch preference. The report deliberately does not emit a definitive replacement label for the underspecified task."
+  ],
+  "candidate_execution_summary": [
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c1",
+      "candidate_text": "git diff HEAD",
+      "returncode": 0,
+      "stdout_sha256": "a4f3d74f12107b0b3ad1bdfe7493c5bc4cd466845243aa392007a5904330b3bd",
+      "stdout_bytes": 326,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c2",
+      "candidate_text": "git log -p",
+      "returncode": 0,
+      "stdout_sha256": "60e999ecdf918e6240d62b28c73378c2b94f516e2759c48c432ab206bd5ba5c7",
+      "stdout_bytes": 1394,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c3",
+      "candidate_text": "git diff --cached",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c4",
+      "candidate_text": "git diff --staged",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c5",
+      "candidate_text": "git show HEAD",
+      "returncode": 0,
+      "stdout_sha256": "63a0c521c0d5d794c42fe9d785b537369baec848d21903a54d194720d6f5b092",
+      "stdout_bytes": 304,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c6",
+      "candidate_text": "git status",
+      "returncode": 0,
+      "stdout_sha256": "57bd6dae3102006dc7a3eabba746cea4069cf149b8f265121507677e32f88426",
+      "stdout_bytes": 417,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c7",
+      "candidate_text": "git diff --stat",
+      "returncode": 0,
+      "stdout_sha256": "b918fd33480efb60223c42377267c9f11b44900cccb291565c772fe459b02348",
+      "stdout_bytes": 73,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00000",
+      "candidate_id": "c8",
+      "candidate_text": "git diff",
+      "returncode": 0,
+      "stdout_sha256": "2b9b4aa4299263b72474987847fcc28d837043906c727de834c1975db0c973a4",
+      "stdout_bytes": 166,
+      "matches_canonical": [
+        "unstaged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00001",
+      "candidate_id": "c1",
+      "candidate_text": "git diff",
+      "returncode": 0,
+      "stdout_sha256": "2b9b4aa4299263b72474987847fcc28d837043906c727de834c1975db0c973a4",
+      "stdout_bytes": 166,
+      "matches_canonical": [
+        "unstaged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00001",
+      "candidate_id": "c2",
+      "candidate_text": "git diff 3fa9c21 8be04d7",
+      "returncode": 0,
+      "stdout_sha256": "52a72cb1e7802833c648c3d08fb3dd6be537aea1fae72844981572e61cb37581",
+      "stdout_bytes": 329,
+      "matches_canonical": [
+        "two_commit_forward_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00001",
+      "candidate_id": "c3",
+      "candidate_text": "git diff HEAD",
+      "returncode": 0,
+      "stdout_sha256": "a4f3d74f12107b0b3ad1bdfe7493c5bc4cd466845243aa392007a5904330b3bd",
+      "stdout_bytes": 326,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00001",
+      "candidate_id": "c4",
+      "candidate_text": "git diff --staged",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00001",
+      "candidate_id": "c5",
+      "candidate_text": "git diff --stat",
+      "returncode": 0,
+      "stdout_sha256": "b918fd33480efb60223c42377267c9f11b44900cccb291565c772fe459b02348",
+      "stdout_bytes": 73,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c1",
+      "candidate_text": "git diff a1b2c3d e4f5a6b",
+      "returncode": 0,
+      "stdout_sha256": "52a72cb1e7802833c648c3d08fb3dd6be537aea1fae72844981572e61cb37581",
+      "stdout_bytes": 329,
+      "matches_canonical": [
+        "two_commit_forward_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c2",
+      "candidate_text": "git show a1b2c3d",
+      "returncode": 0,
+      "stdout_sha256": "b8e6d435c5bff3d2f74eae2dc28df6dace331cec794342abd30abe9775f6a1e9",
+      "stdout_bytes": 778,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c3",
+      "candidate_text": "git diff --cached a1b2c3d e4f5a6b",
+      "returncode": 129,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c4",
+      "candidate_text": "git show e4f5a6b",
+      "returncode": 0,
+      "stdout_sha256": "63a0c521c0d5d794c42fe9d785b537369baec848d21903a54d194720d6f5b092",
+      "stdout_bytes": 304,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c5",
+      "candidate_text": "git diff --name-only a1b2c3d e4f5a6b",
+      "returncode": 0,
+      "stdout_sha256": "75b39d9cfd39455f4f3aa2af87fdfbff49329c269eb25d745541b0b2ed35c221",
+      "stdout_bytes": 28,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c6",
+      "candidate_text": "git diff --stat a1b2c3d e4f5a6b",
+      "returncode": 0,
+      "stdout_sha256": "a9a40e09d793fe5e448689748cbe2c678d954e630617098b8c7867ede3e112e4",
+      "stdout_bytes": 98,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c7",
+      "candidate_text": "git log a1b2c3d..e4f5a6b",
+      "returncode": 0,
+      "stdout_sha256": "f408473cb47f7c93b3cb38987899bae5667a2e30febf573da1f5e01530ecd4c5",
+      "stdout_bytes": 284,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00002",
+      "candidate_id": "c8",
+      "candidate_text": "git diff e4f5a6b a1b2c3d",
+      "returncode": 0,
+      "stdout_sha256": "ff91068898709791500c40ec0b5abc25a974f28793b9259d882c13b6e04b3db0",
+      "stdout_bytes": 329,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c1",
+      "candidate_text": "git diff",
+      "returncode": 0,
+      "stdout_sha256": "2b9b4aa4299263b72474987847fcc28d837043906c727de834c1975db0c973a4",
+      "stdout_bytes": 166,
+      "matches_canonical": [
+        "unstaged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c2",
+      "candidate_text": "git diff --cached",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c3",
+      "candidate_text": "git diff --cached --name-only",
+      "returncode": 0,
+      "stdout_sha256": "d9fb71c07437b273a0723850581c94bbcd76ff0d04eccd87518c6a161f8fd30b",
+      "stdout_bytes": 16,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c4",
+      "candidate_text": "git diff --cached --stat",
+      "returncode": 0,
+      "stdout_sha256": "82412b494857c51d803af487b90e0a9fc3e734526a05d90213f5e6d9e6e42c9c",
+      "stdout_bytes": 71,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c5",
+      "candidate_text": "git status",
+      "returncode": 0,
+      "stdout_sha256": "57bd6dae3102006dc7a3eabba746cea4069cf149b8f265121507677e32f88426",
+      "stdout_bytes": 417,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c6",
+      "candidate_text": "git diff --staged",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c7",
+      "candidate_text": "git log -p --cached",
+      "returncode": 128,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c8",
+      "candidate_text": "git diff HEAD",
+      "returncode": 0,
+      "stdout_sha256": "a4f3d74f12107b0b3ad1bdfe7493c5bc4cd466845243aa392007a5904330b3bd",
+      "stdout_bytes": 326,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00003",
+      "candidate_id": "c9",
+      "candidate_text": "git show --stat",
+      "returncode": 0,
+      "stdout_sha256": "5274f4770caebacf956b1c90518fa504a3327392f21063bcc5b153507e8463fb",
+      "stdout_bytes": 208,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c1",
+      "candidate_text": "git diff --cached",
+      "returncode": 0,
+      "stdout_sha256": "528a038503c291772d2d0ade2dcf4038c8b8d8e9bf63efc0a5066943ac9bd610",
+      "stdout_bytes": 160,
+      "matches_canonical": [
+        "staged_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c2",
+      "candidate_text": "git diff --cached 9f8e7d6 1a2b3c4",
+      "returncode": 129,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_bytes": 0,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c3",
+      "candidate_text": "git diff HEAD",
+      "returncode": 0,
+      "stdout_sha256": "a4f3d74f12107b0b3ad1bdfe7493c5bc4cd466845243aa392007a5904330b3bd",
+      "stdout_bytes": 326,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": true,
+      "mentions_unstaged_file": true
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c4",
+      "candidate_text": "git diff --raw 9f8e7d6 1a2b3c4",
+      "returncode": 0,
+      "stdout_sha256": "8db1d533cc4c9612aa285f7452a8fc8c31bc83da910d922322f2eb5db5e2b544",
+      "stdout_bytes": 45,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c5",
+      "candidate_text": "git show --format= 9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "d20c2cde0d774f566add257e805a80bf29d500f7a5611f4f423a4797b37c56ec",
+      "stdout_bytes": 163,
+      "matches_canonical": [
+        "parent_forward_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c6",
+      "candidate_text": "git show --name-only 9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "c8f1b32b5e946a7faed30b4c25e83607141057234159428bfd0102173e1a998f",
+      "stdout_bytes": 153,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c7",
+      "candidate_text": "git log -p 1a2b3c4..9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "63a0c521c0d5d794c42fe9d785b537369baec848d21903a54d194720d6f5b092",
+      "stdout_bytes": 304,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c8",
+      "candidate_text": "git diff 9f8e7d6 1a2b3c4",
+      "returncode": 0,
+      "stdout_sha256": "dfe1f269dfe3bb61156c8e78408678ba1b2019249226a6d32fb0a1abaa00ebac",
+      "stdout_bytes": 163,
+      "matches_canonical": [
+        "parent_reverse_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c9",
+      "candidate_text": "git show --stat 9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "5274f4770caebacf956b1c90518fa504a3327392f21063bcc5b153507e8463fb",
+      "stdout_bytes": 208,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c10",
+      "candidate_text": "git diff --name-only 9f8e7d6 1a2b3c4",
+      "returncode": 0,
+      "stdout_sha256": "a0679e9fb66e1e5588c26bd3aafcdd14980b4c43df6ca5ce9c047abd81e615df",
+      "stdout_bytes": 12,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c11",
+      "candidate_text": "git diff 1a2b3c4 9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "d20c2cde0d774f566add257e805a80bf29d500f7a5611f4f423a4797b37c56ec",
+      "stdout_bytes": 163,
+      "matches_canonical": [
+        "parent_forward_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c12",
+      "candidate_text": "git diff --exit-code 9f8e7d6 1a2b3c4",
+      "returncode": 1,
+      "stdout_sha256": "dfe1f269dfe3bb61156c8e78408678ba1b2019249226a6d32fb0a1abaa00ebac",
+      "stdout_bytes": 163,
+      "matches_canonical": [
+        "parent_reverse_patch"
+      ],
+      "has_patch_hunks": true,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c13",
+      "candidate_text": "git diff --shortstat 9f8e7d6 1a2b3c4",
+      "returncode": 0,
+      "stdout_sha256": "39d1d9baa54e8f46688539e95eb5e3576becd75028c4a8c05a064734561b23f3",
+      "stdout_bytes": 47,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c14",
+      "candidate_text": "git log --oneline 1a2b3c4..9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "67f1675c29a963c40eb1d511732e771d0184fee22472e9abef68dedde4183448",
+      "stdout_bytes": 12,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c15",
+      "candidate_text": "git show 9f8e7d6",
+      "returncode": 0,
+      "stdout_sha256": "63a0c521c0d5d794c42fe9d785b537369baec848d21903a54d194720d6f5b092",
+      "stdout_bytes": 304,
+      "matches_canonical": [],
+      "has_patch_hunks": true,
+      "contains_commit_header": true,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    },
+    {
+      "episode_id": "train-main-v5-git_diff_selection-00004",
+      "candidate_id": "c16",
+      "candidate_text": "git diff --stat 9f8e7d6 1a2b3c4",
+      "returncode": 0,
+      "stdout_sha256": "95862309b97bb2ef291b4ef81b0e1a69008d3c553e134bd6ca140be437be5297",
+      "stdout_bytes": 67,
+      "matches_canonical": [],
+      "has_patch_hunks": false,
+      "contains_commit_header": false,
+      "mentions_staged_file": false,
+      "mentions_unstaged_file": false
+    }
+  ]
+}
