@@ -299,6 +299,31 @@ class Generator:
             previous = self.fingerprints.setdefault(fingerprint, episode["id"])
         return previous == episode["id"]
 
+    def repair_author_candidate_count(self, raw: dict, spec: dict, family: dict, parent_audit_id: str, request_id: str):
+        """Repair an unlabeled author draft; never trim an accepted candidate set."""
+        response = self.client.complete_json(
+            GENERATOR_SYSTEM + "\nRepair only this unlabelled draft's candidate count before any label is requested. "
+            "Return the full compact episode with EXACTLY the requested number of distinct candidates. "
+            "Keep slot, guidance and selected byte-for-byte unchanged. Do not output a label or an explanation. "
+            "The teacher must author the corrected array; the application will not truncate or pad it.",
+            json.dumps({"task": "Repair the complete candidate array of this unlabelled authoring draft.",
+                        "allowed_family": family, "specs": [spec],
+                        "fixed_field_profiles": [{"slot": spec["slot"], "profile": profile_for_spec(family["id"], spec)}],
+                        "draft": raw, "required_candidate_count": spec["candidate_count"],
+                        "parent_authoring_audit_id": parent_audit_id}, ensure_ascii=False),
+            max_tokens=24576, temperature=0.6, thinking="disabled", response_format="json_object",
+            phase="unlabelled-author-candidate-count-repair", request_id=request_id,
+        )
+        values = response.parsed.get("episodes", []) if isinstance(response.parsed, dict) else []
+        if len(values) != 1 or not isinstance(values[0], dict):
+            raise ValueError("Author count repair must return exactly one whole episode")
+        repaired = values[0]
+        if any(repaired.get(key) != raw.get(key) for key in ("slot", "guidance", "selected")):
+            raise ValueError("Author count repair changed the visible context")
+        if not isinstance(repaired.get("candidates"), list) or len(repaired["candidates"]) != spec["candidate_count"]:
+            raise ValueError("Author count repair still has an incorrect candidate count")
+        return repaired, response
+
     def independently_label(self, episodes: list[dict], request_id: str):
         label_ids = {f"e{index + 1}": row["id"] for index, row in enumerate(episodes)}
         visible_inputs = [{**inference_request(row), "id": f"e{index + 1}"} for index, row in enumerate(episodes)]
@@ -486,11 +511,19 @@ class Generator:
                     raise ValueError("generation did not cover every requested slot exactly once")
                 episodes = []
                 invalid_inputs = []
+                author_sources = {}
                 for spec in pending_specs:
                     try:
-                        episodes.append(normalize_generated(by_slot[spec["slot"]], spec, self.args.split, family,
-                                                           self.partition_hash, self.preprocessor,
-                                                           self.plan.binding() if self.plan else None))
+                        draft = by_slot[spec["slot"]]
+                        source = generated
+                        if isinstance(draft.get("candidates"), list) and len(draft["candidates"]) != spec["candidate_count"]:
+                            draft, source = self.repair_author_candidate_count(draft, spec, family, generated.audit_id,
+                                key + f"-unlabelled-count-repair-{attempt}-{spec['slot']}")
+                        prepared = normalize_generated(draft, spec, self.args.split, family,
+                                                       self.partition_hash, self.preprocessor,
+                                                       self.plan.binding() if self.plan else None)
+                        episodes.append(prepared)
+                        author_sources[prepared["id"]] = source
                     except (ValueError, TypeError, KeyError, AttributeError, IndexError) as error:
                         invalid_inputs.append({"slot": spec["slot"], "kind": type(error).__name__, "message": str(error)[:200]})
                 if invalid_inputs:
@@ -511,8 +544,10 @@ class Generator:
                     if not same_label(label, blind_label) or not matches_label_quota(episode):
                         disputes.append(episode["id"])
                     episode["teacher"] = {
-                        "generation_audit_id": generated.audit_id, "label_audit_id": labeled.audit_id,
-                        "review_audit_id": family_response.audit_id, "generation_model": generated.model,
+                        "generation_audit_id": author_sources[episode["id"]].audit_id, "label_audit_id": labeled.audit_id,
+                        "original_generation_audit_id": generated.audit_id,
+                        "author_count_repaired_before_labels": author_sources[episode["id"]].audit_id != generated.audit_id,
+                        "review_audit_id": family_response.audit_id, "generation_model": author_sources[episode["id"]].model,
                         "review_protocol": "blind-family-and-deployment-v1",
                         "literal_paste_protocol": LITERAL_PASTE_PROTOCOL,
                         "blind_label_audit_id": second.audit_id, "blind_label_model": second.model,
@@ -662,6 +697,7 @@ class Generator:
                     "teacher_models": sorted({row["teacher"][key] for row in episodes for key in ("generation_model", "label_model", "review_model")}),
                     "truncated_episodes": sum(row["preprocessing"]["truncated"] for row in episodes),
                     "multi_positive_episodes": sum(len(row["label"]["acceptable_ids"]) > 1 for row in episodes),
+                    "unlabelled_author_count_repairs": sum(row["teacher"].get("author_count_repaired_before_labels") is True for row in episodes),
                     "pooled_ambiguous_insufficient_reason_disagreements": sum(row["teacher"].get("reason_agreement") is False for row in episodes),
                     "rejected_attempts": sum(len(row["rejected_attempts"]) for row in completed),
                     "preprocessing": self.preprocessor.manifest(), "generation_code_sha256": sha256(__file__),

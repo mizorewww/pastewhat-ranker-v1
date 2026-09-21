@@ -103,6 +103,16 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         originals = [row for row in generator_response["episodes"] if row["slot"] == slot]
         if len(originals) != 1:
             raise ValueError("Generated slot is missing or duplicated")
+        if episode["teacher"].get("author_count_repaired_before_labels"):
+            parent_id = episode["teacher"]["original_generation_audit_id"]
+            parent_request, parent_response = read_audit(parent_id)
+            parent_rows = [row for row in parent_response["episodes"] if row["slot"] == slot]
+            if (len(parent_rows) != 1 or generator_request.get("parent_authoring_audit_id") != parent_id or
+                    [row for row in parent_request["specs"] if row["slot"] == slot] != [metadata["generator_spec"]] or
+                    generator_request.get("draft") != parent_rows[0] or
+                    generator_request.get("required_candidate_count") != metadata["generator_spec"]["candidate_count"] or
+                    any(originals[0].get(key) != parent_rows[0].get(key) for key in ("slot", "guidance", "selected"))):
+                raise ValueError("Unlabelled author-count repair lineage or unchanged context cannot be replayed")
         recreated = normalize_generated(json.loads(json.dumps(originals[0])), metadata["generator_spec"], split,
                                        families[episode["family_id"]], partition_hash, preprocessor,
                                        run_plan.binding() if run_plan else None)

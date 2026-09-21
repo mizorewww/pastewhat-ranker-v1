@@ -109,6 +109,13 @@ provider's `response_format=json_object` constrains JSON syntax; it does not pro
 semantic correctness. Agreement between two teacher passes remains a fallible
 quality filter and is followed by independent evaluator review.
 
+When an unlabelled compact draft has an incorrect candidate count, the author may
+return a complete corrected array while preserving its visible guidance and
+selection exactly. Both author responses and their lineage stay in the audit.
+The repaired draft then goes through native projection, preprocessing, two blind
+labels and blind family review from the beginning. Code never truncates, pads or
+edits an accepted candidate set to satisfy a count.
+
 Within each fixed family allocation, candidate counts (integers 1–20, except
 the predeclared finite RSVP status operation with 1–4 candidates),
 languages, and requested label buckets are shuffled with separate fixed seed
