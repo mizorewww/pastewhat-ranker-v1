@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "purpose": "post-implementation optimizer/checkpoint/recovery smoke verification, not model accuracy",
+  "full_encoder_update_steps": 1,
+  "episodes": 4,
+  "micro_batch_episodes": 2,
+  "effective_batch_episodes": 4,
+  "completed_resume_returned_identical_summary": true,
+  "recovery_uses_atomic_generation_pointer": true,
+  "temporary_fixture_and_checkpoints_removed": true
+}
