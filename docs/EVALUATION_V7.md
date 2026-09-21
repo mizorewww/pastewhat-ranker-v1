@@ -16,8 +16,11 @@ partial result cannot be used for formal scoring.
 Each batch gets one author request and one independent compact blind label
 request after native projection and student budgeting. Candidate IDs and order
 are made opaque for labeling. A predetermined hash selects about 10% of whole
-batches for a combined independent label/source-scope review; program-detected
-issues and truncation also trigger review. The remaining accepted rows are
+batches for independent label review; program-detected issues and truncation
+also trigger review. Both decision passes receive only the masked, budgeted
+visible episodes. Any sampled source-scope audit is a separate request that
+outputs lineage judgments only, never decision labels; its source metadata is
+not sent to either decision pass. The remaining accepted rows are
 explicitly `single_pass`. No claim is made that they are all independently
 double labeled. A batch receives at most one repair attempt; unresolved slots
 must be replaced with new source situations and distinct lineage.
@@ -48,7 +51,7 @@ For final audit, retain and bind:
 |---|---|
 | Owner binding | Run ID/hash, protocol, family partition, recipe and profile hashes |
 | Batch record | Exact source spec/hash, planned IDs/counts/languages/observation states, accepted/rejected rows, at most two author attempts |
-| Per-row provenance | Mother-task ID, source family/spec hash, author/label audit IDs, optional review audit ID, native/preprocess/visible hashes, observation variant, quality path, actual model alias |
+| Per-row provenance | Mother-task ID, source family/spec hash, author/label audit IDs, optional blind decision-review and separate source-audit IDs, native/preprocess/visible hashes, observation variant, quality path, actual model alias |
 | Teacher audits | Original request/response hashes and known usage, including invalid responses and unknown attempts |
 | Aggregate audit | Complete split and actual action/observation counts, duplicate check, raw author→native→budget replay, compact label mapping, sampled/risk review agreement and source-scope checks |
 
