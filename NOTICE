@@ -1,0 +1,21 @@
+PasteWhat-Ranker-v1
+Copyright 2026 PasteWhat contributors
+
+This project adapts the Apache-2.0 licensed Laya encoder implementation and
+initializes its encoder from convaiinnovations/laya-multilingual. The original
+typed-decision heads and their calibration parameters are not retained.
+
+Laya — Convai Innovations / NandhaKishorM and contributors
+https://github.com/NandhaKishorM/laya
+https://huggingface.co/convaiinnovations/laya-multilingual
+
+Laya MLX — mizorewww and contributors
+https://github.com/mizorewww/laya-mlx
+
+Laya Core ML — mizorewww and contributors
+https://github.com/mizorewww/laya-coreml
+
+The multilingual encoder architecture is mmBERT / ModernBERT. The initialization
+revision, model file checksums, tokenizer provenance, and adapted implementation
+sources are recorded in provenance/initialization.json. Third-party trademarks
+remain the property of their respective owners. No endorsement is implied.
