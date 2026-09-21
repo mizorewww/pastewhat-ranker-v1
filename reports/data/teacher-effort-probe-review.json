@@ -1,0 +1,122 @@
+{
+  "approved": true,
+  "review_input_sha256": "944f069fff9bcd151296100ca52a1d8eb487f64770b00a9e512e790cec50aea5",
+  "reviewer": "root agent",
+  "human_validated": false,
+  "purpose": "Teacher effort engineering probe only; no student training or final Test use",
+  "episodes_reviewed": 20,
+  "expected_labels_approved": 20,
+  "syntax_checked_composed_python_candidates": 21,
+  "candidate_programs_executed": 0,
+  "metadata_review": "Thirty initially authored color/code kinds were corrected to native text before any teacher request; literal text and expected labels unchanged.",
+  "findings": [
+    {
+      "id": "effort-probe-01-hex-equivalent",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-02-rgba-alpha",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-03-hex-no-match",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-04-color-missing",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-05-rgb-whitespace",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-06-twenty-hex",
+      "approved": true,
+      "finding": "Exact field syntax, channels/alpha and explicit color constraints; case/whitespace equivalents retained. Missing chosen accent is abstention."
+    },
+    {
+      "id": "effort-probe-07-method-get",
+      "approved": true,
+      "finding": "Actual empty or selected entire method field with explicit endpoint method/absence; no invented code replacement."
+    },
+    {
+      "id": "effort-probe-08-method-unavailable",
+      "approved": true,
+      "finding": "Actual empty or selected entire method field with explicit endpoint method/absence; no invented code replacement."
+    },
+    {
+      "id": "effort-probe-09-method-unknown",
+      "approved": true,
+      "finding": "Actual empty or selected entire method field with explicit endpoint method/absence; no invented code replacement."
+    },
+    {
+      "id": "effort-probe-10-method-replace",
+      "approved": true,
+      "finding": "Actual empty or selected entire method field with explicit endpoint method/absence; no invented code replacement."
+    },
+    {
+      "id": "effort-probe-11-branches-local",
+      "approved": true,
+      "finding": "Local and remote-tracking scopes explicitly distinguished; short/long remote flags are equivalent positives."
+    },
+    {
+      "id": "effort-probe-12-branches-remote",
+      "approved": true,
+      "finding": "Local and remote-tracking scopes explicitly distinguished; short/long remote flags are equivalent positives."
+    },
+    {
+      "id": "effort-probe-13-diff-staged",
+      "approved": true,
+      "finding": "Staged aliases both positive; old-to-new direction and unknown parent relationship now explicit."
+    },
+    {
+      "id": "effort-probe-14-diff-direction",
+      "approved": true,
+      "finding": "Staged aliases both positive; old-to-new direction and unknown parent relationship now explicit."
+    },
+    {
+      "id": "effort-probe-15-dedup-order",
+      "approved": true,
+      "finding": "Visible full function prefix gives actual expression insertion site; order, output type and mutation constraints distinguish candidates."
+    },
+    {
+      "id": "effort-probe-16-set-result",
+      "approved": true,
+      "finding": "Visible full function prefix gives actual expression insertion site; order, output type and mutation constraints distinguish candidates."
+    },
+    {
+      "id": "effort-probe-17-dict-default",
+      "approved": true,
+      "finding": "Visible full function prefix gives actual expression insertion site; order, output type and mutation constraints distinguish candidates."
+    },
+    {
+      "id": "effort-probe-18-collection-missing",
+      "approved": true,
+      "finding": "Visible full function prefix gives actual expression insertion site; order, output type and mutation constraints distinguish candidates."
+    },
+    {
+      "id": "effort-probe-19-file-binary-read",
+      "approved": true,
+      "finding": "Quoted mode expressions fit observed call boundaries; binary read and unavailable append conditions are explicit."
+    },
+    {
+      "id": "effort-probe-20-file-append-missing",
+      "approved": true,
+      "finding": "Quoted mode expressions fit observed call boundaries; binary read and unavailable append conditions are explicit."
+    }
+  ],
+  "references": [
+    "https://git-scm.com/docs/git-diff",
+    "https://git-scm.com/docs/git-branch"
+  ],
+  "limitations": [
+    "Small deliberately clear synthetic probe; does not prove equal teacher quality on all formal episodes.",
+    "Review is by an independent agent, not by a human."
+  ]
+}
