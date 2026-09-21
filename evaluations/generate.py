@@ -177,6 +177,24 @@ class Generator:
         self.lock = threading.Lock()
         self.state_dir = args.state / args.split
         self.state_dir.mkdir(parents=True, exist_ok=True)
+        self.fingerprints: dict[str, str] = {}
+        # Reserve already accepted content in deterministic slot order. A
+        # duplicate must be regenerated rather than discovered only at freeze.
+        for path in sorted(self.state_dir.glob("*.json")):
+            if path.name.endswith("-0000-1.json"):
+                continue
+            for episode in json.loads(path.read_text()).get("episodes", []):
+                teacher = episode.get("teacher", {})
+                if (teacher.get("observed_family_id") == episode["family_id"] and
+                        teacher.get("deployment_input_realistic") is True and
+                        not teacher.get("secondary_family_ids") and matches_label_quota(episode)):
+                    self.fingerprints.setdefault(content_fingerprint(episode), episode["id"])
+
+    def claim_unique_content(self, episode: dict) -> bool:
+        fingerprint = content_fingerprint(episode)
+        with self.lock:
+            previous = self.fingerprints.setdefault(fingerprint, episode["id"])
+        return previous == episode["id"]
 
     def classify_families(self, episodes: list[dict], request_id: str) -> tuple[dict, object]:
         mapping = {f"e{index + 1}": episode["id"] for index, episode in enumerate(episodes)}
@@ -232,6 +250,15 @@ class Generator:
                 rejected_ids = {row["id"] for row in quota_rejected}
                 state["episodes"] = [row for row in state["episodes"] if row["id"] not in rejected_ids]
                 state.setdefault("rejected_attempts", []).append({"kind": "label_quota_rejection_without_relabeling", "count": len(quota_rejected)})
+                state["status"] = "partial"
+                atomic_json(path, state)
+            duplicate_rejected = [row for row in state.get("episodes", []) if not self.claim_unique_content(row)]
+            if duplicate_rejected:
+                quarantine = self.args.state / "quarantine" / self.args.split / (key + "-duplicate.json")
+                atomic_json(quarantine, {"reason": "duplicate_visible_content_ignoring_candidate_ids_and_order", "episodes": duplicate_rejected})
+                rejected_ids = {row["id"] for row in duplicate_rejected}
+                state["episodes"] = [row for row in state["episodes"] if row["id"] not in rejected_ids]
+                state.setdefault("rejected_attempts", []).append({"kind": "duplicate_visible_content", "count": len(duplicate_rejected)})
                 state["status"] = "partial"
                 atomic_json(path, state)
             if state.get("status") == "accepted":
@@ -333,6 +360,9 @@ class Generator:
                     if not self.attach_family_classification(episode, classified, family_response):
                         if episode["id"] not in disputes:
                             disputes.append(episode["id"])
+                    if episode["id"] not in disputes and not self.claim_unique_content(episode):
+                        disputes.append(episode["id"])
+                        failure_reasons.append({"attempt": attempt, "kind": "duplicate_visible_content", "count": 1})
                     if episode["id"] not in disputes:
                         accepted_by_slot[episode["synthetic_metadata"]["generator_spec"]["slot"]] = episode
                 if disputes:
