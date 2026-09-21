@@ -34,6 +34,12 @@ addresses, paths, messages and contacts must be fictional. Use example.com/.org/
 domains and synthetic literal placeholder credentials. No real personal data.
 Create varied task structures and plausible same-kind alternatives. The correct
 action should depend on the visible user request, not the app category alone.
+All desired actions remain INSIDE the allowed operation. For no_match, keep the
+request in that operation and make every candidate violate its constraints; do
+not manufacture no_match by changing the request to a different task. For
+insufficient_context or ambiguous, omit a necessary scope/intent detail within
+the same operation. A field_overrides_app_category spec changes the weak app
+category; it MUST NOT change the requested operation or use an unrelated field.
 The app category, surface and AX role are metadata, never a hidden user intent.
 Only assign a specialized surface if the visible fieldLabel/role supports it.
 Metadata kind is a coarse representation, not an answer cue. Source categories
@@ -74,6 +80,10 @@ Return only JSON {"reviews":[{"id":...,"family_ok":true|false,
 Check the declared conceptual operation against its allowed scope and reserved
 operations, not merely similar nouns. Reject cross-partition operations or tasks
 requiring unseen evidence. Re-derive the answer from visible prepared input;
+Judge family membership by the requested operation, not by whether a correct
+candidate is available. A same-operation no_match, ambiguous or insufficient-
+context episode is valid family membership; absence of a usable answer alone
+is never a reason to mark family_ok false.
 the proposed label is not authority. Whole-entry unchanged paste, no generated
 content/extraction/hidden file pixels. Multiple equivalent directly usable
 candidates should all be acceptable; ambiguous intent requires abstention.
