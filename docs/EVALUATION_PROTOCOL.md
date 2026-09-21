@@ -33,11 +33,17 @@ and rewritten opaque candidate IDs in the second call. Labels must agree after
 mapping back to the original IDs. Proposed labels or generation rationales do
 not enter those calls. The teacher sees exactly the prepared context and
 candidate records, without family, intended label, audit evidence, or source
-application identity. A further audit checks allowed IDs, label consistency,
-family membership and visible evidence. The two blind labelers receive no
-proposed answer; the further family/realism reviewer can inspect their agreed
-answer but cannot override a disagreement. Disputed slots are replaced by newly
-generated episodes and independently labeled again. Review is by agents and the teacher;
+application identity. A separate blind classifier receives the fixed 68-operation
+taxonomy and visible input, with no expected family, answer, or split name. Its
+observed operation must equal the assigned family, with no separately requested
+secondary operation, and its deployment-realism review must pass. Earlier
+confirmation-style family reviews are retained as audit history but are not
+sufficient for release. Neither the two labelers nor this classifier sees a
+proposed answer. Disputed slots are replaced by newly generated episodes and
+independently labeled again. The approximately 70/20/10 quota is enforced on
+actual independently agreed labels: a valid episode in another sampling bucket
+is retained in a local quarantine with its unchanged label and replaced for the
+release dataset. Review is by agents and the teacher;
 it must never be described as human validation. The report records rejected,
 disputed, repaired, and accepted episode counts and the responding teacher
 model, rather than assuming an API alias identifies fixed weights.

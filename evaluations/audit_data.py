@@ -12,7 +12,7 @@ import re
 
 from data_tools.teacher import TeacherClient, canonical_bytes
 from evaluations.common import load_jsonl, sha256, validate_label, write_json
-from evaluations.generate import content_fingerprint, normalize_generated
+from evaluations.generate import content_fingerprint, matches_label_quota, normalize_generated
 from pastewhat_ranker.preprocess import Preprocessor
 
 
@@ -61,6 +61,8 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     counts = Counter()
     for episode in episodes:
         validate_label(episode)
+        if not matches_label_quota(episode):
+            raise ValueError("Actual label differs from the preregistered sampling bucket")
         if episode["family_id"] not in families:
             raise ValueError("Episode crosses the preregistered conceptual-family partition")
         metadata = episode["synthetic_metadata"]
@@ -115,18 +117,34 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
         other["acceptable_ids"] = [ids[value] for value in other["acceptable_ids"]]
         if not label_equal(other, episode["label"]):
             raise ValueError("Blind teacher label passes disagree")
-        audit_request, audit_response = read_audit(episode["teacher"]["review_audit_id"])
-        reviews = unique_records(audit_response["reviews"], len(audit_request["episodes"]))
-        review = reviews[episode["id"]]
-        if not (review["family_ok"] and review["input_realistic"] and review["agrees"] and label_equal(review["label"], episode["label"])):
-            raise ValueError("Accepted episode did not pass independent family/realism review")
+        if episode["teacher"].get("review_protocol") != "blind-family-and-deployment-v1":
+            audit_request, audit_response = read_audit(episode["teacher"]["review_audit_id"])
+            reviews = unique_records(audit_response["reviews"], len(audit_request["episodes"]))
+            review = reviews[episode["id"]]
+            if not (review["family_ok"] and review["input_realistic"] and review["agrees"] and label_equal(review["label"], episode["label"])):
+                raise ValueError("Legacy accepted episode did not pass its original review")
+        family_request, family_response = read_audit(episode["teacher"]["family_classification_audit_id"])
+        if set(family_request) != {"taxonomy", "episodes"}:
+            raise ValueError("Blind family classifier received extra target metadata")
+        expected_taxonomy = [family for values in specification["families"].values() for family in values]
+        if family_request["taxonomy"] != expected_taxonomy:
+            raise ValueError("Family classifier used a different taxonomy")
+        family_inputs = [row for row in family_request["episodes"] if {"context": row["context"], "entries": row["entries"]} == visible]
+        if len(family_inputs) != 1 or not re.fullmatch(r"e[0-9]+", family_inputs[0]["id"]):
+            raise ValueError("Cannot match visible input to opaque blind family classification")
+        classifications = unique_records(family_response["classifications"], len(family_request["episodes"]))
+        classification = classifications[family_inputs[0]["id"]]
+        if (classification["observed_family_id"] != episode["family_id"] or classification.get("secondary_family_ids") or
+                classification.get("input_realistic") is not True):
+            raise ValueError("Blind observed-operation classification or deployment review failed")
         counts[episode["label"]["decision"] if episode["label"]["decision"] == "select" else episode["label"]["abstain_reason"]] += 1
     return {"passed": True, "split": split, "episodes": len(episodes), "data_sha256": sha256(data),
             "partition_sha256": partition_hash, "label_counts": dict(counts),
             "teacher_audit_files": len(audit_files), "teacher_audit_bundle_sha256": hashlib.sha256(canonical_bytes(audit_files)).hexdigest(),
             "checks": ["exact production preprocessing", "native Swift projection replay", "token budget and full candidate preservation",
                        "opaque label-request identifiers", "label-request metadata exclusion", "two blind labels with remapped IDs and order",
-                       "independent family/realism review", "within-split order/ID-independent duplicate detection"],
+                       "blind observed-operation classification and deployment review", "actual-label sampling quotas",
+                       "within-split order/ID-independent duplicate detection"],
             "human_validated": False, "student_inference_used": False,
             "limitations": "Structural and teacher-consistency checks do not prove every semantic label is correct."}
 
