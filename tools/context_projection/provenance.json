@@ -8,5 +8,6 @@
     "ProjectSyntheticContext.swift": "e4bef1145637f2cb9930b01c6be69f65b05536687f4bcbcda18d54d69292935f",
     "RecommendationContext.swift": "0b72cd4c7e7c4859b68ed41ce3eed52b28f00557698b72a3a93bdf7a1f206561"
   },
-  "capture_reader_sha256": "04f272ee664ba74fd0022019ba003c1f87bfa219f271f6cdbf6b2fc5f4466f4d"
+  "capture_reader_sha256": "04f272ee664ba74fd0022019ba003c1f87bfa219f271f6cdbf6b2fc5f4466f4d",
+  "authoring_adapter_sha256": "7893f7a0fb7f250ca78233423e1590a6da0b8f065d745030c7c1394c9295cdb6"
 }

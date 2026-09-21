@@ -13,7 +13,9 @@
     "native input surface inference",
     "already projected context idempotence",
     "UTF-16 emoji selection round trip",
-    "JSON escaping and unknown selection representation"
+    "JSON escaping and unknown selection representation",
+    "explicit literal boundary compilation equals numeric capture byte-for-byte",
+    "unknown authored boundary remains unknown"
   ],
   "rejected_inputs": [
     "mismatched selected text",
@@ -25,8 +27,12 @@
     "secure field capture content",
     "oversized adjacent static text",
     "extra intent field",
-    "boolean selection offset"
+    "boolean selection offset",
+    "extra fragment intent",
+    "non-string fragment",
+    "unknown fragment with selected content"
   ],
   "live_AX_permission_validation": false,
-  "temporary_test_files_retained": false
+  "temporary_test_files_retained": false,
+  "authoring_adapter_sha256": "7893f7a0fb7f250ca78233423e1590a6da0b8f065d745030c7c1394c9295cdb6"
 }

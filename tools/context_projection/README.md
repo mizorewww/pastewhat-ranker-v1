@@ -27,6 +27,23 @@ an insertion point has length zero and empty selected text. Invalid or surrogate
 splitting ranges are rejected. Unknown selection cannot contain selected text.
 `context.surroundingText` must be empty when raw capture is supplied.
 
+Authors can instead supply explicit literal boundaries, which avoids asking a
+language model to calculate Unicode offsets:
+
+```json
+{"beforeSelection":"const method = '","afterSelection":"';","nearbyText":["Set the HTTP method to POST."]}
+```
+
+`context.selectedText` is the literal middle segment (empty for an insertion).
+The Python adapter concatenates before + selected + after unchanged and computes
+the UTF-16 offsets, then calls the same strict Swift implementation. These three
+keys are the complete known-selection fragment form. The unknown-selection form
+has only `textWindow` and `nearbyText`, with empty selected text. There is no
+placeholder search, text rewriting, automatic truncation, or intention-based
+position inference. The original author object is retained in the generation
+audit and deterministically replayed; numeric capture remains supported for
+earlier audits. `provenance.json` includes the adapter's source hash.
+
 `textWindow` is the focused control's actual text window, at most 1,700 Swift
 characters. `nearbyText` represents at most four static sibling labels/headings,
 each at most 240 characters and at most 600 total. It cannot contain an imagined

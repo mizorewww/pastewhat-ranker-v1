@@ -35,6 +35,29 @@ def executable() -> Path:
     return binary
 
 
+def canonical_capture(context: dict, capture: dict) -> dict:
+    """Compile explicit authored text boundaries; never infer a paste position.
+
+    This prevents an authoring model from having to count UTF-16 code units.
+    All literal pieces remain unchanged and still pass native size/range checks.
+    The original fragment object belongs in the generation audit for replay.
+    """
+    if not isinstance(capture, dict):
+        raise ValueError("Capture must be an object")
+    if set(capture) == {"beforeSelection", "afterSelection", "nearbyText"}:
+        before, selected, after = (capture["beforeSelection"], context.get("selectedText", ""),
+                                   capture["afterSelection"])
+        if any(not isinstance(value, str) for value in (before, selected, after)):
+            raise ValueError("Authored selection pieces must be strings")
+        return {"textWindow": before + selected + after,
+                "selectionLocation": len(before.encode("utf-16-le")) // 2,
+                "selectionLength": len(selected.encode("utf-16-le")) // 2,
+                "nearbyText": capture["nearbyText"]}
+    if set(capture) == {"textWindow", "nearbyText"}:
+        return {**capture, "selectionLocation": None, "selectionLength": None}
+    return dict(capture)
+
+
 def project_context(context: dict, *, capture: dict | None = None) -> dict:
     allowed = {"applicationCategory", "inputSurface", "fieldRole", "fieldLabel", "selectedText",
                "surroundingText", "hasAccessibility", "isSecure"}
@@ -44,6 +67,7 @@ def project_context(context: dict, *, capture: dict | None = None) -> dict:
                 "selectedText": "", "surroundingText": "", "hasAccessibility": True, "isSecure": False,
                 **context}
     if capture is not None:
+        capture = canonical_capture(complete, capture)
         capture_fields = {"textWindow", "selectionLocation", "selectionLength", "nearbyText"}
         if not isinstance(capture, dict) or set(capture) != capture_fields:
             raise ValueError("Capture must contain exactly the observable text and selection fields")
