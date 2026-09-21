@@ -30,7 +30,15 @@ def slices(episodes: list[dict], predictions: list[dict]) -> dict:
         bucket = "1" if count == 1 else "2-4" if count <= 4 else "5-10" if count <= 10 else "11-20"
         groups["candidate_count/" + bucket].append(outcome)
         metadata = episode.get("synthetic_metadata", {})
-        groups["language/" + metadata.get("language", "unspecified")].append(outcome)
+        # Authoring language is a requested factor, not automatic detection of
+        # actual rendered text. Older data without that source remains unknown.
+        language = metadata.get("requested_context_language")
+        if language:
+            groups["requested_context_language/" + language].append(outcome)
+        else:
+            groups["language/" + metadata.get("language", "unspecified")].append(outcome)
+        variant = episode.get("provenance", {}).get("observation_variant", metadata.get("observation_variant", "unspecified"))
+        groups["observation_variant/" + variant].append(outcome)
         if len(episode["label"]["acceptable_ids"]) > 1:
             groups["multiple_acceptable_candidates"].append(outcome)
         positives = set(episode["label"]["acceptable_ids"])

@@ -36,6 +36,9 @@ def audit_dataset(data: Path, audit_root: Path, tokenizer: Path, partition: Path
     if len(split_values) != 1 or not split_values <= {"calibration", "test"}:
         raise ValueError("Evaluator audit owns only Calibration or Test")
     split = next(iter(split_values))
+    if run_plan and run_plan.document["teacher_contract_version"] == "teacher-episodes-v7-batched-decisions":
+        from evaluations.audit_v7 import audit_dataset as audit_v7_dataset
+        return audit_v7_dataset(data, plan=run_plan, split=split, tokenizer=tokenizer, partition=partition)
     specification = json.loads(partition.read_text())
     families = {row["id"]: row for row in specification["families"][split]}
     partition_hash = sha256(partition)
