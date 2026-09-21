@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from datetime import datetime
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -24,6 +26,39 @@ from evaluations.generate import passed_current_gates
 ROOT = Path(__file__).resolve().parents[1]
 STATE = ROOT / "local/evaluator-generation-v4"
 HELDOUT = ROOT / "local/evaluator-heldout-v4"
+PRODUCTION_READY = ROOT / "local/kimi-account-rate/production-ready.json"
+
+
+def production_readiness() -> dict:
+    """Require a frozen Train-only provider validation before heldout requests."""
+    result = {"ready": False, "marker": str(PRODUCTION_READY.relative_to(ROOT))}
+    if not PRODUCTION_READY.is_file():
+        return {**result, "reason": "waiting_for_train_provider_validation"}
+    try:
+        raw = PRODUCTION_READY.read_bytes()
+        marker = json.loads(raw)
+        if marker.get("ready") is not True:
+            raise ValueError("marker_not_ready")
+        effort = marker.get("reasoning_effort")
+        if effort not in {"low", "high", "max"}:
+            raise ValueError("unsupported_reasoning_effort")
+        timestamp = datetime.fromisoformat(marker["validated_at"].replace("Z", "+00:00"))
+        if timestamp.utcoffset() is None or timestamp.utcoffset().total_seconds() != 0:
+            raise ValueError("validated_at_must_be_utc")
+        expected_hash = marker.get("report_sha256", "")
+        if len(expected_hash) != 64 or any(c not in "0123456789abcdef" for c in expected_hash):
+            raise ValueError("invalid_validation_report_hash")
+        report = (ROOT / marker["report_path"]).resolve()
+        if not report.is_relative_to(ROOT) or not report.is_file():
+            raise ValueError("validation_report_missing_or_outside_repository")
+        if hashlib.sha256(report.read_bytes()).hexdigest() != expected_hash:
+            raise ValueError("validation_report_hash_mismatch")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {**result, "reason": "invalid_or_unverifiable_provider_validation"}
+    return {**result, "ready": True, "reason": "train_provider_validation_verified",
+            "reasoning_effort": effort, "validated_at": marker["validated_at"],
+            "report_path": str(report.relative_to(ROOT)), "report_sha256": expected_hash,
+            "marker_sha256": hashlib.sha256(raw).hexdigest()}
 
 
 def progress(split: str) -> dict:
@@ -91,8 +126,10 @@ def main():
     while not stopping:
         elapsed = max(1.0, time.monotonic() - started)
         account = coordinator.status()
+        readiness = production_readiness()
         status = {"updated_at": utc_now(), "elapsed_seconds": round(elapsed, 1), "splits": {},
-                  "student_test_inference_allowed": False, "provider_account": account}
+                  "student_test_inference_allowed": False, "provider_account": account,
+                  "provider_validation": readiness}
         for split, target in splits.items():
             current = progress(split)
             child, log = children.get(split, (None, None))
@@ -122,6 +159,8 @@ def main():
                     current["data_status"] = "freeze_validation_failed_requires_evaluator"
                 elif account["paused"]:
                     current["data_status"] = "provider_paused_until_external_change" if account["blocked_until_external_change"] else "provider_cooldown"
+                elif not readiness["ready"]:
+                    current["data_status"] = readiness["reason"]
                 elif time.monotonic() >= next_restart[split]:
                     if log:
                         log.close()
