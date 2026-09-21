@@ -19,17 +19,27 @@ from data_tools.generate import PARTITION_PATH, ROOT, validate_labels
 from data_tools.teacher import TeacherClient, atomic_json, canonical_bytes, sha256, utc_now
 
 
-AUDIT_SYSTEM = """You audit synthetic clipboard episodes for a grouped machine-learning dataset.
-Return only {"reviews":[{"id":"e1","within_family":true,"deployment_visible":true,
-"payload_metadata_consistent":true,"reason":"short finding"}]}.
-The supplied operation family is the entire allowed semantic scope. Its exclusions
-reserve other operation families for held-out evaluation. All paraphrases, entity
-substitutions and counterfactuals remain in their operation family. Reject an
-episode whose primary decision requires an excluded or different operation. A few
-unrelated clipboard distractors are fine; do not reject those alone. A vague
-context intentionally testing abstention can still belong to the family when its
-plausible candidate intentions are within it. Do not use teacher labels (none are
-provided). Judge the whole context-and-candidate problem, not keywords alone.
+AUDIT_SYSTEM = """You independently classify and audit synthetic clipboard episodes.
+No expected operation family, data split, target label, or authoring intent is
+provided. Infer the operation required by the VISIBLE context and candidates.
+Return only {"reviews":[{"id":"e1","observed_family_id":"taxonomy id or unknown",
+"secondary_family_ids":[],"deployment_visible":true,
+"payload_metadata_consistent":true,"reason":"short observed evidence"}]}.
+The taxonomy contains every operation family without split assignments. Pick the
+single primary observed operation ID. If solving the decision also REQUIRES
+another operation, list it in secondary_family_ids. Ignore unrelated history or
+obvious distractors that require no such reasoning. If the visible problem cannot
+be classified, use unknown. Do not guess an author's intended family.
+Reason about the decision operation, not overlapping nouns or surface syntax.
+For instance, selecting a URL by its host differs from deciding a pagination
+cursor; a negative constraint may itself make a second operation necessary.
+Every operation includes SELECT and ABSTAIN. A clear need with zero suitable
+candidates still belongs to the operation requested by the context. A hex color
+field with only RGB-function candidates remains design_color_syntax. Do not
+require a positive candidate or invent a conversion task. Ambiguous intentions
+within one operation remain in that family; ambiguity across operations is mixed
+or unknown. A request to restore files is a restore operation even when all
+candidates merely inspect diffs. No labels are supplied: do not infer or emit them.
 deployment_visible means only realistic focused-field information, user-selected
 or surrounding text, app CATEGORY, observable candidate text and actual payload
 metadata are used. No synthetic hidden-goal field, answer key, or secret fact.
@@ -42,7 +52,10 @@ Do not return chain-of-thought. Short reason is a finding for audit, not trainin
 
 def review_group(group, family, client):
     visible = [{"id": f"e{i+1}", "context": episode["context"], "entries": episode["entries"]} for i, episode in enumerate(group)]
-    result = client.complete_json(AUDIT_SYSTEM, json.dumps({"family": family, "episodes": visible}, ensure_ascii=False), phase="semantic-family-review", request_id=sha256(canonical_bytes(visible)), max_tokens=8192)
+    partition = json.loads(PARTITION_PATH.read_text())
+    taxonomy = [item for families in partition["families"].values() for item in families]
+    allowed_ids = {item["id"] for item in taxonomy} | {"unknown"}
+    result = client.complete_json(AUDIT_SYSTEM, json.dumps({"operation_taxonomy": taxonomy, "episodes": visible}, ensure_ascii=False), phase="blind-family-and-deployment-review", request_id=sha256(canonical_bytes(visible)), max_tokens=8192)
     items = result.parsed.get("reviews", [])
     by_id = {item.get("id"): item for item in items}
     if len(items) != len(group) or set(by_id) != {item["id"] for item in visible}:
@@ -50,6 +63,9 @@ def review_group(group, family, client):
     output = []
     for i, episode in enumerate(group):
         review = by_id[f"e{i+1}"]
+        if review.get("observed_family_id") not in allowed_ids or not isinstance(review.get("secondary_family_ids"), list) or set(review["secondary_family_ids"]) - allowed_ids:
+            raise ValueError("Blind family reviewer returned an unknown taxonomy value")
+        review["within_family"] = review["observed_family_id"] == family["id"] and not review["secondary_family_ids"]
         flags = ("within_family", "deployment_visible", "payload_metadata_consistent")
         if any(type(review.get(key)) is not bool for key in flags):
             raise ValueError("Family reviewer returned nonboolean status")

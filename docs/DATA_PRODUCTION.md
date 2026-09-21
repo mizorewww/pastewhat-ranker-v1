@@ -27,6 +27,9 @@ repeating a rolling teacher request will reproduce its completion.
    plans ask for approximately 70% select, 20% no-match and 10% ambiguous or
    insufficient-context decisions. These plans are never sent to the labeler.
    Observed labels, not requested labels, determine the reported distribution.
+   If an independently agreed label misses the planned sampling bucket, its
+   original label stays in quarantine and that slot receives a newly authored
+   example. The two ambiguity reasons may share the final 10% bucket.
 2. The actual pinned PasteWhat Swift projection determines the input surface from
    field metadata. The generation model cannot provide an intent-based surface
    oracle. Impossible no-AX contexts containing captured field data are rejected.
@@ -42,8 +45,11 @@ repeating a rolling teacher request will reproduce its completion.
    and abstention reasons must agree after remapping. Disagreements are retained
    in audit and excluded; new episodes replace them. A majority vote never
    silently changes a disputed label.
-6. A separate teacher call reviews conceptual-family adherence, realistic field
-   visibility and payload metadata. It sees no proposed decision label. Schema,
+6. A separate teacher call receives all 68 operation descriptions without split
+   assignments and infers the observed operation from visible input. It sees no
+   expected family or proposed label. A primary family mismatch or required
+   secondary operation rejects the slot. It also reviews realistic field
+   visibility and payload metadata. Schema,
    candidate counts, native projection, preprocessing idempotence, visible hashes
    and label membership are also checked by the production tools.
 7. Only accepted episodes enter the current Train/Dev JSONL. Training uses frozen
@@ -52,12 +58,23 @@ repeating a rolling teacher request will reproduce its completion.
    augmentation is restricted to new examples from Train operation families and
    requires a frozen ranker-v0; Test is never an error-mining source.
 
-The initial, unreleased single-label probe exposed a wrong teacher ID selection,
-out-of-family operations, and impossible field metadata. It was isolated under
-ignored `local/initial-v1-unreleased/` before training. The stronger pipeline is
-named `teacher-episodes-v2-blind-consensus`. This inspection was performed by an
-agent, not a human. Repeated teacher agreement and programmatic checks reduce
-errors; they do not establish that every synthetic label is correct.
+The unreleased v1 probe exposed a wrong teacher ID selection, out-of-family
+operations and impossible field metadata. The v2 probe additionally exposed
+equivalent candidates omitted from positive sets, unusable replacement ranges,
+authoring contamination from negative operation lists and expected-family reviewer
+agreement bias. Those main-data probes are isolated in ignored
+`local/initial-v1-unreleased/` and `local/initial-v2-unreleased/`. Production v3 is
+`teacher-episodes-v3-visible-evidence`; it uses the four calls above, replacing
+confirmatory family review with blind classification. Authors receive only the
+positive target operation, while reviewers retain the complete taxonomy.
+
+The 32-row engineering seed is a separately documented exception: the root agent
+independently reviewed the original 32, rejected six, and then approved six new
+Kimi-authored replacements after the same label gates. Its frozen provenance is
+`data/train_overfit.review.json`. It covers multi-positive and abstain examples
+but is not a representative accuracy benchmark. These inspections are agent
+reviews, not human validation. Repeated teacher agreement and programmatic checks
+reduce errors; they do not establish that every synthetic label is correct.
 
 ## Running and auditing
 
@@ -66,14 +83,23 @@ non-quantized Laya-multilingual tokenizer, and a local Mac Swift toolchain is us
 to compile the original context projection once.
 
 ```sh
-uv run python -m data_tools.generate --split train --limit 20000 --workers 4
-uv run python -m data_tools.generate --split dev --limit 1000 --workers 2
+uv run python -m data_tools.produce --train-workers 4 --dev-workers 2
 uv run python -m data_tools.provenance --split train --write
 uv run python -m data_tools.provenance --split dev --write
 ```
 
-Each completed batch is resumable, and partial accepted rows survive semantic
-repair attempts. Raw audits and caches stay under ignored `local/`; public
+The supervisor persists the full 20,000/1,000 targets, restarts failed work with
+backoff, reports accepted/rejected counts, actual request usage and observed-rate
+ETA, and freezes the 5k pilot, 20k Train and 1k Dev snapshots as each becomes ready.
+It does not stop at the pilot quota. `local/production-v3/progress.json` is the
+latest aggregate status; JSONL progress and process logs retain its history.
+
+Each completed batch is resumable, and partial accepted rows and repair counters
+survive failures. Generation and freezing use one candidate-ID/order-independent
+content fingerprint. An atomic Train/Dev registry prevents concurrent duplicate
+acceptance; recovery quarantines a later duplicate slot and regenerates that
+slot. Existing frozen pilot rows cannot be changed by duplicate repair.
+Raw audits and caches stay under ignored `local/`; public
 manifests contain hashes, model names, parameters and usage, not credentials or
 reasoning targets. Candidate IDs, episode IDs, family IDs, teacher evidence,
 requested scenario type and every provenance field are excluded from student
@@ -81,16 +107,32 @@ features by the shared preprocessor.
 
 Credentials are read into memory from `KIMI_API_KEY` or the restricted file
 `~/Library/Application Support/PasteWhat/credentials/kimi.key` (mode 0600). The
-client identifies itself truthfully as `PasteWhat-Ranker/0.1`. HTTP 429 and
-retryable 5xx errors use bounded exponential backoff and numeric Retry-After;
-authentication failures do not trigger prompt-repair loops. No client spoofing
-or rate-limit circumvention is used.
+client identifies itself truthfully as `PasteWhat-Ranker/0.1`. The client shares
+`local/kimi-account-rate/state.json` and a process lock across Train/Dev and the
+independent evaluator. At most six HTTP requests are in flight, with at least
+0.5 seconds between starts; this is a conservative local setting, not a claimed
+server entitlement. The state contains PID leases, times and aggregate errors,
+never prompts, labels or credentials. HTTP 429 sets an account-wide cooldown and
+honors numeric or HTTP-date Retry-After without capping a longer server delay.
+Retryable 5xx errors use bounded exponential backoff.
+
+Current official HTTP 403 semantics distinguish quota exhaustion from concurrent
+account restriction. A 5-hour/weekly/monthly quota response pauses new requests
+until Retry-After, or conservatively a complete 5-hour/7-day/31-day window from
+the error if no reset time is supplied. Unknown-reset quotas, concurrent account
+restrictions, other permission errors, authentication errors and membership
+errors persistently block new requests pending an external account-state change.
+The supervisor reports and respects that shared state instead of restarting
+workers through it. Neither alternate client identities nor alternate endpoints
+are used to avoid restrictions.
 
 Current official documentation was retrieved with Context7 before implementation:
 the [Kimi Code API](https://www.kimi.com/code/docs/en/) specifies the OpenAI-compatible
 endpoint and `kimi-for-coding` model identifier; the
 [error reference](https://www.kimi.com/code/docs/en/kimi-code/error-reference.html)
-documents 429 and transient 5xx behavior. The official
+documents distinct 403 quotas/account restrictions, 429 and transient 5xx
+behavior. The current primary error page was checked because the Context7 index
+contained older rate-limit descriptions. The official
 [Kimi provider implementation](https://github.com/moonshotai/kimi-code/blob/main/packages/kosong/src/providers/kimi.ts)
 defines `thinking.type=disabled`. Actual API probes confirmed generation can use
 that mode with temperature 0.6, while the default reasoning mode accepts 1.0.

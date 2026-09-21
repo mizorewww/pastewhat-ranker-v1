@@ -10,14 +10,9 @@ from pathlib import Path
 import random
 
 from data_tools.generate import PARTITION_PATH, ROOT, validate_labels
+from data_tools.content import content_fingerprint
 from data_tools.teacher import atomic_json, canonical_bytes, sha256, utc_now
 from pastewhat_ranker.preprocess import Preprocessor
-
-
-def content_fingerprint(episode):
-    entries = [{key: value for key, value in entry.items() if key != "id"} for entry in episode["entries"]]
-    entries.sort(key=canonical_bytes)
-    return sha256(canonical_bytes({"context": episode["context"], "entries": entries}))
 
 
 def publish_bytes(path, payload):
