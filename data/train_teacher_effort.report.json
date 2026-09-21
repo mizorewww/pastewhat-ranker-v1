@@ -1,0 +1,123 @@
+{
+  "audits": [
+    {
+      "audit_id": "849556d0a1ad6b1f10135d5ddcf40dcf4390e990e31fa74de13cd8f2ca79e76f",
+      "batch": 0,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "high",
+      "request_sha256": "603d6587e97a46de424b00f1add1edd0c7fc47f0e95df169662b258842de9052",
+      "response_sha256": "f94bb2771bc3c2ecccd5a46ad0b307569c983aa0ca20829b7687024fecbf51ba"
+    },
+    {
+      "audit_id": "8f86183389dd8d6dd6300ede16f74ce81531a37a1d0a994e5b2992c0d87c8c7b",
+      "batch": 0,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "max",
+      "request_sha256": "b55718e8928e90e3fd3935c2281638008666bf05fea56c14a38ee50aae73abe3",
+      "response_sha256": "29978a560b164c0e48bf23ffeeb03d36aa7ea1342b274624747b2155a9554b6b"
+    },
+    {
+      "audit_id": "e7b7bbcd0cc228332723d272a43bd38e848ab66ed9f792cb1ef182f3e71e6bde",
+      "batch": 1,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "max",
+      "request_sha256": "55e9f2f1e22cb5c7e34782fc8431137e20e438b37747fdab613b62c364b2a289",
+      "response_sha256": "c248e26aa90783037b751b01e874d3676cfab1d6826ee117a665cbc8c6761ff6"
+    },
+    {
+      "audit_id": "4ac2d57959d24daeca8f1fb19aa6e454de16ef5e2fdafb2bcc8885af995abee1",
+      "batch": 1,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "high",
+      "request_sha256": "20491255b1ef6fe41a9ba3456d26c298558574181c31559c22dc2e08ed1455b8",
+      "response_sha256": "67d2e077dd42f2670633c46b111f3f5482eff0cb9cd9a2e1c280cc682a3eb9c2"
+    },
+    {
+      "audit_id": "ef38a765ee0601de02163308d54e67904bb399cea889aa3d1b8ead51f215d2d6",
+      "batch": 2,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "high",
+      "request_sha256": "b921ace355b08e201072c8c6a375dd6d29e2563482d200629da88f87f282bdfc",
+      "response_sha256": "0cea34cf78fd4bab183129b896ba3ff3b2b5934ebedf1ed6b3b8763cd0111224"
+    },
+    {
+      "audit_id": "b3119a25f48cfcb7b3918d6886a4af63b08a491abcc443e430cf3846990c5974",
+      "batch": 2,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "max",
+      "request_sha256": "18f84cc037441f4e872616b41c7834028e0b2511af8057385d5df25fb5da3810",
+      "response_sha256": "f2d35721a6b3c5c18693bcc72f33946559f9bc7683558bbb40ec2aba78ab706c"
+    },
+    {
+      "audit_id": "6c12e5395ee230de8299075555ff0ec0a1b719a3a49029f92e8b5d75b2d03466",
+      "batch": 3,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "max",
+      "request_sha256": "46603674b1f51194f609b04dc2d4a92684f1007a46465ad57943c9abf18c9d4a",
+      "response_sha256": "864bfb3271f477d28c264d78426e3966d1c7c7d1141e80320618d234f4fabfe5"
+    },
+    {
+      "audit_id": "0338197d14e8a1be6dd6b5575732277b97f29b690b390ebc34cdb3925783b6a8",
+      "batch": 3,
+      "model": "kimi-for-coding",
+      "reasoning_effort": "high",
+      "request_sha256": "344e6a42424ee3507c42edd5f074056a1ce3792858db77818e60cf937614c0ff",
+      "response_sha256": "18fc5c9bbdb5edb8e8da7fee966b2d8249b7b4613f4304ace8cfd5de15479030"
+    }
+  ],
+  "by_effort": {
+    "high": {
+      "cases": 20,
+      "correct_reviewed_actions": 20,
+      "median_request_seconds": 12.304881937499886,
+      "requests": 4,
+      "total_elapsed_seconds": 51.49949908400049,
+      "usage": {
+        "cached_tokens": 3072,
+        "completion_tokens": 2336,
+        "prompt_tokens": 8523,
+        "total_tokens": 10859
+      }
+    },
+    "max": {
+      "cases": 20,
+      "correct_reviewed_actions": 20,
+      "median_request_seconds": 15.688457624500188,
+      "requests": 4,
+      "total_elapsed_seconds": 84.12465412400161,
+      "usage": {
+        "cached_tokens": 2304,
+        "completion_tokens": 4054,
+        "prompt_tokens": 8519,
+        "total_tokens": 12573
+      }
+    }
+  },
+  "cases": 20,
+  "claim_boundary": "Small, agent-reviewed Train-only engineering probe. It does not establish equal generalization quality, held-out accuracy, or human validation.",
+  "created_at": "2026-09-21T02:07:05.949724+00:00",
+  "independent_review_sha256": "14537a0b5ccb3f9444e863e449e5ee0df42a4f5c2c38b9a6feef7f4b7f69403f",
+  "manifest": {
+    "authoring_sha256": "1d411dd6fae3a8fe198831b384db7333bfa0292a3c383201fa5381e9fa8899ab",
+    "cases": 20,
+    "families": {
+      "design_color_syntax": 6,
+      "git_branch_listing": 2,
+      "git_diff_selection": 2,
+      "http_method": 4,
+      "python_collection": 4,
+      "python_file_mode": 2
+    },
+    "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+    "human_validated": false,
+    "label_prompt_sha256": "c9259d5d506b80ebc90f6053357c80ee841da4bfd81f47a7b157b59468670498",
+    "projection_sha256": "7fc378fd713060f4bcfab82803101b127769348ac25650865a77e1a38af038ef",
+    "purpose": "Train-only reasoning-effort engineering probe, excluded from formal data",
+    "review_input_sha256": "944f069fff9bcd151296100ca52a1d8eb487f64770b00a9e512e790cec50aea5"
+  },
+  "paired_action_agreement": 20,
+  "production_ready": false,
+  "recommended_effort_for_this_probe": "high",
+  "teacher": "kimi-for-coding",
+  "teacher_is_rolling": true
+}

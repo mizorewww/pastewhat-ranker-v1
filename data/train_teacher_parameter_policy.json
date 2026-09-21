@@ -1,0 +1,24 @@
+{
+  "decision_basis": "20 independently agent-reviewed Train engineering cases; both efforts matched every complete action set. This is not heldout quality equivalence.",
+  "disabled_authoring": {
+    "reasoning_effort_omitted": true,
+    "temperature": 0.6,
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "formal_production_status": "wait for candidate native-payload projection before shared readiness marker",
+  "probe_report_path": "data/train_teacher_effort.report.json",
+  "probe_report_sha256": "c132d7a6b8abe7cd863bc67de9f28b3a623b781486f5c55753234cf06e8996fa",
+  "reasoning_effort": "high",
+  "reasoning_enabled_labels_reviews_repairs": {
+    "reasoning_effort": "high",
+    "temperature": 1.0
+  },
+  "request_provenance": "Every actual request body, request hash, response hash, response model, parameters and observed usage are retained in split-owned audits.",
+  "selected_at": "2026-09-21T02:11:15.415887+00:00",
+  "source_checked_at": "2026-09-21",
+  "source_url": "https://www.kimi.com/code/docs/en/kimi-code/models.html",
+  "teacher": "kimi-for-coding",
+  "teacher_alias_is_rolling": true
+}
