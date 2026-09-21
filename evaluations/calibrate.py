@@ -11,6 +11,7 @@ from evaluations.common import (
     FEATURE_NAMES, calibrated_decision, calibrated_probability, load_jsonl,
     score_features, sha256, summarize, validate_label, verify_score_run, wilson_interval, write_json,
 )
+from evaluations.score import command_artifacts
 
 
 def partition_families(episodes: list[dict]) -> dict:
@@ -127,6 +128,8 @@ def main():
     if (score_run.get("artifacts", {}).get("weights_sha256") != sha256(args.weights) or
             score_run.get("artifacts", {}).get("preprocess_sha256") != sha256(args.preprocess)):
         raise SystemExit("Calibration score run differs from the requested deployment weights or preprocessing")
+    if command_artifacts(score_run["command"], "ranker", None) != score_run["artifacts"]:
+        raise SystemExit("Deployment model files or runtime changed after Calibration scoring")
     episodes, predictions = load_jsonl(args.data), load_jsonl(args.scores)
     fixed_partition = json.loads(args.partition.read_text())
     if partition_families(episodes) != fixed_partition["families"]:

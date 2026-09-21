@@ -12,7 +12,7 @@ import subprocess
 import time
 
 from evaluations.common import inference_request, load_jsonl, score_features, sha256, validate_formal_heldout_allocation, write_json
-from evaluations.freeze import verify_freeze
+from evaluations.freeze import directory_hashes, verify_freeze
 
 
 class Worker:
@@ -119,6 +119,7 @@ def command_artifacts(command: list[str], protocol: str, frozen: dict | None) ->
             raise ValueError("Calibration and acceptance require an explicit final MLX model directory")
         root = Path(model).expanduser().resolve()
         result["model_root"] = str(root)
+        result["model_files"] = directory_hashes(root)
         if frozen:
             expected = "deployment" if protocol == "ranker" else "baseline_model"
             if root != Path(frozen[expected]["root"]).resolve():
@@ -127,7 +128,8 @@ def command_artifacts(command: list[str], protocol: str, frozen: dict | None) ->
             if "pastewhat_ranker.worker" not in command:
                 raise ValueError("Use the versioned ranker worker for ranker acceptance")
             result.update(weights_sha256=sha256(root / "model.safetensors"),
-                          preprocess_sha256=sha256(root / "preprocess.json"))
+                          preprocess_sha256=sha256(root / "preprocess.json"),
+                          runtime_files=directory_hashes(Path(__file__).resolve().parents[1] / "src/pastewhat_ranker"))
     elif backend != "jev":
         raise ValueError("Jev comparison must explicitly select the Jev backend")
     if frozen and protocol in {"baseline", "jev"}:
@@ -199,6 +201,8 @@ def main():
         worker.close()
     if args.split == "test":
         verify_freeze(args.freeze, args.data)
+    if sha256(args.data) != manifest["data_sha256"] or command_artifacts(command, args.protocol, frozen) != artifacts:
+        raise RuntimeError("Dataset, model files or runtime changed during scoring; no completed run can be used")
     write_json(args.output / "completion.json", {"completed_at": datetime.now(timezone.utc).isoformat(),
                "episodes": len(episodes), "failures": failures, "scores_sha256": sha256(args.output / "scores.jsonl")})
 
