@@ -132,6 +132,8 @@ def record_pi_failure(coordinator, *, timed_out, stdout, stderr, process_returnc
         failures = state.setdefault("pi_failure_counts", {})
         kind = "authentication_or_entitlement" if authentication else "provider_rate_limit" if rate_limit else "transient_transport" if transient else "configuration_or_unclassified_process_error"
         failures[kind] = failures.get(kind, 0) + 1
+        if kind == "transient_transport":
+            state["pi_transient_failure_streak"] = state.get("pi_transient_failure_streak", 0) + 1
         state["last_pi_failure"] = {"classification": kind, "at": time.time(), "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr), "process_returncode": process_returncode, "local_interruption": interrupted}
         if rate_limit is not None and resources is not None:
             document, binding = resources
@@ -151,13 +153,20 @@ def record_pi_failure(coordinator, *, timed_out, stdout, stderr, process_returnc
             state["pause_reason"] = "pi_provider_rate_limit"
             state["reset_source"] = "provider_error_countdown_with_safety_margin" if countdown is not None else "bounded_local_retry_backoff"
         elif transient and not authentication:
-            delay = min(900, 60 * 2 ** min(failures[kind] - 1, 4))
+            delay = min(900, 60 * 2 ** min(state["pi_transient_failure_streak"] - 1, 4))
             state["cooldown_until"] = max(state.get("cooldown_until", 0), time.time() + delay)
             state["pause_reason"] = "pi_transient_transport_backoff"
             state["reset_source"] = "bounded_local_retry_backoff"
         else:
             state["blocked_reason"] = "pi_" + kind
     return kind
+
+
+def record_pi_success(coordinator, *, audit_id, attempt_id):
+    """A validated fresh completion ends only the transient failure streak."""
+    with coordinator._state() as state:
+        state["pi_transient_failure_streak"] = 0
+        state["last_pi_success"] = {"at": time.time(), "audit_id": audit_id, "attempt_id": attempt_id}
 
 
 def parse_pi_completion(stdout, receipt_bytes, bound_bytes, *, provider="devin", model="swe-2"):
@@ -356,6 +365,7 @@ class PiTeacherClient:
                 save(audit)
                 raise
             save(audit)
+            record_pi_success(self.coordinator, audit_id=identifier, attempt_id=attempt_id)
             return result
         except TeacherError:
             raise
