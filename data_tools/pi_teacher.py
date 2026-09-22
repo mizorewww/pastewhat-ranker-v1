@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import signal
@@ -11,10 +10,20 @@ import subprocess
 import tempfile
 import time
 import uuid
+from pathlib import Path
 
 from data_tools.rate_limit import AccountCoordinator, AccountPaused
 from data_tools.resources import load_resources
-from data_tools.teacher import TeacherClient, TeacherError, atomic_json, audit_identity, canonical_bytes, sha256, utc_now, verify_audit_identity
+from data_tools.teacher import (
+    TeacherClient,
+    TeacherError,
+    atomic_json,
+    audit_identity,
+    canonical_bytes,
+    sha256,
+    utc_now,
+    verify_audit_identity,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTENSION = ROOT / "tools/pi_teacher_extension.ts"
