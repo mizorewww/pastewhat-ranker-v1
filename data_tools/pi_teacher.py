@@ -116,19 +116,23 @@ def pi_rate_limit_evidence(stdout, stderr=b""):
     return {"signal": "provider_error_contains_429" if numeric_429 else "explicit_provider_free_model_rate_limit", "http_status_observed": False, "provider_reset_countdown_seconds": max(countdowns) if countdowns else None, "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr)}
 
 
-def record_pi_failure(coordinator, *, timed_out, stdout, stderr):
+def record_pi_failure(coordinator, *, timed_out, stdout, stderr, process_returncode=None):
     # Inspect provider errors, not synthetic candidate/assistant text that may
     # itself mention permissions or rate limits.
     text = ("\n".join(pi_error_messages(stdout)) + "\n" + stderr.decode(errors="replace")).lower()
     authentication = any(word in text for word in ("unauthorized", "authentication failed", "invalid api key", "invalid token", "permission denied", "insufficient credits", "quota exceeded", "entitlement"))
-    transient = timed_out or any(word in text for word in ("timeout", "timed out", "temporarily", "overloaded", "rate limit", "429", "502", "503", "504", "econnreset", "etimedout", "econnrefused", "enotfound", "fetch failed", "ended without an eos trailer", "network error", "socket hang up", "connection reset"))
+    # Pi can exit with shell-style 128+signal codes when the local process is
+    # interrupted. A signal without provider error evidence is not a durable
+    # configuration failure; keep its unknown usage audit and bounded backoff.
+    interrupted = (process_returncode in {int(sig) + 128 for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM, signal.SIGKILL)} or process_returncode in {-int(sig) for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM, signal.SIGKILL)}) and not pi_error_messages(stdout) and not stderr.strip()
+    transient = timed_out or interrupted or any(word in text for word in ("timeout", "timed out", "temporarily", "overloaded", "rate limit", "429", "502", "503", "504", "econnreset", "etimedout", "econnrefused", "enotfound", "fetch failed", "ended without an eos trailer", "network error", "socket hang up", "connection reset"))
     rate_limit = pi_rate_limit_evidence(stdout, stderr)
     resources = load_resources()
     with coordinator._state() as state:
         failures = state.setdefault("pi_failure_counts", {})
         kind = "authentication_or_entitlement" if authentication else "provider_rate_limit" if rate_limit else "transient_transport" if transient else "configuration_or_unclassified_process_error"
         failures[kind] = failures.get(kind, 0) + 1
-        state["last_pi_failure"] = {"classification": kind, "at": time.time(), "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr)}
+        state["last_pi_failure"] = {"classification": kind, "at": time.time(), "stdout_sha256": sha256(stdout), "stderr_sha256": sha256(stderr), "process_returncode": process_returncode, "local_interruption": interrupted}
         if rate_limit is not None and resources is not None:
             document, binding = resources
             previous_cap = state["max_in_flight"]
@@ -342,7 +346,7 @@ class PiTeacherClient:
                 evidence["provider_error_sha256"] = [sha256(error.encode()) for error in provider_errors]
                 attempts.append({"attempt_id": attempt_id, "error_type": "PiTimeout" if timed_out else "PiProviderError" if provider_errors else "PiProcessError", "exit_code": process.returncode, "usage_known": any(row["usage_known"] for row in evidence["observed_completions"])})
                 save({**common, **evidence, "status": "transport_error", "attempts": attempts})
-                record_pi_failure(self.coordinator, timed_out=timed_out, stdout=stdout, stderr=stderr)
+                record_pi_failure(self.coordinator, timed_out=timed_out, stdout=stdout, stderr=stderr, process_returncode=process.returncode)
                 raise TeacherError(f"Pi transport failure; audit {identifier}; preserve unknown usage and inspect actual provider error")
             audit = {**common, **evidence, **parse_pi_completion(stdout, receipt_bytes, bound_bytes, provider=self.provider, model=self.model), "status": "success", "teacher_model_is_rolling": True}
             try:
