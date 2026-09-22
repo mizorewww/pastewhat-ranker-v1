@@ -46,14 +46,14 @@ def jobs():
 def main():
     target = Path.home() / "Library/LaunchAgents"
     target.mkdir(parents=True, exist_ok=True)
-    for name, (command, log_directory) in jobs().items():
+    for name, (_, log_directory) in jobs().items():
         logs = ROOT / log_directory
         logs.mkdir(parents=True, exist_ok=True)
         label = LABEL_PREFIX + "." + name
         destination = target / (label + ".plist")
         document = {
             "Label": label,
-            "ProgramArguments": command,
+            "ProgramArguments": [str(PYTHON), "-u", "-m", "tools.login_recovery", name],
             "WorkingDirectory": str(ROOT),
             "EnvironmentVariables": {
                 "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
