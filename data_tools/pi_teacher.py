@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import signal
 import subprocess
 import tempfile
@@ -31,6 +30,7 @@ PROVIDER_EXTENSION = ROOT.parent / "pi-devin/extensions/index.ts"
 RATE_DIRECTORY = ROOT / "local/pi-swe2-account-rate"
 POLICY_PATH = ROOT / "configs/teacher_transition_swe2.json"
 CORRECTION_PATH = ROOT / "configs/teacher_correction_swe2_uid.json"
+FIXED_PI_BINARY = Path("/opt/homebrew/Cellar/pi-coding-agent/0.85.1/bin/pi")
 
 
 class PiModelIdentityError(ValueError):
@@ -211,9 +211,9 @@ class PiTeacherClient:
         self.model = "swe-2"
         self.provider = "devin"
         self.coordinator = pi_coordinator()
-        self.binary = shutil.which("pi")
-        if not self.binary or not EXTENSION.is_file() or not PROVIDER_EXTENSION.is_file():
+        if not FIXED_PI_BINARY.is_file() or FIXED_PI_BINARY.is_symlink() or not EXTENSION.is_file() or not PROVIDER_EXTENSION.is_file():
             raise TeacherError("Pi transport configuration is missing; no request sent")
+        self.binary = str(FIXED_PI_BINARY.resolve(strict=True))
         version = subprocess.run([self.binary, "--version"], capture_output=True, text=True, timeout=15, check=True).stdout.strip()
         self.policy = json.loads(POLICY_PATH.read_text())
         self.policy_sha256 = sha256(POLICY_PATH.read_bytes())
@@ -251,6 +251,10 @@ class PiTeacherClient:
 
     _result = staticmethod(TeacherClient._result)
 
+    def _verify_binary(self):
+        if not FIXED_PI_BINARY.is_file() or FIXED_PI_BINARY.is_symlink() or str(FIXED_PI_BINARY.resolve(strict=True)) != self.binary or sha256(FIXED_PI_BINARY.read_bytes()) != self.runtime["pi_executable_sha256"]:
+            raise TeacherError("Pinned Pi executable changed; no request sent")
+
     def _artifact(self, path, content):
         private_bytes(path, content)
         return {"path": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path), "sha256": sha256(content), "bytes": len(content)}
@@ -283,6 +287,7 @@ class PiTeacherClient:
             raise TeacherError("Pi transport transition policy changed during production")
         if self.correction is not None and sha256(CORRECTION_PATH.read_bytes()) != self.correction_sha256:
             raise TeacherError("Pi transport correction changed during production")
+        self._verify_binary()
         base = {"transport": "pi-cli-json", "provider": self.provider, "runtime": self.runtime, "source_files": self.source_files, "teacher_transition_sha256": self.policy_sha256, "request": request, "request_sha256": sha256(canonical_bytes(request)), "bound_request_sha256": sha256(bound_bytes), "phase": phase, "request_id": request_id, "requested_controls": {"temperature": temperature, "thinking": thinking, "reasoning_effort": reasoning_effort, "response_format": response_format}, "unapplied_controls": ["temperature", "response_format"], "effective_thinking": effective_effort}
         if self.correction is not None:
             base["teacher_correction"] = {"path": str(CORRECTION_PATH.relative_to(ROOT)), "sha256": self.correction_sha256}
