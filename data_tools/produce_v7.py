@@ -24,7 +24,8 @@ def alive(pid):
         return False
 
 
-def exhausted_source_record(base, name, *, allowed_dev_backfill_rounds=7, allowed_train_backfill_rounds=7):
+def exhausted_source_record(base, name, *, allowed_dev_backfill_rounds=7, allowed_train_backfill_rounds=7,
+                            allowed_hard_pool_backfill_rounds=7):
     """Return the durable finite-budget stop record, including a hard-pool stop."""
     completions = [base / f"{name}.run-completion.json"]
     if name == "hardening":
@@ -36,6 +37,8 @@ def exhausted_source_record(base, name, *, allowed_dev_backfill_rounds=7, allowe
                 if name == "dev" and record.get("backfill_rounds", 7) < allowed_dev_backfill_rounds:
                     continue
                 if name == "train" and record.get("backfill_rounds", 7) < allowed_train_backfill_rounds:
+                    continue
+                if name == "hardening" and path == base / "hard-pool/train.run-completion.json" and record.get("backfill_rounds", 7) < allowed_hard_pool_backfill_rounds:
                     continue
                 return path
     insufficient = base / "hardening/insufficient-confirmed-new.json"
@@ -82,7 +85,9 @@ def main():
             if alive(process.get("pid")):
                 states[name] = {"state": "running", "pid": process["pid"]}
                 continue
-            exhaustion = exhausted_source_record(base, name, allowed_dev_backfill_rounds=9, allowed_train_backfill_rounds=20)
+            exhaustion = exhausted_source_record(base, name, allowed_dev_backfill_rounds=9,
+                                                 allowed_train_backfill_rounds=20,
+                                                 allowed_hard_pool_backfill_rounds=12)
             if exhaustion is not None:
                 states[name] = {"state": "finite_source_budget_exhausted", "record_path": str(exhaustion.relative_to(ROOT)), "note": "Keep actual deficits visible; no label rewriting or repeated preferred-answer search"}
                 continue

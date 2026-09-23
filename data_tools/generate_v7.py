@@ -42,6 +42,8 @@ TRAIN_HTTP_METHOD_MULTISET_VERSION = "train-http-method-unobserved-multiset-v1"
 TRAIN_CONTENT_TYPE_PAIR_VERSION = "train-content-type-unobserved-pair-v1"
 TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION = "train-contact-postal-reachability-v1"
 TRAIN_CONTACT_POSTAL_AMENDMENT = ROOT / "configs/train_contact_postal_reachability_amendment.json"
+HARD_POOL_HTTP_METHOD_VERSION = "hard-pool-http-method-tail-v1"
+HARD_POOL_HTTP_METHOD_AMENDMENT = ROOT / "configs/hard_pool_http_method_tail_v1.json"
 
 
 def integer_seed(*values):
@@ -184,12 +186,24 @@ def usage_summary(directory):
     return {"request_records": sum(statuses.values()), "observed_response_records": observed_count, "prior_observed_response_records": prior_count, "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "by_provider": providers, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": transport_unknown, "http_error_attempts_without_usage": http_without_usage, "unfinished_started_requests": dict(started)}
 
 
-def replacement_specs(originals, rows, round_number, *, split="train"):
+def replacement_specs(originals, rows, round_number, *, split="train", hard_pool=False):
     """New source situations fill retired logical slots; accepted slots stay fixed."""
     fulfilled = {row["provenance"].get("quota_slot_id", row["id"]) for row in rows}
     methods, used_http_methods = unused_http_method_multisets(rows) if split == "train" and round_number >= 8 else ((), set())
     content_types, used_content_types = unused_content_type_pairs(rows) if split == "train" and round_number >= 13 else ((), set())
     postal_amendment = json.loads(TRAIN_CONTACT_POSTAL_AMENDMENT.read_text()) if split == "train" and round_number >= 17 else None
+    hard_pool_amendment = None
+    if hard_pool and round_number >= 8:
+        hard_pool_amendment = json.loads(HARD_POOL_HTTP_METHOD_AMENDMENT.read_text())
+        if (hard_pool_amendment.get("version") != HARD_POOL_HTTP_METHOD_VERSION
+                or any(hard_pool_amendment.get(key) != value for key, value in originals[0]["run_binding"].items())
+                or not 8 <= round_number <= hard_pool_amendment["last_round"]):
+            raise ValueError("Hard-pool tail amendment differs from the registered run or finite round")
+        remaining = {item["id"] for original in originals for item in original["plans"] if item["id"] not in fulfilled}
+        registered = set(hard_pool_amendment["slots"])
+        if ((round_number == 8 and remaining != registered)
+                or (round_number > 8 and not remaining <= registered)):
+            raise ValueError("Hard-pool tail differs from the nine registered missing slots")
     result = []
     for original in originals:
         missing = [item for item in original["plans"] if item["id"] not in fulfilled]
@@ -226,7 +240,31 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
                 " decision_gate. Do not add an intent, answer hint, or label."
                 " Preserve every other plan's registered action scenario."
             )
-        if split == "train" and round_number >= 8 and spec["family_id"] == "http_method":
+        if hard_pool_amendment is not None:
+            target = spec["plans"][0]["quota_slot_id"]
+            if spec["family_id"] != "http_method" or len(spec["plans"]) != 1 or target not in hard_pool_amendment["slots"]:
+                raise ValueError("Hard-pool tail has an unregistered source family or slot")
+            slot = hard_pool_amendment["slots"][target]
+            item = spec["plans"][0]
+            if any(item[key] != value for key, value in slot["old_plan_factors"].items()):
+                raise ValueError("Hard-pool tail changed original action, observation or count")
+            variant = slot["rounds"][str(round_number)]
+            spec["profile"]["applicationCategory"] = variant["applicationCategory"]
+            spec["profile"]["sourceCategory"] = variant["sourceCategory"]
+            if "fieldLabel" in variant:
+                spec["profile"]["fieldLabel"] = variant["fieldLabel"]
+            item["required_candidate_texts"] = variant["candidate_texts"]
+            item["expected_content_sha256"] = variant["content_sha256"]
+            spec["source_constraint_version"] = HARD_POOL_HTTP_METHOD_VERSION
+            spec["source_amendment"] = {"path": str(HARD_POOL_HTTP_METHOD_AMENDMENT.relative_to(ROOT)),
+                                        "sha256": sha256(HARD_POOL_HTTP_METHOD_AMENDMENT.read_bytes())}
+            spec["mother_task"]["constraints"] += (
+                " Emit exactly the registered bare HTTP-method required_candidate_texts as candidates"
+                " in any order, with guidance=[] and selected='' exactly. The actual API"
+                " operation is not part of this captured view. Do not invent one, add a"
+                " decision_gate, or include a label or explanation in the fixture."
+            )
+        if split == "train" and not hard_pool and round_number >= 8 and spec["family_id"] == "http_method":
             unobserved = [item for item in spec["plans"] if item["scenario_type"] in ("ambiguous", "insufficient_context")
                           and item["observation_variant"] != "standard"]
             if unobserved:
@@ -254,7 +292,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
                     " order. Do not add quotes, explanations, intent hints or labels."
                     " Preserve guidance=[] and selected='' for no_accessibility plans."
                 )
-        if postal_amendment is not None:
+        if postal_amendment is not None and not hard_pool:
             target = postal_amendment["retired_original_quota_slot_id"]
             amended = [item for item in spec["plans"] if item["quota_slot_id"] == target]
             if amended:
@@ -339,7 +377,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
 def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
     """Admit only structurally checkable versioned drafts to blind labeling."""
     version = spec.get("source_constraint_version")
-    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION}:
+    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION, HARD_POOL_HTTP_METHOD_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -355,23 +393,29 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
             if plan.get("source_amendment_version") != version or len(values) != 2 or values[0] == values[1]:
                 errors.append({"id": row["id"], "reason": "Amended postal alternatives are not two distinct visible addresses"})
                 continue
-        if version in {TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION} and "required_candidate_texts" in plan:
+        if version in {TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, HARD_POOL_HTTP_METHOD_VERSION} and "required_candidate_texts" in plan:
             expected = plan["required_candidate_texts"]
             actual = draft.get("candidates")
             context = row["context"]
-            allowed = ({"GET", "POST", "PUT", "DELETE"} if version == TRAIN_HTTP_METHOD_MULTISET_VERSION
+            allowed = ({"GET", "POST", "PUT", "DELETE"} if version in {TRAIN_HTTP_METHOD_MULTISET_VERSION, HARD_POOL_HTTP_METHOD_VERSION}
                        else {"application/json", "application/x-www-form-urlencoded", "text/plain",
                              "application/json; charset=utf-8", "text/plain; charset=utf-8"})
             if (not isinstance(actual, list) or len(actual) != plan["candidate_count"]
                     or any(not isinstance(value, str) for value in actual)
                     or sorted(actual) != sorted(expected)
                     or sorted(entry["text"] for entry in row["entries"]) != sorted(expected)
-                    or len(set(expected)) < 2
+                    or len(set(expected)) < (1 if version == HARD_POOL_HTTP_METHOD_VERSION and len(expected) == 1 else 2)
                     or any(value not in allowed for value in expected)
                     or draft.get("guidance") != [] or draft.get("selected") != ""
                     or "decision_gate" in draft or context["selectedText"]
-                    or context["surroundingText"] or context["isSecure"]):
-                errors.append({"id": row["id"], "reason": "Train fixed-pair source differs from the registered visible candidate texts"})
+                    or context["surroundingText"] or context["isSecure"]
+                    or (version == HARD_POOL_HTTP_METHOD_VERSION and
+                        (content_fingerprint(row) != plan["expected_content_sha256"]
+                         or context["applicationCategory"] != spec["profile"]["applicationCategory"]
+                         or any(entry["sourceCategory"] != spec["profile"]["sourceCategory"] for entry in row["entries"])
+                         or (plan["observation_variant"] == "generic_field" and
+                             context["fieldLabel"] != spec["profile"]["fieldLabel"])))):
+                errors.append({"id": row["id"], "reason": "Registered fixed-candidate source differs from the visible input"})
             else:
                 kept.append(row)
             continue
@@ -643,7 +687,7 @@ def main():
             if registration.exists():
                 replacement = json.loads(registration.read_text())["specs"]
             else:
-                replacement = replacement_specs(original_specs, rows, round_number, split=args.split)
+                replacement = replacement_specs(original_specs, rows, round_number, split=args.split, hard_pool=args.hard_pool)
                 atomic_json(registration, {**plan.binding(), "created_at": utc_now(), "round": round_number, "specs": replacement})
             if not replacement:
                 break

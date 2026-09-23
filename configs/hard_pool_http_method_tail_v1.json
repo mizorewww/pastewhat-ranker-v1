@@ -1,0 +1,564 @@
+{
+  "baseline": {
+    "episodes": 9991,
+    "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+    "hard_pool_completion_sha256": "6fb6e34a986953ae920681db85f3d8710a6895190675f05133c0273267108cf8",
+    "hard_pool_jsonl_sha256": "9f75fdae7976d3461cadcb8592113ca66dab66fc88ad8362786d11dd88cb0a56",
+    "original_train_sha256": "0f50227ea2a4981a28277461954095061ef3c90bbb2966c47d31d909c2ad93b0",
+    "remaining_quota_slots": [
+      "train-v7-hard-pool-http_method-00010",
+      "train-v7-hard-pool-http_method-00040",
+      "train-v7-hard-pool-http_method-00050",
+      "train-v7-hard-pool-http_method-00090",
+      "train-v7-hard-pool-http_method-00180",
+      "train-v7-hard-pool-http_method-00200",
+      "train-v7-hard-pool-http_method-00210",
+      "train-v7-hard-pool-http_method-00220",
+      "train-v7-hard-pool-http_method-00240"
+    ]
+  },
+  "first_round": 8,
+  "last_round": 12,
+  "policy": "Preserve all original and replacement rounds, slots, family, action, observation, and candidate count. Pre-register visible candidate texts and real app/source categories; teacher independently judges the observable view. Accept only an independently labeled compatible action and unique content; never edit a prior label.",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "slots": {
+    "train-v7-hard-pool-http_method-00010": {
+      "old_plan_factors": {
+        "candidate_count": 3,
+        "context_language": "English",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "ambiguous"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "POST",
+            "PUT"
+          ],
+          "content_sha256": "37ed7ce0f6a2f993d8b79973f8e9ef094381ae93ce175cf3c506fd092df4c35e",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE",
+            "DELETE",
+            "POST"
+          ],
+          "content_sha256": "9c6b0aea3462c357bcb64672c53eeb157a79f86548bb30ee96fee6b61b31b2b6",
+          "sourceCategory": "browser"
+        },
+        "12": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "66a8882fcb55bb0ea30c21948a960ad1b0e71bc8c03c27aba2745cbc3dd46121",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "DELETE",
+            "POST"
+          ],
+          "content_sha256": "b6451f5e101a7e5c95c05b28a63b3e8ebfb36aead89b6742756ed6240a1ade26",
+          "sourceCategory": "browser"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "e2c277ff1d1691a2d4c1d1f92d17446ca498bbea21b47039fd6533a202e56cdb",
+          "sourceCategory": "development"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00040": {
+      "old_plan_factors": {
+        "candidate_count": 3,
+        "context_language": "English with Chinese UI text",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "insufficient_context"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "f20bb5ab04001a0389c5b15bb5901c69ae694ec4ff228403e05af1bf046e0727",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "GET",
+            "GET"
+          ],
+          "content_sha256": "8a6d1f18388a7e4da356220b5135d9f79dbb258a067254e797f58145afdb023c",
+          "sourceCategory": "browser"
+        },
+        "12": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "85d5510b6f54fbb9ed39ae4e4080dd2257be861516161823749119d4643baf9f",
+          "sourceCategory": "development"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "GET",
+            "PUT"
+          ],
+          "content_sha256": "833ce9e010015927f1ebfdd7ab997c678cd6db9f125d5df73681e9e6e1e6c4ee",
+          "sourceCategory": "development"
+        },
+        "9": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "POST",
+            "POST"
+          ],
+          "content_sha256": "6b87891aa4459488b9600d6e7bc623e0603d6fe40ae5efb3ff37dcd8e6878f64",
+          "sourceCategory": "development"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00050": {
+      "old_plan_factors": {
+        "candidate_count": 2,
+        "context_language": "English",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "ambiguous"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "POST",
+            "PUT"
+          ],
+          "content_sha256": "4b75bbebf23dd5e2068d20428984d37f1493de2c3d4feb602f72c73d4eb67885",
+          "sourceCategory": "browser"
+        },
+        "11": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE",
+            "POST"
+          ],
+          "content_sha256": "6298b1a7bfb4c1d8c27fbdc0b42840a92739e3a5514c921df969fc9c8f7cac79",
+          "sourceCategory": "development"
+        },
+        "12": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "GET"
+          ],
+          "content_sha256": "53b572c9e9503d5a8ccf87db54d377b0c7cb70c640e46d5c3b304ccef4aa5798",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "d9b9bcb39bc7adab26cca46d192bbeab4d7d39014dd60ca387bb52337efd8271",
+          "sourceCategory": "development"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "POST"
+          ],
+          "content_sha256": "9e60c99eae9e20a3cc017233660292e41c463dba18bbf617b998289f78016e6c",
+          "sourceCategory": "development"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00090": {
+      "old_plan_factors": {
+        "candidate_count": 1,
+        "context_language": "English",
+        "observation_variant": "generic_field",
+        "scenario_type": "ambiguous"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET"
+          ],
+          "content_sha256": "059263ab2c45bee453b86d492880597d08425d94e21ba10396eb9f105639448a",
+          "fieldLabel": "HTTP method for selected API operation",
+          "sourceCategory": "browser"
+        },
+        "11": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "POST"
+          ],
+          "content_sha256": "9b9fa987a85728aec2e407dd8b06d1561410b38cd5db28dc9868fc4e5f92a803",
+          "fieldLabel": "HTTP method for selected API operation",
+          "sourceCategory": "browser"
+        },
+        "12": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE"
+          ],
+          "content_sha256": "4225125904b7d40d1987217a146739c67b01f19863a315b7029e6f48381e6f1d",
+          "fieldLabel": "HTTP method for selected API operation",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE"
+          ],
+          "content_sha256": "ed2defed513d4f80a3c06cbb828300311e1f717fd4e84666cbea50e64da4a73c",
+          "fieldLabel": "HTTP method for selected API operation",
+          "sourceCategory": "development"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "PUT"
+          ],
+          "content_sha256": "f1c63a7382896fadb3820dfd16b4bd048d50f329078a567bd02a2548c67f4102",
+          "fieldLabel": "HTTP method for selected API operation",
+          "sourceCategory": "browser"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00180": {
+      "old_plan_factors": {
+        "candidate_count": 4,
+        "context_language": "English with Chinese UI text",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "insufficient_context"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "GET",
+            "POST",
+            "POST"
+          ],
+          "content_sha256": "f89e6b00ab43701943b2610c7db3ab758690224dd9aada909b64af11736f6e15",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "DELETE",
+            "DELETE",
+            "GET"
+          ],
+          "content_sha256": "99d2fb6c56d680f7d9a42c580a1e5350a12a7c0ccc03723094653408a0f16e97",
+          "sourceCategory": "development"
+        },
+        "12": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "POST",
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "2742f0d9b4935206fb694a35ebd6410654614721d92436e58e489fbe4957832f",
+          "sourceCategory": "development"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "DELETE",
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "083ae67a12aa0604c27478cf658d414b146f1d5b7a7a1c9554d25cc3f536e194",
+          "sourceCategory": "development"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "PUT",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "fb86d55af06ea447a5fe6bb68968640d756799f2fe59c3a460afd166bf5a68b4",
+          "sourceCategory": "browser"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00200": {
+      "old_plan_factors": {
+        "candidate_count": 2,
+        "context_language": "English",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "insufficient_context"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "PUT"
+          ],
+          "content_sha256": "1a2aa823154a6ebfd868488edfa9950f1e06789bb5603a7c33d7b524ff85366d",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE",
+            "GET"
+          ],
+          "content_sha256": "04dd3312812174ce60c571e44650cb1b89e6bbe0b1bad5970f54998eeec630fa",
+          "sourceCategory": "development"
+        },
+        "12": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "PUT"
+          ],
+          "content_sha256": "fc41af8d69d559e2b7b6a3d56c485d483dd230abc08ca495cc932e00d8aa813b",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "POST"
+          ],
+          "content_sha256": "68d31e7b5c50aff998e2045f41b9e14e417489ebdb2c5cab29acbf3a02ba1f3e",
+          "sourceCategory": "browser"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "5e962edbe48fd0a09f81a5dae66b7edb3f14f76cdea13df287275023a2dd99a8",
+          "sourceCategory": "browser"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00210": {
+      "old_plan_factors": {
+        "candidate_count": 4,
+        "context_language": "简体中文",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "ambiguous"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "GET",
+            "POST",
+            "POST"
+          ],
+          "content_sha256": "ebc0faec36a6fbc1aad0677db9fbea2d8b5efb56b5080e4e7ad5ef51eacbd563",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "POST",
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "96f5b2ffa94cfe98af2e40fcdff76c6b2d1c7e9089d7b128fc656753db4a2945",
+          "sourceCategory": "browser"
+        },
+        "12": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "ed442581f4e2fe3f9ca7688ccfea8561532ceae2cf91e13fbfddf43535b57898",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "GET",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "a6da6acc71dc33111e35067a5fd504566c6687d0556a20bc3292b3d4aecd657d",
+          "sourceCategory": "browser"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "3df9c90649f3f3cc32102d8945f367b9fe7f40c734f12b17461cb5e9f62689b7",
+          "sourceCategory": "development"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00220": {
+      "old_plan_factors": {
+        "candidate_count": 2,
+        "context_language": "English with Chinese UI text",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "insufficient_context"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE",
+            "PUT"
+          ],
+          "content_sha256": "f6d432fc7947d74e6d2b5736d5a0ef67b3ef588d12d092120204fbc5b96009a7",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "POST",
+            "PUT"
+          ],
+          "content_sha256": "043c6f9c5b8cd2e0fd100cde1ee137120c9148c1b07c850e87d9dcc000076fb1",
+          "sourceCategory": "development"
+        },
+        "12": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "PUT"
+          ],
+          "content_sha256": "55bbd2862947abaafe884d663b6a0147028a753aada078d220fe12bb27194ef2",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "GET"
+          ],
+          "content_sha256": "fe318d062eecf103492afe84f122b53e8be9efd133713c31d9c3ec20a627bf57",
+          "sourceCategory": "development"
+        },
+        "9": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "f083a3a672bba09118dec3a5052b034a96e74cc6220ffcc3df1dbc22eca03bd8",
+          "sourceCategory": "development"
+        }
+      }
+    },
+    "train-v7-hard-pool-http_method-00240": {
+      "old_plan_factors": {
+        "candidate_count": 4,
+        "context_language": "English with Chinese UI text",
+        "observation_variant": "no_accessibility",
+        "scenario_type": "insufficient_context"
+      },
+      "rounds": {
+        "10": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "DELETE",
+            "GET",
+            "PUT"
+          ],
+          "content_sha256": "787652475decf5d6328c7c1bc4a6ea93f1ac88b45aafbc2fb61bbe4382542fd8",
+          "sourceCategory": "development"
+        },
+        "11": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "DELETE",
+            "POST",
+            "POST",
+            "POST"
+          ],
+          "content_sha256": "38add6ab374b616390263d6cdcf2be4d9efb4815a53fbd079cd396456a86ebb9",
+          "sourceCategory": "development"
+        },
+        "12": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "POST",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "6b5d33357fc23dfe0f6b3065a3aac09b05023deef451f4bc84914176a967bff3",
+          "sourceCategory": "browser"
+        },
+        "8": {
+          "applicationCategory": "browser",
+          "candidate_texts": [
+            "DELETE",
+            "GET",
+            "PUT",
+            "PUT"
+          ],
+          "content_sha256": "b2876c8d8a92d02e0c540b0a1f1cd9bef9e2fcf496080e2f30f249af6fc4ec3b",
+          "sourceCategory": "browser"
+        },
+        "9": {
+          "applicationCategory": "development",
+          "candidate_texts": [
+            "GET",
+            "GET",
+            "GET",
+            "POST"
+          ],
+          "content_sha256": "fb5346019b865b521c2cec7a89b398383a27b081bdc0511ee003333afa932129",
+          "sourceCategory": "development"
+        }
+      }
+    }
+  },
+  "source_categories": "browser/development only; both are native ApplicationCategory values; candidate source category is the copied-from application class",
+  "version": "hard-pool-http-method-tail-v1"
+}

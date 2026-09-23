@@ -152,7 +152,7 @@ def main():
     pool_path = ROOT / "local/v7" / plan.run_id / "hard-pool/train.jsonl"
     pool_completion = pool_path.parent / "train.run-completion.json"
     if not pool_completion.exists() or json.loads(pool_completion.read_text()).get("status") != "complete":
-        run([sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--hard-pool", "--workers", str(args.workers)], directory / "pool.log", plan)
+        run([sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--hard-pool", "--workers", str(args.workers), "--backfill-rounds", "12"], directory / "pool.log", plan)
     pool = read_train(pool_path, plan)
     if len(pool) != plan.document["hardening"]["pool_episodes"]:
         raise ValueError("New pool did not reach its registered size")
