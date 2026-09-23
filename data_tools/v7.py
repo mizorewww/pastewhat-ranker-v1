@@ -251,7 +251,15 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
             if author is None:
                 author = client.complete_json(AUTHOR_SYSTEM, json.dumps({"mother_task": spec["mother_task"], "field_profile": spec["profile"], "plans": pending, "repair": attempt, "previous_findings": record["rejected"][-len(spec["plans"]):]}, ensure_ascii=False), max_tokens=24576, temperature=0.6, thinking="disabled", response_format="json_object", phase="v7-author", request_id=spec["batch_id"] + f"-a{attempt}")
             remember(author)
-            prepared, errors = prepare_author_batch(author.parsed, pending, spec["profile"], preprocessor)
+            author_fixture = author.parsed
+            if spec.get("source_constraint_version") == "missing-intent-required-parameter-v2" and isinstance(author_fixture, dict):
+                # The author-only gate is audited but never enters the native
+                # fixture or the student-visible preprocessing path.
+                author_fixture = copy.deepcopy(author_fixture)
+                for draft in author_fixture.get("episodes", []):
+                    if isinstance(draft, dict):
+                        draft.pop("decision_gate", None)
+            prepared, errors = prepare_author_batch(author_fixture, pending, spec["profile"], preprocessor)
             if prelabel_gate is not None:
                 prepared, gate_errors = prelabel_gate(author.parsed, spec, pending, prepared)
                 errors.extend(gate_errors)
