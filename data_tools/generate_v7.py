@@ -127,7 +127,7 @@ def usage_summary(directory):
     return {"request_records": sum(statuses.values()), "observed_response_records": observed_count, "prior_observed_response_records": prior_count, "known_usage": dict(totals), "by_phase": {key: dict(value) for key, value in phases.items()}, "by_provider": providers, "statuses": dict(statuses), "response_models": dict(models), "transport_attempts_without_usage": transport_unknown, "http_error_attempts_without_usage": http_without_usage, "unfinished_started_requests": dict(started)}
 
 
-def replacement_specs(originals, rows, round_number):
+def replacement_specs(originals, rows, round_number, *, split="train"):
     """New source situations fill retired logical slots; accepted slots stay fixed."""
     fulfilled = {row["provenance"].get("quota_slot_id", row["id"]) for row in rows}
     result = []
@@ -142,6 +142,19 @@ def replacement_specs(originals, rows, round_number):
         spec["mother_task"]["data_seed"] = spec["seed"]
         spec["mother_task"]["constraints"] += " This replaces a retired source task. Create a genuinely different within-operation task: change the requested suboperation or boundary conditions, situation and data together, not just identifiers. Prior drafts and labels are not supplied."
         spec["plans"] = [{**item, "quota_slot_id": item["id"], "id": item["id"] + f"-replacement-{round_number:02d}", "seed": integer_seed(item["seed"], round_number, "replacement-data")} for item in missing]
+        if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
+            spec["source_constraint_version"] = "dev-missing-intent-observable-alternatives-v1"
+            spec["mother_task"]["constraints"] += (
+                " For ambiguous or insufficient_context plans, make at least one candidate"
+                " directly usable for a plausible goal within this operation, but do not"
+                " state the decisive goal, fact or preference in visible guidance or selected"
+                " text. For ambiguous plans with at least two candidates, include different"
+                " directly usable candidates for at least two plausible goals; the visible"
+                " information must not select between those goals. For insufficient_context"
+                " plans, omit the decisive fact needed to choose a usable candidate rather"
+                " than making every candidate invalid. Preserve each other plan's own"
+                " registered action scenario. Do not put labels or explanations in the fixture."
+            )
         # Preserve the original preselected review cohort, action and observation
         # assignments, so failures cannot escape independent review by replacement.
         result.append(spec)
@@ -320,7 +333,7 @@ def main():
             if registration.exists():
                 replacement = json.loads(registration.read_text())["specs"]
             else:
-                replacement = replacement_specs(original_specs, rows, round_number)
+                replacement = replacement_specs(original_specs, rows, round_number, split=args.split)
                 atomic_json(registration, {**plan.binding(), "created_at": utc_now(), "round": round_number, "specs": replacement})
             if not replacement:
                 break
