@@ -24,30 +24,31 @@ from data_tools.v7 import (
 )
 
 
-def verify_dev_author_gate(row, spec, author_audit, preprocessor):
-    """Replay the accepted Dev v2 fixture and gate without asking the teacher."""
+def verify_author_gate(row, spec, author_audit, preprocessor):
+    """Replay a versioned Train/Dev author fixture and gate without the teacher."""
     from data_tools.generate_v7 import (
         DEV_MISSING_INTENT_GATE_VERSION,
         DEV_UNOBSERVED_INTENT_GATE_VERSION,
+        TRAIN_MISSING_INTENT_GATE_VERSION,
         dev_missing_intent_prelabel_gate,
     )
 
-    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION}:
+    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION}:
         return
     if row["provenance"]["source_spec_sha256"] != sha256(canonical_bytes(spec)):
-        raise ValueError("Accepted Dev row differs from its registered source specification")
+        raise ValueError("Accepted row differs from its registered source specification")
     request = json.loads(author_audit["request"]["messages"][1]["content"])
     if request["mother_task"] != spec["mother_task"] or request["field_profile"] != spec["profile"]:
-        raise ValueError("Dev author request differs from its registered source")
+        raise ValueError("Author request differs from its registered source")
     planned = {item["id"]: item for item in spec["plans"]}
     if any(planned.get(item["id"]) != item for item in request["plans"]):
-        raise ValueError("Dev author request changed a registered plan")
+        raise ValueError("Author request changed a registered plan")
     authored = TeacherClient._result(author_audit, cache_hit=True).parsed
     prepared, _ = prepare_author_batch(compact_author_fixture(authored, spec), request["plans"], spec["profile"], preprocessor)
     prepared, _ = dev_missing_intent_prelabel_gate(authored, spec, request["plans"], prepared)
     replayed = {item["id"]: item for item in prepared}.get(row["id"])
     if replayed is None or any(replayed[key] != row[key] for key in ("context", "entries", "preprocessing")):
-        raise ValueError("Accepted Dev row fails independent author fixture and pre-label gate replay")
+        raise ValueError("Accepted row fails independent author fixture and pre-label gate replay")
 
 
 def try_freeze(plan, split, rows, *, preprocessor):
@@ -57,13 +58,15 @@ def try_freeze(plan, split, rows, *, preprocessor):
     required = []
     results = []
     by_id = {row["id"]: row for row in rows}
-    dev_specs = {}
-    if split == "dev" and len(rows) >= plan.target("dev"):
-        for path in (ROOT / "local/v7" / plan.run_id / "batches/dev").glob("*.json"):
+    gated_specs = {}
+    if len(rows) >= plan.target(split):
+        allowed = ({"dev-missing-intent-required-parameter-v2", "dev-missing-intent-unobserved-v3"}
+                   if split == "dev" else {"train-missing-intent-required-parameter-v1"})
+        for path in (ROOT / "local/v7" / plan.run_id / "batches" / split).glob("*.json"):
             record = json.loads(path.read_text())
-            if record["spec"].get("source_constraint_version") in {"dev-missing-intent-required-parameter-v2", "dev-missing-intent-unobserved-v3"}:
+            if record["spec"].get("source_constraint_version") in allowed:
                 for accepted in record["accepted"]:
-                    dev_specs[accepted["id"]] = record["spec"]
+                    gated_specs[accepted["id"]] = record["spec"]
     author_audits = {}
     for stage, count in stages:
         output = (ROOT / plan.data_path("pilot")).with_name("throughput-train.jsonl") if stage == "throughput" else ROOT / plan.data_path(stage)
@@ -106,12 +109,12 @@ def try_freeze(plan, split, rows, *, preprocessor):
             if prepared["context"] != row["context"] or prepared["entries"] != row["entries"] or prepared["preprocessing"]["visible_sha256"] != provenance["visible_sha256"]:
                 raise ValueError("Frozen features differ from the teacher-visible budget")
             validate_labels({"labels": [{"id": row["id"], **row["label"]}]}, [row])
-            if row["id"] in dev_specs:
+            if row["id"] in gated_specs:
                 author_id = provenance["author_audit_id"]
                 if author_id not in author_audits:
-                    path = ROOT / "local/v7" / plan.run_id / "teacher/dev" / (author_id + ".json")
+                    path = ROOT / "local/v7" / plan.run_id / "teacher" / split / (author_id + ".json")
                     author_audits[author_id] = json.loads(path.read_text())
-                verify_dev_author_gate(row, dev_specs[row["id"]], author_audits[author_id], preprocessor)
+                verify_author_gate(row, gated_specs[row["id"]], author_audits[author_id], preprocessor)
             fingerprint = content_fingerprint(row)
             fingerprints.append(fingerprint)
             for key in ("author_audit_id", "label_audit_id", "review_audit_id"):

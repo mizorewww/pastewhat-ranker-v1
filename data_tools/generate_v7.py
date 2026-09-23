@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PARTITION = ROOT / "data_tools/family_partition.json"
 DEV_MISSING_INTENT_GATE_VERSION = "dev-missing-intent-required-parameter-v2"
 DEV_UNOBSERVED_INTENT_GATE_VERSION = "dev-missing-intent-unobserved-v3"
+TRAIN_MISSING_INTENT_GATE_VERSION = "train-missing-intent-required-parameter-v1"
 
 
 def integer_seed(*values):
@@ -144,6 +145,30 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
         spec["mother_task"]["data_seed"] = spec["seed"]
         spec["mother_task"]["constraints"] += " This replaces a retired source task. Create a genuinely different within-operation task: change the requested suboperation or boundary conditions, situation and data together, not just identifiers. Prior drafts and labels are not supplied."
         spec["plans"] = [{**item, "quota_slot_id": item["id"], "id": item["id"] + f"-replacement-{round_number:02d}", "seed": integer_seed(item["seed"], round_number, "replacement-data")} for item in missing]
+        if split == "train" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
+            spec["source_constraint_version"] = TRAIN_MISSING_INTENT_GATE_VERSION
+            spec["mother_task"]["constraints"] += (
+                " For ambiguous or insufficient_context plans with standard observation,"
+                " visible guidance must state that a required exact decision parameter"
+                " (such as target, scope, recipient, or format) must be known before"
+                " pasting, but its value is absent from every visible field. Include"
+                " plausible complete candidates for mutually exclusive parameter"
+                " values; none is justified until the missing value is supplied."
+                " Do not substitute an optional preference, and do not make every"
+                " candidate invalid. If only one candidate is registered, leave"
+                " another plausible value unrepresented. For each such standard"
+                " episode add an author-only decision_gate with exact keys parameter,"
+                " visible_requirement_quote, possible_values, candidate_value_indices."
+                " The quote must appear verbatim in guidance after observation trimming;"
+                " possible_values lists at least two distinct short values; mapping"
+                " items have {index: zero-based candidate position, value: one possible"
+                " value}. With multiple candidates map at least two distinct values."
+                " For no_accessibility or generic_field missing-intent plans instead"
+                " emit guidance=[] and selected='' exactly, keep the registered"
+                " candidate count and directly pasteable alternatives, and emit no"
+                " decision_gate. Do not add an intent, answer hint, or label."
+                " Preserve every other plan's registered action scenario."
+            )
         if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
             unobserved = round_number >= 8 and all(item["observation_variant"] != "standard" for item in missing)
             if unobserved:
@@ -197,9 +222,9 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
 
 
 def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
-    """Admit only structurally checkable Dev v2 drafts to blind labeling."""
+    """Admit only structurally checkable versioned drafts to blind labeling."""
     version = spec.get("source_constraint_version")
-    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION}:
+    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -210,6 +235,18 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
             kept.append(row)
             continue
         draft = drafts.get(row["id"], {})
+        if version == TRAIN_MISSING_INTENT_GATE_VERSION and plan["observation_variant"] != "standard":
+            context = row["context"]
+            if (not isinstance(draft.get("candidates"), list)
+                    or len(draft["candidates"]) != plan["candidate_count"]
+                    or draft.get("guidance") != [] or draft.get("selected") != ""
+                    or "decision_gate" in draft
+                    or context["selectedText"] or context["surroundingText"]
+                    or context["isSecure"]):
+                errors.append({"id": row["id"], "reason": "Train unobserved-intent fixture retained guidance or changed its registered candidates"})
+            else:
+                kept.append(row)
+            continue
         if version == DEV_UNOBSERVED_INTENT_GATE_VERSION:
             context = row["context"]
             if (plan["observation_variant"] == "standard"
@@ -236,6 +273,10 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
                 problem = "Invalid required-parameter name"
             elif not isinstance(quote, str) or not 10 <= len(quote.strip()) <= 180 or quote not in visible:
                 problem = "Required-parameter statement is not student-visible"
+            elif (version == TRAIN_MISSING_INTENT_GATE_VERSION
+                  and (not isinstance(draft.get("guidance"), list)
+                       or not any(isinstance(line, str) and quote in line for line in draft["guidance"]))):
+                problem = "Train required-parameter statement is absent from authored guidance"
             elif not isinstance(candidates, list) or len(candidates) != plan["candidate_count"]:
                 problem = "Required-parameter candidate count differs from plan"
             elif not isinstance(values, list) or not 2 <= len(values) <= 8 or any(not isinstance(value, str) or not value.strip() or len(value) > 80 for value in values) or len({value.casefold().strip() for value in values}) != len(values):
@@ -444,7 +485,7 @@ def main():
                 pending = prioritize_diagnostic_sources(pending, rows, partition, plan.document["diagnostic_episodes"], batch_dir)
         scheduled += len(pending)
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]), prelabel_gate=dev_missing_intent_prelabel_gate if args.split == "dev" else None)
+            submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]), prelabel_gate=dev_missing_intent_prelabel_gate)
             capacity = lambda: worker_budget(plan, args.split, args.workers, hard_pool=args.hard_pool)
             for future in bounded_futures(executor, pending, submit, capacity):
                 future.result()
