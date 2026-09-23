@@ -1,0 +1,231 @@
+{
+  "coordinator": {
+    "phase_at_audit": "waiting_for_idle_dev_selected_v0",
+    "required_next_handoff": "Dev-selected ranker-v0 while training pipeline is idle",
+    "status_path": "local/v7/ranker-v1-efficient-20260921/hardening/status.json",
+    "status_sha256_at_audit": "ae330255bb40d590f99578c8afad43a92e61771c9558e20b1af6aa79bac1cba1"
+  },
+  "families": {
+    "chat_acknowledgment": 250,
+    "chat_polite_decline": 250,
+    "configuration_boolean": 250,
+    "contact_postal_address": 250,
+    "design_color_syntax": 250,
+    "design_image_dimensions": 250,
+    "directory_creation": 250,
+    "disk_usage": 250,
+    "document_export_format": 250,
+    "email_recipient_address": 250,
+    "email_subject_summary": 250,
+    "file_copy_destination": 250,
+    "file_listing": 250,
+    "git_branch_listing": 250,
+    "git_commit_inspection": 250,
+    "git_diff_selection": 250,
+    "git_remote_configuration": 250,
+    "http_authentication": 250,
+    "http_content_type": 250,
+    "http_method": 250,
+    "javascript_async": 250,
+    "literal_text_search": 250,
+    "path_absolute_relative": 250,
+    "process_inspection": 250,
+    "python_collection": 250,
+    "python_file_mode": 250,
+    "regex_character_class": 250,
+    "spreadsheet_date_format": 250,
+    "spreadsheet_sum_average": 250,
+    "spreadsheet_text_join": 250,
+    "sql_insert_columns": 250,
+    "sql_numeric_predicate": 250,
+    "sql_order_limit": 250,
+    "sql_update_scope": 250,
+    "swift_optional": 250,
+    "translation_target_language": 250,
+    "url_host_environment": 250,
+    "url_scheme_port": 250,
+    "writing_bulleted_outline": 250,
+    "writing_concise_summary": 250
+  },
+  "family_partition_sha256": "93cf08677370192bcb2feb2ae711fa9dc5e591c3547e75f01a9d2b57f9933160",
+  "frozen_train_sha256": "0f50227ea2a4981a28277461954095061ef3c90bbb2966c47d31d909c2ad93b0",
+  "pool": {
+    "completion_sha256": "6ce650be599d3fae9548908850e0ee67f1a9f5287be2109c7a37cddb0314a296",
+    "duplicate_content_with_frozen_train": 0,
+    "episodes": 10000,
+    "manifest_sha256": "b606448dc9daf8144b1b3188fd0ac28fc28e2ed71c4b84af49b6f126dfc9e104",
+    "path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.jsonl",
+    "sha256": "053dd9f22419bb58a1f271ed7d19b7bffdf4e5cadcc1e9ccfd12774683cc27f7",
+    "unique_content_fingerprints": 10000,
+    "unique_episode_ids": 10000,
+    "unique_quota_slots": 10000
+  },
+  "prior_rows": {
+    "episodes": 9991,
+    "preserved_canonical_bytes": true,
+    "reconstructed_sha256": "9f75fdae7976d3461cadcb8592113ca66dab66fc88ad8362786d11dd88cb0a56"
+  },
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "scope": "Train-only aggregate; no Calibration or Test examples or labels read",
+  "source_rounds": [
+    {
+      "accepted_rows": 9546,
+      "completed_batches": 1000,
+      "planned_slots": 10000,
+      "registered_batches": 1000,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.sampling.json",
+      "registration_sha256": "f92c05fcee3002246a66dd4319baddcebd87f07e7fad9fbd62a2d931f079aba6",
+      "round": 0
+    },
+    {
+      "accepted_rows": 239,
+      "completed_batches": 341,
+      "planned_slots": 454,
+      "registered_batches": 341,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-01.json",
+      "registration_sha256": "436244d7b254dde8f82cd293f78269aa1403fc809b5a7b5d4545cd10dd39e2b1",
+      "round": 1
+    },
+    {
+      "accepted_rows": 173,
+      "completed_batches": 186,
+      "planned_slots": 215,
+      "registered_batches": 186,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-02.json",
+      "registration_sha256": "9fa54febaef2b1c31b4df8f477230fd5d8bfe10c4e544b8c8a97ac34fd62cab6",
+      "round": 2
+    },
+    {
+      "accepted_rows": 23,
+      "completed_batches": 38,
+      "planned_slots": 42,
+      "registered_batches": 38,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-03.json",
+      "registration_sha256": "67fa95b54b05eaeace25f596faf9a2790405279bef02aef4cb3da269d6fa5b14",
+      "round": 3
+    },
+    {
+      "accepted_rows": 5,
+      "completed_batches": 17,
+      "planned_slots": 19,
+      "registered_batches": 17,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-04.json",
+      "registration_sha256": "2aa2cbbbccb2d28bf72db0d4bb0ba48bf406a1dd88c2e0892f73fdcf7f594660",
+      "round": 4
+    },
+    {
+      "accepted_rows": 2,
+      "completed_batches": 13,
+      "planned_slots": 14,
+      "registered_batches": 13,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-05.json",
+      "registration_sha256": "e13bfb80015d44dabeb67d6b9e4a078de2aff63126d1d3fc302ff43f5230c65a",
+      "round": 5
+    },
+    {
+      "accepted_rows": 3,
+      "completed_batches": 12,
+      "planned_slots": 12,
+      "registered_batches": 12,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-06.json",
+      "registration_sha256": "c0f3bce80113732a4456ffd17f1256bb383753406bab81125d72502c6f65cb3a",
+      "round": 6
+    },
+    {
+      "accepted_rows": 0,
+      "completed_batches": 9,
+      "planned_slots": 9,
+      "registered_batches": 9,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-07.json",
+      "registration_sha256": "ac48f73141807d922736dd75f1e6117d7a4d48aa8133476bbbe766d94f17f159",
+      "round": 7
+    },
+    {
+      "accepted_rows": 9,
+      "completed_batches": 9,
+      "planned_slots": 9,
+      "registered_batches": 9,
+      "registration_path": "local/v7/ranker-v1-efficient-20260921/hard-pool/train.replacement-round-08.json",
+      "registration_sha256": "9201030a5fbfcc08f82ca2537870a036a1d20f1de5ef256858a0866bec127038",
+      "round": 8
+    }
+  ],
+  "status": "passed",
+  "tail": {
+    "accepted": 9,
+    "family": "http_method",
+    "source_amendment_path": "configs/hard_pool_http_method_tail_v1.json",
+    "source_amendment_sha256": "604c65617219667f4fdb97a1734844b0397564c81ce6b9387175331b834b1a51",
+    "teacher_decisions": {
+      "abstain/insufficient_context": 9
+    }
+  },
+  "teacher": {
+    "audit_sources": [
+      {
+        "source": {
+          "provider": "devin",
+          "reasoning_effort": "high",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-high",
+          "transport": "pi-cli-json"
+        },
+        "unique_audits": 228
+      },
+      {
+        "source": {
+          "provider": "devin",
+          "reasoning_effort": "medium",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-medium",
+          "transport": "pi-cli-json"
+        },
+        "unique_audits": 3610
+      }
+    ],
+    "contract_version": "teacher-episodes-v7-batched-decisions",
+    "human_validated": false,
+    "manifest_role_sources": {
+      "author": [
+        {
+          "episodes": 10000,
+          "provider": "devin",
+          "reasoning_effort": "medium",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-medium",
+          "transport": "pi-cli-json"
+        }
+      ],
+      "primary": [
+        {
+          "episodes": 10000,
+          "provider": "devin",
+          "reasoning_effort": "medium",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-medium",
+          "transport": "pi-cli-json"
+        }
+      ],
+      "review": [
+        {
+          "episodes": 980,
+          "provider": "devin",
+          "reasoning_effort": "high",
+          "requested_model": "swe-2",
+          "response_model": "swe-2-high",
+          "transport": "pi-cli-json"
+        }
+      ]
+    },
+    "role_episode_references": {
+      "author": 10000,
+      "primary": 10000,
+      "review": 980
+    },
+    "successful_audits": 3838,
+    "unique_audits": 3838
+  },
+  "verified_at": "2026-09-23T21:13:19.471280+00:00",
+  "version": "pastewhat-hard-pool-tail-audit-v1"
+}
