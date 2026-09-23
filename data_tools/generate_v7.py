@@ -34,6 +34,7 @@ from run_contract import action_quotas, family_quotas, load_run_plan
 
 ROOT = Path(__file__).resolve().parents[1]
 PARTITION = ROOT / "data_tools/family_partition.json"
+DEV_MISSING_INTENT_GATE_VERSION = "dev-missing-intent-required-parameter-v2"
 
 
 def integer_seed(*values):
@@ -143,22 +144,85 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
         spec["mother_task"]["constraints"] += " This replaces a retired source task. Create a genuinely different within-operation task: change the requested suboperation or boundary conditions, situation and data together, not just identifiers. Prior drafts and labels are not supplied."
         spec["plans"] = [{**item, "quota_slot_id": item["id"], "id": item["id"] + f"-replacement-{round_number:02d}", "seed": integer_seed(item["seed"], round_number, "replacement-data")} for item in missing]
         if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
-            spec["source_constraint_version"] = "dev-missing-intent-observable-alternatives-v1"
-            spec["mother_task"]["constraints"] += (
-                " For ambiguous or insufficient_context plans, make at least one candidate"
-                " directly usable for a plausible goal within this operation, but do not"
-                " state the decisive goal, fact or preference in visible guidance or selected"
-                " text. For ambiguous plans with at least two candidates, include different"
-                " directly usable candidates for at least two plausible goals; the visible"
-                " information must not select between those goals. For insufficient_context"
-                " plans, omit the decisive fact needed to choose a usable candidate rather"
-                " than making every candidate invalid. Preserve each other plan's own"
-                " registered action scenario. Do not put labels or explanations in the fixture."
-            )
+            if round_number >= 3:
+                spec["source_constraint_version"] = DEV_MISSING_INTENT_GATE_VERSION
+                spec["mother_task"]["constraints"] += (
+                    " For ambiguous or insufficient_context plans, visible guidance must state"
+                    " that the pasted result must match a required exact decision parameter,"
+                    " such as recipient policy, target variant, scope or format. Its value is"
+                    " absent from every visible field; no candidate can be adopted until it is"
+                    " supplied. Construct at least two plausible, mutually exclusive parameter"
+                    " values and candidates for different values. Do not treat optional style"
+                    " or several interchangeable answers to an already complete request as"
+                    " missing intent. A one-candidate insufficient_context plan must leave"
+                    " another plausible value unrepresented. Preserve every other plan's own"
+                    " registered action scenario. Add a non-visible decision_gate object to"
+                    " each such episode with exact keys parameter, visible_requirement_quote,"
+                    " possible_values, candidate_value_indices. The quote must occur verbatim"
+                    " in guidance after observation trimming; possible_values lists at least"
+                    " two distinct short values; candidate_value_indices lists {index:"
+                    " zero-based candidate position, value: one possible value}. With two or"
+                    " more candidates, map at least two to distinct values. This is author"
+                    " metadata only; never put it, labels or rationale into the paste fixture."
+                )
+            else:
+                spec["source_constraint_version"] = "dev-missing-intent-observable-alternatives-v1"
+                spec["mother_task"]["constraints"] += (
+                    " For ambiguous or insufficient_context plans, make at least one candidate"
+                    " directly usable for a plausible goal within this operation, but do not"
+                    " state the decisive goal, fact or preference in visible guidance or selected"
+                    " text. For ambiguous plans with at least two candidates, include different"
+                    " directly usable candidates for at least two plausible goals; the visible"
+                    " information must not select between those goals. For insufficient_context"
+                    " plans, omit the decisive fact needed to choose a usable candidate rather"
+                    " than making every candidate invalid. Preserve each other plan's own"
+                    " registered action scenario. Do not put labels or explanations in the fixture."
+                )
         # Preserve the original preselected review cohort, action and observation
         # assignments, so failures cannot escape independent review by replacement.
         result.append(spec)
     return result
+
+
+def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
+    """Admit only structurally checkable Dev v2 drafts to blind labeling."""
+    if spec.get("source_constraint_version") != DEV_MISSING_INTENT_GATE_VERSION:
+        return prepared, []
+    drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
+    plans = {plan["id"]: plan for plan in pending}
+    kept, errors = [], []
+    for row in prepared:
+        plan = plans[row["id"]]
+        if plan["scenario_type"] not in ("ambiguous", "insufficient_context"):
+            kept.append(row)
+            continue
+        draft = drafts.get(row["id"], {})
+        gate = draft.get("decision_gate")
+        problem = None
+        if not isinstance(gate, dict) or set(gate) != {"parameter", "visible_requirement_quote", "possible_values", "candidate_value_indices"}:
+            problem = "Missing required-parameter gate metadata"
+        else:
+            parameter, quote = gate["parameter"], gate["visible_requirement_quote"]
+            values, mapping = gate["possible_values"], gate["candidate_value_indices"]
+            candidates = draft.get("candidates")
+            visible = json.dumps(row["context"], ensure_ascii=False)
+            if not isinstance(parameter, str) or not 3 <= len(parameter.strip()) <= 80:
+                problem = "Invalid required-parameter name"
+            elif not isinstance(quote, str) or not 10 <= len(quote.strip()) <= 180 or quote not in visible:
+                problem = "Required-parameter statement is not student-visible"
+            elif not isinstance(candidates, list) or len(candidates) != plan["candidate_count"]:
+                problem = "Required-parameter candidate count differs from plan"
+            elif not isinstance(values, list) or not 2 <= len(values) <= 8 or any(not isinstance(value, str) or not value.strip() or len(value) > 80 for value in values) or len({value.casefold().strip() for value in values}) != len(values):
+                problem = "Required-parameter values are not distinct"
+            elif not isinstance(mapping, list) or not mapping or any(not isinstance(item, dict) or set(item) != {"index", "value"} or type(item["index"]) is not int or item["index"] < 0 or item["index"] >= len(candidates) or item["value"] not in values for item in mapping):
+                problem = "Required-parameter candidate mapping is invalid"
+            elif len({item["index"] for item in mapping}) != len(mapping) or (len(candidates) >= 2 and len({item["value"] for item in mapping}) < 2):
+                problem = "Required-parameter alternatives are not mapped"
+        if problem:
+            errors.append({"id": row["id"], "reason": problem})
+        else:
+            kept.append(row)
+    return kept, errors
 
 
 def prioritize_pilot_sources(pending, rows, partition, pilot_count, batch_dir):
@@ -315,7 +379,7 @@ def main():
             pending = prioritize_pilot_sources(pending, rows, partition, plan.document["pilot_episodes"], batch_dir)
         scheduled += len(pending)
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
-            submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]))
+            submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]), prelabel_gate=dev_missing_intent_prelabel_gate if args.split == "dev" else None)
             capacity = lambda: worker_budget(plan, args.split, args.workers, hard_pool=args.hard_pool)
             for future in bounded_futures(executor, pending, submit, capacity):
                 future.result()

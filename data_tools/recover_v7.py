@@ -11,7 +11,7 @@ import json
 import time
 
 from data_tools.content import ContentRegistry
-from data_tools.generate_v7 import ROOT, publish_pool
+from data_tools.generate_v7 import ROOT, dev_missing_intent_prelabel_gate, publish_pool
 from data_tools.teacher import TeacherClient, canonical_bytes, sha256
 from data_tools.v7 import produce_batch
 from pastewhat_ranker.preprocess import Preprocessor
@@ -56,7 +56,7 @@ def main():
             spec["plans"] = [item for item in spec["plans"] if item["id"] in identifiers]
             spec["cached_author_source"] = {"original_batch_id": record["spec"]["batch_id"], "audit_id": author.audit_id, "reason": "Only count, obsolete180-character admission, or opaque-ID plumbing failed; no prior accepted/semantic-rejected label is reused"}
             spec["batch_id"] += "-cached-" + sha256(canonical_bytes(sorted(identifiers)))[:8]
-            result = produce_batch(spec, client=client, preprocessor=preprocessor, destination=directory / (spec["batch_id"] + ".json"), claim=registry.claim, cached_author=author)
+            result = produce_batch(spec, client=client, preprocessor=preprocessor, destination=directory / (spec["batch_id"] + ".json"), claim=registry.claim, cached_author=author, prelabel_gate=dev_missing_intent_prelabel_gate if args.split == "dev" else None)
             accepted.update(row["id"] for row in result["accepted"])
             # Exactly one cached draft per source slot is tried; no resampling
             # until a favorable teacher label is obtained.

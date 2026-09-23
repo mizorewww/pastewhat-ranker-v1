@@ -147,7 +147,7 @@ def prepare_author_batch(raw, plans, profile, preprocessor):
 
 def compact_author_fixture(raw, spec):
     """Remove author-only gate metadata from the native fixture copy."""
-    if spec.get("source_constraint_version") != "missing-intent-required-parameter-v2" or not isinstance(raw, dict):
+    if spec.get("source_constraint_version") not in {"missing-intent-required-parameter-v2", "dev-missing-intent-required-parameter-v2"} or not isinstance(raw, dict):
         return raw
     fixture = copy.deepcopy(raw)
     for draft in fixture.get("episodes", []):
