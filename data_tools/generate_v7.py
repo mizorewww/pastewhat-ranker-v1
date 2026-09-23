@@ -35,6 +35,7 @@ from run_contract import action_quotas, family_quotas, load_run_plan
 ROOT = Path(__file__).resolve().parents[1]
 PARTITION = ROOT / "data_tools/family_partition.json"
 DEV_MISSING_INTENT_GATE_VERSION = "dev-missing-intent-required-parameter-v2"
+DEV_UNOBSERVED_INTENT_GATE_VERSION = "dev-missing-intent-unobserved-v3"
 
 
 def integer_seed(*values):
@@ -144,7 +145,18 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
         spec["mother_task"]["constraints"] += " This replaces a retired source task. Create a genuinely different within-operation task: change the requested suboperation or boundary conditions, situation and data together, not just identifiers. Prior drafts and labels are not supplied."
         spec["plans"] = [{**item, "quota_slot_id": item["id"], "id": item["id"] + f"-replacement-{round_number:02d}", "seed": integer_seed(item["seed"], round_number, "replacement-data")} for item in missing]
         if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
-            if round_number >= 3:
+            unobserved = round_number >= 8 and all(item["observation_variant"] != "standard" for item in missing)
+            if unobserved:
+                spec["source_constraint_version"] = DEV_UNOBSERVED_INTENT_GATE_VERSION
+                spec["mother_task"]["constraints"] += (
+                    " These registered observation variants remove all authored guidance and"
+                    " selection before the teacher and student see the fixture. Emit guidance=[]"
+                    " and selected='' exactly. Keep the registered candidate count, and make"
+                    " each candidate a complete pasteable value from this family. Do not put"
+                    " an intent, an answer hint, a decision_gate, or a label in the fixture."
+                    " The independent labeler must judge the resulting information-poor view."
+                )
+            elif round_number >= 3:
                 spec["source_constraint_version"] = DEV_MISSING_INTENT_GATE_VERSION
                 spec["mother_task"]["constraints"] += (
                     " For ambiguous or insufficient_context plans, visible guidance must state"
@@ -186,7 +198,8 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
 
 def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
     """Admit only structurally checkable Dev v2 drafts to blind labeling."""
-    if spec.get("source_constraint_version") != DEV_MISSING_INTENT_GATE_VERSION:
+    version = spec.get("source_constraint_version")
+    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -197,6 +210,19 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
             kept.append(row)
             continue
         draft = drafts.get(row["id"], {})
+        if version == DEV_UNOBSERVED_INTENT_GATE_VERSION:
+            context = row["context"]
+            if (plan["observation_variant"] == "standard"
+                    or plan["candidate_count"] != 1
+                    or not isinstance(draft.get("candidates"), list)
+                    or len(draft["candidates"]) != 1
+                    or draft.get("guidance") != [] or draft.get("selected") != ""
+                    or context["selectedText"] or context["surroundingText"]
+                    or context["inputSurface"] != "unknown" or context["isSecure"]):
+                errors.append({"id": row["id"], "reason": "Unobserved-intent fixture retained task evidence or changed its registered candidate count"})
+            else:
+                kept.append(row)
+            continue
         gate = draft.get("decision_gate")
         problem = None
         if not isinstance(gate, dict) or set(gate) != {"parameter", "visible_requirement_quote", "possible_values", "candidate_value_indices"}:
@@ -308,7 +334,7 @@ def main():
     parser.add_argument("--split", choices=("train", "dev"), required=True)
     parser.add_argument("--max-batches", type=int, help="Cap newly scheduled source batches for the initial real cost check")
     parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--backfill-rounds", type=int, default=7, help="At most8 mother situations: the original plus7 new-situation replacements")
+    parser.add_argument("--backfill-rounds", type=int, default=7, help="Maximum registered replacement situations for each missing original slot")
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--hard-pool", action="store_true", help="New Train-only source pool for Dev-selected v0 mining")
     args = parser.parse_args()
@@ -394,7 +420,7 @@ def main():
             run_sources(replacement)
     final = refresh()
     status = "bounded_cost_check_finished" if args.max_batches else "complete" if final["episodes"] == target else "finite_backfill_exhausted"
-    atomic_json(base / f"{args.split}.run-completion.json", {**plan.binding(), "updated_at": utc_now(), "scheduled_batches_this_process": scheduled, "cost_check_cap": args.max_batches, "status": status, "episodes": final["episodes"], "target": target})
+    atomic_json(base / f"{args.split}.run-completion.json", {**plan.binding(), "updated_at": utc_now(), "scheduled_batches_this_process": scheduled, "cost_check_cap": args.max_batches, "backfill_rounds": args.backfill_rounds, "status": status, "episodes": final["episodes"], "target": target})
 
 
 if __name__ == "__main__":

@@ -25,14 +25,18 @@ def alive(pid):
         return False
 
 
-def exhausted_source_record(base, name):
+def exhausted_source_record(base, name, *, allowed_dev_backfill_rounds=7):
     """Return the durable finite-budget stop record, including a hard-pool stop."""
     completions = [base / f"{name}.run-completion.json"]
     if name == "hardening":
         completions.append(base / "hard-pool/train.run-completion.json")
     for path in completions:
-        if path.exists() and json.loads(path.read_text()).get("status") == "finite_backfill_exhausted":
-            return path
+        if path.exists():
+            record = json.loads(path.read_text())
+            if record.get("status") == "finite_backfill_exhausted":
+                if name == "dev" and record.get("backfill_rounds", 7) < allowed_dev_backfill_rounds:
+                    continue
+                return path
     insufficient = base / "hardening/insufficient-confirmed-new.json"
     if name == "hardening" and insufficient.exists():
         return insufficient
@@ -53,7 +57,7 @@ def main():
     dev_workers = resources[0]["initial_workers"]["dev"] if resources else 1
     jobs = {
         "train": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--workers", str(ceiling)],
-        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", str(dev_workers)],
+        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", str(dev_workers), "--backfill-rounds", "8"],
         "hardening": [sys.executable, "-m", "data_tools.hardening_v7", "--run-plan", str(plan.path), "--workers", str(ceiling if resources else 2)],
     }
     processes = {}
@@ -77,7 +81,7 @@ def main():
             if alive(process.get("pid")):
                 states[name] = {"state": "running", "pid": process["pid"]}
                 continue
-            exhaustion = exhausted_source_record(base, name)
+            exhaustion = exhausted_source_record(base, name, allowed_dev_backfill_rounds=8)
             if exhaustion is not None:
                 states[name] = {"state": "finite_source_budget_exhausted", "record_path": str(exhaustion.relative_to(ROOT)), "note": "Keep actual deficits visible; no label rewriting or repeated preferred-answer search"}
                 continue

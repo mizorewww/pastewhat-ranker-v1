@@ -28,10 +28,11 @@ def verify_dev_author_gate(row, spec, author_audit, preprocessor):
     """Replay the accepted Dev v2 fixture and gate without asking the teacher."""
     from data_tools.generate_v7 import (
         DEV_MISSING_INTENT_GATE_VERSION,
+        DEV_UNOBSERVED_INTENT_GATE_VERSION,
         dev_missing_intent_prelabel_gate,
     )
 
-    if spec.get("source_constraint_version") != DEV_MISSING_INTENT_GATE_VERSION:
+    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION}:
         return
     if row["provenance"]["source_spec_sha256"] != sha256(canonical_bytes(spec)):
         raise ValueError("Accepted Dev row differs from its registered source specification")
@@ -60,7 +61,7 @@ def try_freeze(plan, split, rows, *, preprocessor):
     if split == "dev" and len(rows) >= plan.target("dev"):
         for path in (ROOT / "local/v7" / plan.run_id / "batches/dev").glob("*.json"):
             record = json.loads(path.read_text())
-            if record["spec"].get("source_constraint_version") == "dev-missing-intent-required-parameter-v2":
+            if record["spec"].get("source_constraint_version") in {"dev-missing-intent-required-parameter-v2", "dev-missing-intent-unobserved-v3"}:
                 for accepted in record["accepted"]:
                     dev_specs[accepted["id"]] = record["spec"]
     author_audits = {}
