@@ -202,7 +202,7 @@ class BatchAuditor:
                 if any(source_plans.get(identifier) != plan for identifier, plan in plans.items() if identifier in source_plans):
                     raise ValueError("Author request changed the registered source plan")
                 prepared, _ = prepare_author_batch(compact_author_fixture(authored, spec), spec["plans"], spec["profile"], self.preprocessor)
-                if spec.get("source_constraint_version") == "missing-intent-required-parameter-v2":
+                if spec.get("source_constraint_version") in {"missing-intent-required-parameter-v2", "test-missing-intent-required-parameter-v2"}:
                     from evaluations.produce_v7 import missing_intent_prelabel_gate
                     prepared, _ = missing_intent_prelabel_gate(authored, spec, spec["plans"], prepared)
                 prepared_by_author[author_id] = {row["id"]: row for row in prepared}

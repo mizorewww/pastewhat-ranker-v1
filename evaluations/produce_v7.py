@@ -38,6 +38,8 @@ from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import load_run_plan
 
 MISSING_INTENT_GATE_VERSION = "missing-intent-required-parameter-v2"
+TEST_MISSING_INTENT_GATE_VERSION = "test-missing-intent-required-parameter-v2"
+TEST_BACKFILL_EXTENSION = Path("configs/test_backfill_extension_v2.json")
 
 
 def records(directory, run_id):
@@ -251,14 +253,36 @@ def replacement_specs(originals, rows, round_number, split):
                     " this batch in their own action buckets. Do not reveal a label, rationale or"
                     " inferred intent in the fixture."
                 )
+        if split == "test" and round_number >= 8 and any(item["scenario_type"] in {"ambiguous", "insufficient_context"} for item in missing):
+            spec["source_constraint_version"] = TEST_MISSING_INTENT_GATE_VERSION
+            spec["mother_task"]["constraints"] += (
+                " For each ambiguous or insufficient_context plan, visible guidance must state"
+                " that the pasted result must match a required exact decision parameter, such"
+                " as recipient policy, target variant, scope or format. Its value is absent"
+                " from every visible field; no candidate can be adopted until it is supplied."
+                " Construct at least two plausible, mutually exclusive parameter values and"
+                " candidates for different values. Do not make all candidates violate the"
+                " stated operation, and do not treat optional style or several interchangeable"
+                " answers to an already complete request as missing intent. For a one-candidate"
+                " insufficient_context plan, that candidate must be usable only under one"
+                " possible value while another plausible value remains unrepresented."
+                " Add a non-visible decision_gate object to each such episode with exact keys"
+                " parameter, visible_requirement_quote, possible_values, candidate_value_indices."
+                " The quote must occur verbatim in guidance after observation trimming;"
+                " possible_values is a list of at least two distinct short strings;"
+                " candidate_value_indices is a list of {index: zero-based candidate position,"
+                " value: one possible value}. Map at least two candidates to distinct values"
+                " when there are two or more candidates. The decision_gate is author metadata"
+                " only; never put it, a label or a rationale into the paste fixture."
+            )
         # Review cohort and all quota factors stay fixed across replacements.
         sources.append(spec)
     return sources
 
 
 def missing_intent_prelabel_gate(raw, spec, pending, prepared):
-    """Reject malformed Cal v2 author fixtures before independent labeling."""
-    if spec.get("source_constraint_version") != MISSING_INTENT_GATE_VERSION:
+    """Reject malformed required-parameter author fixtures before independent labeling."""
+    if spec.get("source_constraint_version") not in {MISSING_INTENT_GATE_VERSION, TEST_MISSING_INTENT_GATE_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -356,7 +380,7 @@ def main():
     parser.add_argument("--run-plan", type=Path, required=True)
     parser.add_argument("--split", choices=("calibration", "test"), required=True)
     parser.add_argument("--workers", type=int, default=1, choices=(1, 2))
-    parser.add_argument("--max-situations", type=int, default=8, choices=range(1, 9))
+    parser.add_argument("--max-situations", type=int, default=8, choices=range(1, 17))
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--tokenizer", type=Path, default=Path("../laya-mlx/models/laya-multilingual/tokenizer"))
     args = parser.parse_args()
@@ -373,11 +397,22 @@ def main():
     partition = json.loads(Path("data_tools/family_partition.json").read_text())
     originals = planned_batches(plan, partition, args.split, 10)
     sampling_path = directory / "sampling.json"
-    sampling = {**plan.binding(), "teacher_contract_version": CONTRACT, "batch_size": 10, "max_situations": args.max_situations, "specs": originals}
+    registered_max = 8 if args.split == "test" and args.max_situations > 8 else args.max_situations
+    sampling = {**plan.binding(), "teacher_contract_version": CONTRACT, "batch_size": 10, "max_situations": registered_max, "specs": originals}
     if sampling_path.exists() and json.loads(sampling_path.read_text()) != sampling:
         raise ValueError("The registered heldout source sampling changed")
     if not sampling_path.exists():
         atomic_json(sampling_path, sampling)
+    if args.max_situations != registered_max:
+        extension = json.loads(TEST_BACKFILL_EXTENSION.read_text())
+        expected = {**plan.binding(), "split": "test", "base_sampling_sha256": sha256(sampling_path),
+                    "first_new_round": 8, "max_situations": args.max_situations,
+                    "source_constraint_version": TEST_MISSING_INTENT_GATE_VERSION}
+        if extension != expected or not (directory / "production-completion.json").is_file():
+            raise ValueError("The finite Test backfill extension is not registered")
+        completion = json.loads((directory / "production-completion.json").read_text())
+        if completion.get("status") != "finite_backfill_exhausted" or completion.get("retained_unique") >= plan.target("test"):
+            raise ValueError("The Test extension requires the original finite shortfall")
     if args.plan_only:
         print(json.dumps({"split": args.split, "episodes": sum(len(spec["plans"]) for spec in originals), "sampling_sha256": sha256(sampling_path)}))
         return
@@ -422,7 +457,7 @@ def main():
                     futures = [executor.submit(produce_batch, spec, client=client, preprocessor=preprocessor,
                         destination=directory / (spec["batch_id"] + ".json"), claim=claim,
                         author_cache=cached.get(spec["batch_id"]),
-                        prelabel_gate=missing_intent_prelabel_gate if args.split == "calibration" else None)
+                        prelabel_gate=missing_intent_prelabel_gate)
                         for spec in pending]
                     try:
                         for future in as_completed(futures):

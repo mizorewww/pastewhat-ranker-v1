@@ -1,0 +1,9 @@
+{
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "split": "test",
+  "base_sampling_sha256": "dccf18d2d93df15a8dfbeab936972c95e3c05ae628a8d61244b058fef8d37c3b",
+  "first_new_round": 8,
+  "max_situations": 16,
+  "source_constraint_version": "test-missing-intent-required-parameter-v2"
+}
