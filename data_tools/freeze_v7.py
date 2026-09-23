@@ -29,11 +29,12 @@ def verify_author_gate(row, spec, author_audit, preprocessor):
     from data_tools.generate_v7 import (
         DEV_MISSING_INTENT_GATE_VERSION,
         DEV_UNOBSERVED_INTENT_GATE_VERSION,
+        TRAIN_HTTP_METHOD_MULTISET_VERSION,
         TRAIN_MISSING_INTENT_GATE_VERSION,
         dev_missing_intent_prelabel_gate,
     )
 
-    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION}:
+    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION}:
         return
     if row["provenance"]["source_spec_sha256"] != sha256(canonical_bytes(spec)):
         raise ValueError("Accepted row differs from its registered source specification")
@@ -61,7 +62,7 @@ def try_freeze(plan, split, rows, *, preprocessor):
     gated_specs = {}
     if len(rows) >= plan.target(split):
         allowed = ({"dev-missing-intent-required-parameter-v2", "dev-missing-intent-unobserved-v3"}
-                   if split == "dev" else {"train-missing-intent-required-parameter-v1"})
+                   if split == "dev" else {"train-missing-intent-required-parameter-v1", "train-http-method-unobserved-multiset-v1"})
         for path in (ROOT / "local/v7" / plan.run_id / "batches" / split).glob("*.json"):
             record = json.loads(path.read_text())
             if record["spec"].get("source_constraint_version") in allowed:
