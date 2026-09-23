@@ -40,6 +40,8 @@ DEV_UNOBSERVED_INTENT_GATE_VERSION = "dev-missing-intent-unobserved-v3"
 TRAIN_MISSING_INTENT_GATE_VERSION = "train-missing-intent-required-parameter-v1"
 TRAIN_HTTP_METHOD_MULTISET_VERSION = "train-http-method-unobserved-multiset-v1"
 TRAIN_CONTENT_TYPE_PAIR_VERSION = "train-content-type-unobserved-pair-v1"
+TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION = "train-contact-postal-reachability-v1"
+TRAIN_CONTACT_POSTAL_AMENDMENT = ROOT / "configs/train_contact_postal_reachability_amendment.json"
 
 
 def integer_seed(*values):
@@ -187,6 +189,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
     fulfilled = {row["provenance"].get("quota_slot_id", row["id"]) for row in rows}
     methods, used_http_methods = unused_http_method_multisets(rows) if split == "train" and round_number >= 8 else ((), set())
     content_types, used_content_types = unused_content_type_pairs(rows) if split == "train" and round_number >= 13 else ((), set())
+    postal_amendment = json.loads(TRAIN_CONTACT_POSTAL_AMENDMENT.read_text()) if split == "train" and round_number >= 17 else None
     result = []
     for original in originals:
         missing = [item for item in original["plans"] if item["id"] not in fulfilled]
@@ -251,6 +254,36 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
                     " order. Do not add quotes, explanations, intent hints or labels."
                     " Preserve guidance=[] and selected='' for no_accessibility plans."
                 )
+        if postal_amendment is not None:
+            target = postal_amendment["retired_original_quota_slot_id"]
+            amended = [item for item in spec["plans"] if item["quota_slot_id"] == target]
+            if amended:
+                if (spec["family_id"] != postal_amendment["family_id"]
+                        or spec["run_binding"]["run_id"] != postal_amendment["run_id"]
+                        or spec["run_binding"]["run_plan_sha256"] != postal_amendment["run_plan_sha256"]
+                        or round_number < postal_amendment["effective_from_replacement_round"]
+                        or len(amended) != 1):
+                    raise ValueError("Contact-postal amendment differs from the registered run")
+                item = amended[0]
+                old = postal_amendment["old_plan_factors"]
+                if any(item[key] != value for key, value in old.items()):
+                    raise ValueError("Contact-postal original plan factors changed before amendment")
+                item.update(postal_amendment["replacement_plan_factors"])
+                item["source_amendment_version"] = TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION
+                spec["source_constraint_version"] = TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION
+                spec["source_amendment"] = {"path": str(TRAIN_CONTACT_POSTAL_AMENDMENT.relative_to(ROOT)),
+                                            "sha256": sha256(TRAIN_CONTACT_POSTAL_AMENDMENT.read_bytes())}
+                spec["mother_task"]["constraints"] += (
+                    " For the amended contact-postal plan only, visible guidance must"
+                    " state that the exact recipient or destination place must be known"
+                    " before pasting, while no visible field supplies that value. Provide"
+                    " two different complete, directly pasteable postal addresses for"
+                    " two plausible mutually exclusive recipients or places. Neither"
+                    " address is justified until the missing value is supplied. Include"
+                    " the author-only decision_gate required by this source version;"
+                    " do not put its metadata, an intent hint, or a label into the"
+                    " student-visible fixture."
+                )
         if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
             unobserved = round_number >= 8 and all(item["observation_variant"] != "standard" for item in missing)
             if unobserved:
@@ -306,7 +339,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
 def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
     """Admit only structurally checkable versioned drafts to blind labeling."""
     version = spec.get("source_constraint_version")
-    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION}:
+    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -317,6 +350,11 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
             kept.append(row)
             continue
         draft = drafts.get(row["id"], {})
+        if version == TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION:
+            values = [entry["text"] for entry in row["entries"]]
+            if plan.get("source_amendment_version") != version or len(values) != 2 or values[0] == values[1]:
+                errors.append({"id": row["id"], "reason": "Amended postal alternatives are not two distinct visible addresses"})
+                continue
         if version in {TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION} and "required_candidate_texts" in plan:
             expected = plan["required_candidate_texts"]
             actual = draft.get("candidates")
@@ -375,7 +413,7 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
                 problem = "Invalid required-parameter name"
             elif not isinstance(quote, str) or not 10 <= len(quote.strip()) <= 180 or quote not in visible:
                 problem = "Required-parameter statement is not student-visible"
-            elif (version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION}
+            elif (version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION}
                   and (not isinstance(draft.get("guidance"), list)
                        or not any(isinstance(line, str) and quote in line for line in draft["guidance"]))):
                 problem = "Train required-parameter statement is absent from authored guidance"

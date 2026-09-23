@@ -29,14 +29,20 @@ def verify_author_gate(row, spec, author_audit, preprocessor):
     from data_tools.generate_v7 import (
         DEV_MISSING_INTENT_GATE_VERSION,
         DEV_UNOBSERVED_INTENT_GATE_VERSION,
+        TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION,
         TRAIN_CONTENT_TYPE_PAIR_VERSION,
         TRAIN_HTTP_METHOD_MULTISET_VERSION,
         TRAIN_MISSING_INTENT_GATE_VERSION,
         dev_missing_intent_prelabel_gate,
     )
 
-    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION}:
+    if spec.get("source_constraint_version") not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION, TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION}:
         return
+    if spec.get("source_constraint_version") == TRAIN_CONTACT_POSTAL_AMENDMENT_VERSION:
+        amendment = spec.get("source_amendment", {})
+        expected = ROOT / "configs/train_contact_postal_reachability_amendment.json"
+        if amendment != {"path": str(expected.relative_to(ROOT)), "sha256": sha256(expected.read_bytes())}:
+            raise ValueError("Contact-postal source amendment differs from its registered manifest")
     if row["provenance"]["source_spec_sha256"] != sha256(canonical_bytes(spec)):
         raise ValueError("Accepted row differs from its registered source specification")
     request = json.loads(author_audit["request"]["messages"][1]["content"])
@@ -63,7 +69,7 @@ def try_freeze(plan, split, rows, *, preprocessor):
     gated_specs = {}
     if len(rows) >= plan.target(split):
         allowed = ({"dev-missing-intent-required-parameter-v2", "dev-missing-intent-unobserved-v3"}
-                   if split == "dev" else {"train-missing-intent-required-parameter-v1", "train-http-method-unobserved-multiset-v1", "train-content-type-unobserved-pair-v1"})
+                   if split == "dev" else {"train-missing-intent-required-parameter-v1", "train-http-method-unobserved-multiset-v1", "train-content-type-unobserved-pair-v1", "train-contact-postal-reachability-v1"})
         for path in (ROOT / "local/v7" / plan.run_id / "batches" / split).glob("*.json"):
             record = json.loads(path.read_text())
             if record["spec"].get("source_constraint_version") in allowed:
@@ -146,6 +152,9 @@ def try_freeze(plan, split, rows, *, preprocessor):
         fingerprint_path = output.with_suffix(".fingerprints.json")
         atomic_json(fingerprint_path, {**plan.binding(), "content_sha256": sorted(fingerprints)})
         manifest = {**plan.binding(), "split": split, "stage": stage, "episodes": count, "sha256": sha256(payload), "family_partition_sha256": sha256(partition_path.read_bytes()), "teacher_contract_version": PROTOCOL, "native_projection_sha256": plan.document["projection_provenance_sha256"], "preprocess_sha256": sha256(canonical_bytes(preprocessor.manifest())), "fingerprints_sha256": sha256(fingerprint_path.read_bytes()), "teacher_audit_file_sha256": audit_hashes, "contains_earlier_snapshot_ids": required, "quality_paths": dict(Counter(row["provenance"]["quality_path"] for row in chosen)), "created_at": utc_now(), "human_validated": False}
+        if split == "train" and any(gated_specs.get(row["id"], {}).get("source_constraint_version") == "train-contact-postal-reachability-v1" for row in chosen):
+            amendment = ROOT / "configs/train_contact_postal_reachability_amendment.json"
+            manifest["source_amendments"] = [{"path": str(amendment.relative_to(ROOT)), "sha256": sha256(amendment.read_bytes())}]
         if throughput_coverage:
             manifest["throughput_coverage"] = throughput_coverage
         manifest["teacher_sources"] = teacher_source_counts(chosen, audit_directory)

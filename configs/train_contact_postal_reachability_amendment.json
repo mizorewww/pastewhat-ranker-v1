@@ -1,0 +1,26 @@
+{
+  "version": "train-contact-postal-reachability-v1",
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f",
+  "effective_from_replacement_round": 17,
+  "retired_original_quota_slot_id": "train-v7-contact_postal_address-00230",
+  "family_id": "contact_postal_address",
+  "old_plan_factors": {
+    "scenario_type": "ambiguous",
+    "observation_variant": "generic_field",
+    "candidate_count": 1,
+    "context_language": "简体中文"
+  },
+  "replacement_plan_factors": {
+    "scenario_type": "ambiguous",
+    "observation_variant": "standard",
+    "candidate_count": 2,
+    "context_language": "简体中文"
+  },
+  "blind_review": {
+    "student_visible_sha256": "5778443e0445d5d4e340c068c17200341f276cd1a1c53b3f5ba54a16fe3b2f98",
+    "pi_swe_2_high_audit_id": "e9b959445da1c1b8e46bbdf65c89ba561304fb9dcfddeb924e403b8e2a5d5e1c",
+    "finding": "The complete sole address was independently selected from the generic postal-address field."
+  },
+  "policy": "Retire one unreachable observation/count assignment only; keep the family and missing-intent action quota, all earlier source and teacher records, and require an independent abstain label for the replacement."
+}
