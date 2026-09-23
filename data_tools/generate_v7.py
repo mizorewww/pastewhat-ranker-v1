@@ -39,6 +39,7 @@ DEV_MISSING_INTENT_GATE_VERSION = "dev-missing-intent-required-parameter-v2"
 DEV_UNOBSERVED_INTENT_GATE_VERSION = "dev-missing-intent-unobserved-v3"
 TRAIN_MISSING_INTENT_GATE_VERSION = "train-missing-intent-required-parameter-v1"
 TRAIN_HTTP_METHOD_MULTISET_VERSION = "train-http-method-unobserved-multiset-v1"
+TRAIN_CONTENT_TYPE_PAIR_VERSION = "train-content-type-unobserved-pair-v1"
 
 
 def integer_seed(*values):
@@ -71,6 +72,26 @@ def assign_http_method_multiset(plan, used, methods):
     chosen = min(choices, key=lambda values: (-len(set(values)),
                                              sha256(canonical_bytes((plan["quota_slot_id"], values)))))
     used.add((variant, chosen))
+    return list(chosen)
+
+
+def unused_content_type_pairs(rows):
+    values = ("application/json", "application/x-www-form-urlencoded", "text/plain",
+              "application/json; charset=utf-8", "text/plain; charset=utf-8")
+    used = {tuple(sorted(entry["text"] for entry in row["entries"]))
+            for row in rows if row["family_id"] == "http_content_type"
+            and row["provenance"]["observation_variant"] == "no_accessibility"
+            and len(row["entries"]) == 2}
+    return values, used
+
+
+def assign_content_type_pair(used, values):
+    choices = [tuple(sorted(pair)) for pair in itertools.combinations(values, 2)
+               if tuple(sorted(pair)) not in used]
+    if not choices:
+        raise ValueError("No distinct valid Content-Type pair remains")
+    chosen = min(choices, key=lambda pair: (sum(";" in value for value in pair), pair))
+    used.add(chosen)
     return list(chosen)
 
 
@@ -165,6 +186,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
     """New source situations fill retired logical slots; accepted slots stay fixed."""
     fulfilled = {row["provenance"].get("quota_slot_id", row["id"]) for row in rows}
     methods, used_http_methods = unused_http_method_multisets(rows) if split == "train" and round_number >= 8 else ((), set())
+    content_types, used_content_types = unused_content_type_pairs(rows) if split == "train" and round_number >= 13 else ((), set())
     result = []
     for original in originals:
         missing = [item for item in original["plans"] if item["id"] not in fulfilled]
@@ -215,6 +237,19 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
                     " methods. Preserve guidance=[] and selected='' for unobserved plans."
                     " These candidate strings are literal clipboard contents, not labels"
                     " or permission to add an invented intention."
+                )
+        if split == "train" and round_number >= 13 and spec["family_id"] == "http_content_type":
+            unobserved = [item for item in spec["plans"] if item["scenario_type"] in ("ambiguous", "insufficient_context")
+                          and item["observation_variant"] == "no_accessibility" and item["candidate_count"] == 2]
+            if unobserved:
+                spec["source_constraint_version"] = TRAIN_CONTENT_TYPE_PAIR_VERSION
+                for item in unobserved:
+                    item["required_candidate_texts"] = assign_content_type_pair(used_content_types, content_types)
+                spec["mother_task"]["constraints"] += (
+                    " For each plan with required_candidate_texts, emit exactly those two"
+                    " valid, distinct, bare MIME header values as candidate texts in any"
+                    " order. Do not add quotes, explanations, intent hints or labels."
+                    " Preserve guidance=[] and selected='' for no_accessibility plans."
                 )
         if split == "dev" and round_number >= 2 and any(item["scenario_type"] in ("ambiguous", "insufficient_context") for item in missing):
             unobserved = round_number >= 8 and all(item["observation_variant"] != "standard" for item in missing)
@@ -271,7 +306,7 @@ def replacement_specs(originals, rows, round_number, *, split="train"):
 def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
     """Admit only structurally checkable versioned drafts to blind labeling."""
     version = spec.get("source_constraint_version")
-    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION}:
+    if version not in {DEV_MISSING_INTENT_GATE_VERSION, DEV_UNOBSERVED_INTENT_GATE_VERSION, TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION}:
         return prepared, []
     drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
     plans = {plan["id"]: plan for plan in pending}
@@ -282,24 +317,27 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
             kept.append(row)
             continue
         draft = drafts.get(row["id"], {})
-        if version == TRAIN_HTTP_METHOD_MULTISET_VERSION and "required_candidate_texts" in plan:
+        if version in {TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION} and "required_candidate_texts" in plan:
             expected = plan["required_candidate_texts"]
             actual = draft.get("candidates")
             context = row["context"]
+            allowed = ({"GET", "POST", "PUT", "DELETE"} if version == TRAIN_HTTP_METHOD_MULTISET_VERSION
+                       else {"application/json", "application/x-www-form-urlencoded", "text/plain",
+                             "application/json; charset=utf-8", "text/plain; charset=utf-8"})
             if (not isinstance(actual, list) or len(actual) != plan["candidate_count"]
                     or any(not isinstance(value, str) for value in actual)
                     or sorted(actual) != sorted(expected)
                     or sorted(entry["text"] for entry in row["entries"]) != sorted(expected)
                     or len(set(expected)) < 2
-                    or any(value not in {"GET", "POST", "PUT", "DELETE"} for value in expected)
+                    or any(value not in allowed for value in expected)
                     or draft.get("guidance") != [] or draft.get("selected") != ""
                     or "decision_gate" in draft or context["selectedText"]
                     or context["surroundingText"] or context["isSecure"]):
-                errors.append({"id": row["id"], "reason": "Train HTTP-method multiset differs from the registered visible candidate texts"})
+                errors.append({"id": row["id"], "reason": "Train fixed-pair source differs from the registered visible candidate texts"})
             else:
                 kept.append(row)
             continue
-        if version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION} and plan["observation_variant"] != "standard":
+        if version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION} and plan["observation_variant"] != "standard":
             context = row["context"]
             if (not isinstance(draft.get("candidates"), list)
                     or len(draft["candidates"]) != plan["candidate_count"]
@@ -337,7 +375,7 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
                 problem = "Invalid required-parameter name"
             elif not isinstance(quote, str) or not 10 <= len(quote.strip()) <= 180 or quote not in visible:
                 problem = "Required-parameter statement is not student-visible"
-            elif (version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION}
+            elif (version in {TRAIN_MISSING_INTENT_GATE_VERSION, TRAIN_HTTP_METHOD_MULTISET_VERSION, TRAIN_CONTENT_TYPE_PAIR_VERSION}
                   and (not isinstance(draft.get("guidance"), list)
                        or not any(isinstance(line, str) and quote in line for line in draft["guidance"]))):
                 problem = "Train required-parameter statement is absent from authored guidance"
