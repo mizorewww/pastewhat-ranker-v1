@@ -1,0 +1,27 @@
+{
+  "run_id": "ranker-v1-efficient-20260921",
+  "scope": "Dev final registered quota slot only; no Calibration or Test rows inspected",
+  "original_completion": {
+    "status": "finite_backfill_exhausted",
+    "accepted_episodes": 1999,
+    "backfill_rounds": 7
+  },
+  "recovery": {
+    "round_08": "Registered a new source situation with observation-aware gate; author drafts passed after correcting native inputSurface assumption but independent label did not match the registered action. Rejected label and audit retained.",
+    "round_09": "Registered another new source situation, clarified generic empty-field abstention in teacher instruction before labeling, and accepted only after blind labeling and frozen replay checks.",
+    "cached_author_reuse": "One previously unlabelled recovered author draft was blind-labelled; its select action was rejected and preserved. No rejected label was rewritten."
+  },
+  "final": {
+    "episodes": 2000,
+    "sha256": "220a12f181a54210a9a19bf9962d9c2ab8559b2bddaae95462c4b6d918ad1082",
+    "manifest_sha256": "220a12f181a54210a9a19bf9962d9c2ab8559b2bddaae95462c4b6d918ad1082",
+    "frozen_manifest": "data/frozen/ranker-v1-efficient-20260921/dev.manifest.json"
+  },
+  "code_commits": [
+    "a6c2a8a",
+    "d78457d",
+    "e97614f",
+    "0c3ece0"
+  ],
+  "teacher": "Pi devin/swe-2; raw provider audits remain local"
+}
