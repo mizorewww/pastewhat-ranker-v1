@@ -285,6 +285,52 @@ def prioritize_pilot_sources(pending, rows, partition, pilot_count, batch_dir):
     return priority + remaining
 
 
+def prioritize_diagnostic_sources(pending, rows, partition, diagnostic_count, batch_dir):
+    """Advance registered 10k strata, retaining backups for authoring failures."""
+    quotas = action_quotas(family_quotas(partition, "train", diagnostic_count))
+    missing = {(family, action): count for family, buckets in quotas.items()
+               for action, count in buckets.items()}
+    for row in rows:
+        label = row["label"]
+        action = "select" if label["decision"] == "select" else "no_match" if label["abstain_reason"] == "no_match" else "missing_intent"
+        key = (row["family_id"], action)
+        missing[key] = max(0, missing[key] - 1)
+    targets = {key for key, count in missing.items() if count}
+    if not targets:
+        return pending
+
+    supplies = []
+    for index, spec in enumerate(pending):
+        path = batch_dir / (spec["batch_id"] + ".json")
+        record = json.loads(path.read_text()) if path.is_file() else {}
+        done = {row["id"] for row in record.get("accepted", [])}
+        done.update(record.get("unrecoverable_label_ids", []))
+        supply = Counter((spec["family_id"], "missing_intent" if plan["scenario_type"] in ("ambiguous", "insufficient_context") else plan["scenario_type"])
+                         for plan in spec["plans"] if plan["id"] not in done)
+        supplies.append((index, spec, supply))
+
+    primary = []
+    available = supplies.copy()
+    while available and any(missing.values()):
+        chosen = max(range(len(available)), key=lambda position: (
+            sum(min(missing.get(key, 0), count) for key, count in available[position][2].items()),
+            -available[position][0],
+        ))
+        index, spec, supply = available.pop(chosen)
+        gain = sum(min(missing.get(key, 0), count) for key, count in supply.items())
+        if not gain:
+            available.insert(chosen, (index, spec, supply))
+            break
+        primary.append(spec)
+        for key, count in supply.items():
+            missing[key] = max(0, missing.get(key, 0) - count)
+    # Hypothetical coverage is not accepted coverage. Keep every remaining
+    # registered source for initially missing strata before unrelated batches.
+    backups = [spec for _, spec, supply in available if targets.intersection(supply)]
+    rest = [spec for _, spec, supply in available if not targets.intersection(supply)]
+    return primary + backups + rest
+
+
 def publish_pool(base, split, plan, started, *, target=None):
     records = [json.loads(path.read_text()) for path in (base / "batches" / split).glob("*.json")]
     rows = [row for record in records for row in record["accepted"]]
@@ -389,10 +435,13 @@ def main():
     def run_sources(sources):
         nonlocal scheduled
         pending = [spec for spec in sources if not (batch_dir / (spec["batch_id"] + ".json")).is_file() or json.loads((batch_dir / (spec["batch_id"] + ".json")).read_text())["status"] != "complete"]
-        if sources is original_specs and args.split == "train" and not args.hard_pool and not (ROOT / plan.data_path("pilot")).is_file():
+        if sources is original_specs and args.split == "train" and not args.hard_pool:
             rows = [json.loads(line) for line in (base / "train.jsonl").read_bytes().splitlines()]
             partition = json.loads(PARTITION.read_text())
-            pending = prioritize_pilot_sources(pending, rows, partition, plan.document["pilot_episodes"], batch_dir)
+            if not (ROOT / plan.data_path("pilot")).is_file():
+                pending = prioritize_pilot_sources(pending, rows, partition, plan.document["pilot_episodes"], batch_dir)
+            elif not (ROOT / plan.data_path("diagnostic")).is_file():
+                pending = prioritize_diagnostic_sources(pending, rows, partition, plan.document["diagnostic_episodes"], batch_dir)
         scheduled += len(pending)
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
             submit = lambda pool, spec: pool.submit(produce_batch, spec, client=client, preprocessor=preprocessor, destination=batch_dir / (spec["batch_id"] + ".json"), claim=registry.claim, author_cache=author_cache.get(spec["batch_id"]), prelabel_gate=dev_missing_intent_prelabel_gate if args.split == "dev" else None)
