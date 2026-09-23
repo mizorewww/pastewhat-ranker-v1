@@ -81,6 +81,9 @@ explicit formats; metadata violates a request for only the path/name itself.
 Generic app/field names do not supply a missing goal. Syntactic validity alone does not make alternatives
 interchangeable. If no candidate meets a clear need, abstain/no_match. Missing
 facts give insufficient_context; unresolved incompatible intentions give ambiguous.
+When the visible field is generic and selectedText/surroundingText contain no task,
+one syntactically complete candidate does not establish the user's intention.
+Use insufficient_context unless the field itself specifies the needed content.
 Abstain always has acceptable_ids=[]. Select has a nonempty set and reason=null.
 No explanations, rewritten paste content or per-candidate verdict text.
 surroundingText uses pastewhat-focus-v1: literal TEXT insertion is

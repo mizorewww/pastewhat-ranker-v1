@@ -57,7 +57,7 @@ def main():
     dev_workers = resources[0]["initial_workers"]["dev"] if resources else 1
     jobs = {
         "train": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "train", "--workers", str(ceiling)],
-        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", str(dev_workers), "--backfill-rounds", "8"],
+        "dev": [sys.executable, "-m", "data_tools.generate_v7", "--run-plan", str(plan.path), "--split", "dev", "--workers", str(dev_workers), "--backfill-rounds", "9"],
         "hardening": [sys.executable, "-m", "data_tools.hardening_v7", "--run-plan", str(plan.path), "--workers", str(ceiling if resources else 2)],
     }
     processes = {}
@@ -81,7 +81,7 @@ def main():
             if alive(process.get("pid")):
                 states[name] = {"state": "running", "pid": process["pid"]}
                 continue
-            exhaustion = exhausted_source_record(base, name, allowed_dev_backfill_rounds=8)
+            exhaustion = exhausted_source_record(base, name, allowed_dev_backfill_rounds=9)
             if exhaustion is not None:
                 states[name] = {"state": "finite_source_budget_exhausted", "record_path": str(exhaustion.relative_to(ROOT)), "note": "Keep actual deficits visible; no label rewriting or repeated preferred-answer search"}
                 continue
