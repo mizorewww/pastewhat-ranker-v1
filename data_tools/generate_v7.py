@@ -242,31 +242,21 @@ def prioritize_pilot_sources(pending, rows, partition, pilot_count, batch_dir):
     if not any(missing.values()):
         return pending
 
-    available = []
-    for index, spec in enumerate(pending):
+    priority, remaining = [], []
+    for spec in pending:
         path = batch_dir / (spec["batch_id"] + ".json")
         record = json.loads(path.read_text()) if path.is_file() else {}
         done = {row["id"] for row in record.get("accepted", [])}
         done.update(record.get("unrecoverable_label_ids", []))
-        supply = Counter((spec["family_id"], "missing_intent" if plan["scenario_type"] in ("ambiguous", "insufficient_context") else plan["scenario_type"])
-                         for plan in spec["plans"] if plan["id"] not in done)
-        available.append((index, spec, supply))
-
-    ordered = []
-    while available and any(missing.values()):
-        chosen = max(range(len(available)), key=lambda index: (
-            sum(min(missing.get(key, 0), count) for key, count in available[index][2].items()),
-            -available[index][0],
-        ))
-        index, spec, supply = available.pop(chosen)
-        gain = sum(min(missing.get(key, 0), count) for key, count in supply.items())
-        if not gain:
-            available.insert(chosen, (index, spec, supply))
-            break
-        ordered.append(spec)
-        for key, count in supply.items():
-            missing[key] = max(0, missing.get(key, 0) - count)
-    return ordered + [spec for _, spec, _ in sorted(available)]
+        targets_missing_stratum = any(
+            plan["id"] not in done and missing.get((spec["family_id"], "missing_intent" if plan["scenario_type"] in ("ambiguous", "insufficient_context") else plan["scenario_type"]), 0)
+            for plan in spec["plans"]
+        )
+        (priority if targets_missing_stratum else remaining).append(spec)
+    # A planned slot is only an opportunity: author rejection or independent
+    # labeling may leave it empty. Keep every backup source ahead of unrelated
+    # work until the actual accepted pool closes the stratum.
+    return priority + remaining
 
 
 def publish_pool(base, split, plan, started, *, target=None):
