@@ -37,6 +37,8 @@ from evaluations.generate_v7 import (
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import load_run_plan
 
+MISSING_INTENT_GATE_VERSION = "missing-intent-required-parameter-v2"
+
 
 def records(directory, run_id):
     return [(path, json.loads(path.read_text())) for path in sorted(directory.rglob(run_id + "-*.json"))]
@@ -214,21 +216,85 @@ def replacement_specs(originals, rows, round_number, split):
             "id": item["id"] + f"-replacement-{round_number:02d}",
             "seed": int(hashlib.sha256(f"{item['seed']}:replacement:{round_number}".encode()).hexdigest()[:12], 16)} for item in missing]
         if split == "calibration" and round_number >= 3 and any(item["scenario_type"] in {"ambiguous", "insufficient_context"} for item in missing):
-            spec["source_constraint_version"] = "missing-intent-observable-alternatives-v1"
-            spec["mother_task"]["constraints"] += (
-                " For plans registered as ambiguous or insufficient_context, make at least one candidate"
-                " directly usable for this operation under a plausible goal, and ensure the visible"
-                " guidance does not establish which goal the user has. For ambiguous plans with two"
-                " or more candidates, give at least two distinct plausible goals with different"
-                " directly usable candidates; omit only the fact that distinguishes those goals."
-                " For insufficient_context plans, omit the decisive source fact or user preference"
-                " rather than making every candidate invalid. Keep all other registered plans in"
-                " this batch in their own action buckets. Do not reveal a label, rationale or"
-                " inferred intent in the fixture."
-            )
+            if round_number >= 4:
+                spec["source_constraint_version"] = MISSING_INTENT_GATE_VERSION
+                spec["mother_task"]["constraints"] += (
+                    " For each ambiguous or insufficient_context plan, visible guidance must state"
+                    " that the pasted result must match a required exact decision parameter, such"
+                    " as recipient policy, target variant, scope or format. Its value is absent"
+                    " from every visible field; no candidate can be adopted until it is supplied."
+                    " Construct at least two plausible, mutually exclusive parameter values and"
+                    " candidates for different values. Do not make all candidates violate the"
+                    " stated operation, and do not treat optional style or several interchangeable"
+                    " answers to an already complete request as missing intent. For a one-candidate"
+                    " insufficient_context plan, that candidate must be usable only under one"
+                    " possible value while another plausible value remains unrepresented."
+                    " Add a non-visible decision_gate object to each such episode with exact keys"
+                    " parameter, visible_requirement_quote, possible_values, candidate_value_indices."
+                    " The quote must occur verbatim in guidance after observation trimming;"
+                    " possible_values is a list of at least two distinct short strings;"
+                    " candidate_value_indices is a list of {index: zero-based candidate position,"
+                    " value: one possible value}. Map at least two candidates to distinct values"
+                    " when there are two or more candidates. The decision_gate is author metadata"
+                    " only; never put it, a label or a rationale into the paste fixture."
+                )
+            else:
+                spec["source_constraint_version"] = "missing-intent-observable-alternatives-v1"
+                spec["mother_task"]["constraints"] += (
+                    " For plans registered as ambiguous or insufficient_context, make at least one candidate"
+                    " directly usable for this operation under a plausible goal, and ensure the visible"
+                    " guidance does not establish which goal the user has. For ambiguous plans with two"
+                    " or more candidates, give at least two distinct plausible goals with different"
+                    " directly usable candidates; omit only the fact that distinguishes those goals."
+                    " For insufficient_context plans, omit the decisive source fact or user preference"
+                    " rather than making every candidate invalid. Keep all other registered plans in"
+                    " this batch in their own action buckets. Do not reveal a label, rationale or"
+                    " inferred intent in the fixture."
+                )
         # Review cohort and all quota factors stay fixed across replacements.
         sources.append(spec)
     return sources
+
+
+def missing_intent_prelabel_gate(raw, spec, pending, prepared):
+    """Reject malformed Cal v2 author fixtures before independent labeling."""
+    if spec.get("source_constraint_version") != MISSING_INTENT_GATE_VERSION:
+        return prepared, []
+    drafts = {row.get("slot"): row for row in raw.get("episodes", []) if isinstance(row, dict)} if isinstance(raw, dict) else {}
+    plans = {plan["id"]: plan for plan in pending}
+    kept, errors = [], []
+    for row in prepared:
+        plan = plans[row["id"]]
+        if plan["scenario_type"] not in {"ambiguous", "insufficient_context"}:
+            kept.append(row)
+            continue
+        draft = drafts.get(row["id"], {})
+        gate = draft.get("decision_gate")
+        problem = None
+        if not isinstance(gate, dict) or set(gate) != {"parameter", "visible_requirement_quote", "possible_values", "candidate_value_indices"}:
+            problem = "Missing required-parameter gate metadata"
+        else:
+            parameter, quote = gate["parameter"], gate["visible_requirement_quote"]
+            values, mapping = gate["possible_values"], gate["candidate_value_indices"]
+            candidates = draft.get("candidates")
+            visible = json.dumps(row["context"], ensure_ascii=False)
+            if not isinstance(parameter, str) or not 3 <= len(parameter.strip()) <= 80:
+                problem = "Invalid required-parameter name"
+            elif not isinstance(quote, str) or not 10 <= len(quote.strip()) <= 180 or quote not in visible:
+                problem = "Required-parameter statement is not student-visible"
+            elif not isinstance(candidates, list) or len(candidates) != plan["candidate_count"]:
+                problem = "Required-parameter candidate count differs from plan"
+            elif not isinstance(values, list) or not 2 <= len(values) <= 8 or any(not isinstance(value, str) or not value.strip() or len(value) > 80 for value in values) or len({value.casefold().strip() for value in values}) != len(values):
+                problem = "Required-parameter values are not distinct"
+            elif not isinstance(mapping, list) or not mapping or any(not isinstance(item, dict) or set(item) != {"index", "value"} or type(item["index"]) is not int or item["index"] < 0 or item["index"] >= len(candidates) or item["value"] not in values for item in mapping):
+                problem = "Required-parameter candidate mapping is invalid"
+            elif len({item["index"] for item in mapping}) != len(mapping) or (len(candidates) >= 2 and len({item["value"] for item in mapping}) < 2):
+                problem = "Required-parameter alternatives are not mapped"
+        if problem:
+            errors.append({"id": row["id"], "reason": problem})
+        else:
+            kept.append(row)
+    return kept, errors
 
 
 def author_caches(specifications, client):
@@ -355,7 +421,9 @@ def main():
                 with ThreadPoolExecutor(max_workers=args.workers) as executor:
                     futures = [executor.submit(produce_batch, spec, client=client, preprocessor=preprocessor,
                         destination=directory / (spec["batch_id"] + ".json"), claim=claim,
-                        author_cache=cached.get(spec["batch_id"])) for spec in pending]
+                        author_cache=cached.get(spec["batch_id"]),
+                        prelabel_gate=missing_intent_prelabel_gate if args.split == "calibration" else None)
+                        for spec in pending]
                     try:
                         for future in as_completed(futures):
                             future.result()

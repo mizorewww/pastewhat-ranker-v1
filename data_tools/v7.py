@@ -7,18 +7,25 @@ is made that every accepted row received two independent labels.
 from __future__ import annotations
 
 import copy
-from collections import Counter
 import json
-from pathlib import Path
 import random
+from collections import Counter
+from pathlib import Path
 
 from data_tools.authoring import compile_compact_episode
 from data_tools.content import content_fingerprint
 from data_tools.observations import apply_observation_variant
-from data_tools.teacher import atomic_json, audit_source, canonical_bytes, sha256, utc_now, TeacherError
+from data_tools.teacher import (
+    TeacherError,
+    atomic_json,
+    audit_source,
+    canonical_bytes,
+    sha256,
+    utc_now,
+)
 from pastewhat_ranker.calibration import has_semantic_context
-from tools.project_context import project_context
 from tools.project_candidates import project_candidates
+from tools.project_context import project_context
 
 PROTOCOL = "teacher-episodes-v7-batched-decisions"
 ROOT = Path(__file__).resolve().parents[1]
@@ -206,7 +213,8 @@ def program_issue(episode, label, family):
     return None
 
 
-def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached_author=None, author_cache=None):
+def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached_author=None, author_cache=None,
+                  prelabel_gate=None):
     destination = Path(destination)
     if hasattr(client, "policy") and any(client.policy.get(key) != value for key, value in spec["run_binding"].items()):
         raise ValueError("Teacher transition belongs to a different registered run")
@@ -244,6 +252,9 @@ def produce_batch(spec, *, client, preprocessor, destination, claim=None, cached
                 author = client.complete_json(AUTHOR_SYSTEM, json.dumps({"mother_task": spec["mother_task"], "field_profile": spec["profile"], "plans": pending, "repair": attempt, "previous_findings": record["rejected"][-len(spec["plans"]):]}, ensure_ascii=False), max_tokens=24576, temperature=0.6, thinking="disabled", response_format="json_object", phase="v7-author", request_id=spec["batch_id"] + f"-a{attempt}")
             remember(author)
             prepared, errors = prepare_author_batch(author.parsed, pending, spec["profile"], preprocessor)
+            if prelabel_gate is not None:
+                prepared, gate_errors = prelabel_gate(author.parsed, spec, pending, prepared)
+                errors.extend(gate_errors)
             record["rejected"].extend(errors)
             if prepared:
                 visible, mapping = visible_batch(prepared, spec["seed"] + attempt, "p")
