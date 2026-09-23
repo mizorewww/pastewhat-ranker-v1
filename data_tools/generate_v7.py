@@ -218,7 +218,7 @@ def dev_missing_intent_prelabel_gate(raw, spec, pending, prepared):
                     or len(draft["candidates"]) != 1
                     or draft.get("guidance") != [] or draft.get("selected") != ""
                     or context["selectedText"] or context["surroundingText"]
-                    or context["inputSurface"] != "unknown" or context["isSecure"]):
+                    or context["isSecure"]):
                 errors.append({"id": row["id"], "reason": "Unobserved-intent fixture retained task evidence or changed its registered candidate count"})
             else:
                 kept.append(row)

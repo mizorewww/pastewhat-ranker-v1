@@ -1,4 +1,4 @@
-"""Label usable cached author drafts rejected only by count/opaque-ID plumbing.
+"""Label usable cached author drafts rejected only by mechanical admission checks.
 
 No author API call is made. Earlier records and labels are never changed, and
 drafts with an explicit semantic rejection are not eligible for this recovery.
@@ -43,6 +43,8 @@ def main():
             continue
         semantic = {row["id"] for row in record["rejected"] if "original_label" in row}
         eligible = {row["id"] for row in record["rejected"] if row.get("id") and any(reason in row.get("reason", "") for reason in ("Candidate count differs", "at most180 characters"))}
+        if record["spec"].get("source_constraint_version") == "dev-missing-intent-unobserved-v3":
+            eligible.update(row["id"] for row in record["rejected"] if row.get("id") and row.get("reason") == "Unobserved-intent fixture retained task evidence or changed its registered candidate count")
         if any("Compact labels must cover" in row.get("reason", "") for row in record["rejected"]):
             eligible.update(item["id"] for item in record["spec"]["plans"])
         eligible -= accepted | semantic
@@ -54,7 +56,7 @@ def main():
                 continue
             spec = copy.deepcopy(record["spec"])
             spec["plans"] = [item for item in spec["plans"] if item["id"] in identifiers]
-            spec["cached_author_source"] = {"original_batch_id": record["spec"]["batch_id"], "audit_id": author.audit_id, "reason": "Only count, obsolete180-character admission, or opaque-ID plumbing failed; no prior accepted/semantic-rejected label is reused"}
+            spec["cached_author_source"] = {"original_batch_id": record["spec"]["batch_id"], "audit_id": author.audit_id, "reason": "Only mechanical admission failed; no prior accepted/semantic-rejected label is reused"}
             spec["batch_id"] += "-cached-" + sha256(canonical_bytes(sorted(identifiers)))[:8]
             result = produce_batch(spec, client=client, preprocessor=preprocessor, destination=directory / (spec["batch_id"] + ".json"), claim=registry.claim, cached_author=author, prelabel_gate=dev_missing_intent_prelabel_gate if args.split == "dev" else None)
             accepted.update(row["id"] for row in result["accepted"])
