@@ -18,6 +18,7 @@ from data_tools.freeze import choose_registered, publish_bytes
 from data_tools.resources import bounded_futures, worker_budget
 from data_tools.teacher import atomic_json, audit_source, canonical_bytes, make_teacher_client, sha256, utc_now
 from data_tools.v7 import PROTOCOL, ROOT, label_with_one_repair, remap_labels, same_action, visible_batch
+from pastewhat_ranker.model import sha256_file
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import load_run_plan
 
@@ -165,17 +166,23 @@ def main():
     if not idle_v0(plan):
         raise RuntimeError("Training is no longer waiting; GPU mining cannot start")
     mining = directory / "mining"
-    command = [sys.executable, "-m", "tools.mine_training_pool", "--pool", str(pool_path), "--original-train", str(original_path), "--v0-ready", str(ready_path), "--model", str(model), "--output", str(mining), "--run-plan", str(plan.path), "--gpu-exclusive-confirmation", "Pipeline idle hardening wait verified; status SHA " + sha256((ROOT / plan.pipeline_directory / "status.json").read_bytes())]
-    if mining.exists():
-        command.append("--resume")
-    run(command, directory / "mining.log", plan)
-    selection = json.loads((mining / "selection.json").read_text())
+    selection_path = mining / "selection.json"
+    if not selection_path.exists():
+        command = [sys.executable, "-m", "tools.mine_training_pool", "--pool", str(pool_path), "--original-train", str(original_path), "--v0-ready", str(ready_path), "--model", str(model), "--output", str(mining), "--run-plan", str(plan.path), "--gpu-exclusive-confirmation", "Pipeline idle hardening wait verified; status SHA " + sha256((ROOT / plan.pipeline_directory / "status.json").read_bytes())]
+        if mining.exists():
+            command.append("--resume")
+        run(command, directory / "mining.log", plan)
+    selection = json.loads(selection_path.read_text())
     provenance = json.loads((mining / "provenance.json").read_text())
-    checks = {**plan.binding(), "v0_handoff_sha256": sha256(ready_path.read_bytes()), "pool_sha256": sha256(pool_path.read_bytes()), "original_train_sha256": sha256(original_path.read_bytes()), "mining_source_sha256": sha256((ROOT / "tools/mine_training_pool.py").read_bytes())}
+    checks = {**plan.binding(), "version": "pastewhat-train-mining-v1", "requested_proposals": plan.document["hardening"]["review_nominations"], "v0_handoff_sha256": sha256_file(ready_path), "pool_sha256": sha256_file(pool_path), "original_train_sha256": sha256_file(original_path), "mlx_weight_sha256": sha256_file(model / "model.safetensors"), "preprocess_sha256": sha256_file(model / "preprocess.json"), "mining_source_sha256": sha256_file(ROOT / "tools/mine_training_pool.py")}
     if any(provenance.get(key) != value for key, value in checks.items()):
         raise ValueError("Cached mining provenance changed")
     proposals = read_train(mining / "proposals.jsonl", plan)
-    if sha256((mining / "proposals.jsonl").read_bytes()) != selection["proposals_sha256"]:
+    if (sha256((mining / "proposals.jsonl").read_bytes()) != selection["proposals_sha256"]
+            or selection.get("status") != "requires_blind_teacher_review_not_training_ready"
+            or selection.get("proposals") != len(proposals)
+            or len(proposals) != plan.document["hardening"]["review_nominations"]
+            or any(selection.get(key) != value for key, value in plan.binding().items())):
         raise ValueError("Cached proposals changed")
     client = make_teacher_client(directory / "teacher")
     records = []
