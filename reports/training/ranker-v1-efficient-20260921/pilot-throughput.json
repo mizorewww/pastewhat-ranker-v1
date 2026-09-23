@@ -1,0 +1,276 @@
+{
+  "training_data": "data/frozen/ranker-v1-efficient-20260921/pilot-train.jsonl",
+  "training_data_sha256": "324eb1918db33e239571e3ee83b9b08c753091e30b3b045f8f57ca1fee059be6",
+  "reference_model_sha256": "67bb9aa364d6630ad09483e7bd7a186bd0b9b365ca5876196b3967e454a21e8d",
+  "selection": "workload_quantiles",
+  "source_episode_count": 5000,
+  "profiled_episode_ids": [
+    "train-v7-http_method-00060",
+    "train-v7-sql_update_scope-00129",
+    "train-v7-spreadsheet_sum_average-00016",
+    "train-v7-configuration_boolean-00053",
+    "train-v7-process_inspection-00124",
+    "train-v7-python_collection-00149",
+    "train-v7-document_export_format-00037",
+    "train-v7-email_subject_summary-00152",
+    "train-v7-http_content_type-00121",
+    "train-v7-document_export_format-00033",
+    "train-v7-sql_insert_columns-00091",
+    "train-v7-contact_postal_address-00018",
+    "train-v7-spreadsheet_text_join-00151",
+    "train-v7-contact_postal_address-00187",
+    "train-v7-disk_usage-00148",
+    "train-v7-python_collection-00008"
+  ],
+  "selection_uses_labels_or_dev_quality": false,
+  "probe_weights_discarded": true,
+  "candidate_counts": [
+    1,
+    1,
+    2,
+    4,
+    4,
+    6,
+    8,
+    8,
+    13,
+    19,
+    8,
+    15,
+    16,
+    20,
+    18,
+    11
+  ],
+  "pair_token_lengths": [
+    [
+      27
+    ],
+    [
+      108
+    ],
+    [
+      99,
+      104
+    ],
+    [
+      83,
+      83,
+      83,
+      84
+    ],
+    [
+      104,
+      104,
+      105,
+      96
+    ],
+    [
+      98,
+      91,
+      91,
+      91,
+      99,
+      98
+    ],
+    [
+      93,
+      98,
+      93,
+      93,
+      93,
+      93,
+      93,
+      93
+    ],
+    [
+      113,
+      104,
+      105,
+      104,
+      105,
+      112,
+      112,
+      105
+    ],
+    [
+      90,
+      84,
+      86,
+      86,
+      84,
+      90,
+      86,
+      83,
+      95,
+      88,
+      84,
+      84,
+      90
+    ],
+    [
+      78,
+      78,
+      78,
+      77,
+      77,
+      78,
+      77,
+      78,
+      77,
+      78,
+      78,
+      83,
+      78,
+      75,
+      78,
+      78,
+      78,
+      78,
+      77
+    ],
+    [
+      127,
+      119,
+      143,
+      137,
+      153,
+      128,
+      137,
+      137
+    ],
+    [
+      98,
+      106,
+      94,
+      112,
+      114,
+      99,
+      95,
+      112,
+      100,
+      93,
+      95,
+      114,
+      94,
+      98,
+      93
+    ],
+    [
+      106,
+      107,
+      108,
+      109,
+      105,
+      111,
+      114,
+      106,
+      111,
+      116,
+      106,
+      111,
+      101,
+      109,
+      105,
+      111
+    ],
+    [
+      96,
+      94,
+      96,
+      108,
+      94,
+      93,
+      96,
+      98,
+      91,
+      92,
+      95,
+      104,
+      93,
+      91,
+      112,
+      91,
+      98,
+      103,
+      91,
+      92
+    ],
+    [
+      114,
+      125,
+      125,
+      125,
+      131,
+      121,
+      108,
+      127,
+      127,
+      123,
+      122,
+      114,
+      129,
+      125,
+      125,
+      119,
+      122,
+      123
+    ],
+    [
+      135,
+      129,
+      321,
+      250,
+      158,
+      219,
+      278,
+      187,
+      173,
+      134,
+      300
+    ]
+  ],
+  "precision": "BF16 autocast, FP32 parameters/Adam moments",
+  "gradient_checkpointing": true,
+  "trials": [
+    {
+      "micro_batch_episodes": 1,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        6.014366916999279,
+        4.239500083000166,
+        4.2659419999981765
+      ],
+      "warm_seconds_per_episode": 0.2657950650936982,
+      "mps_allocated_bytes": 4962208000,
+      "mps_driver_bytes": 7695466496
+    },
+    {
+      "micro_batch_episodes": 2,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        4.557308499999635,
+        4.256853250000859,
+        4.239544583000679
+      ],
+      "warm_seconds_per_episode": 0.26551243228129806,
+      "mps_allocated_bytes": 4968682496,
+      "mps_driver_bytes": 8703721472
+    },
+    {
+      "micro_batch_episodes": 4,
+      "effective_batch_episodes": 16,
+      "seconds_per_update": [
+        5.556930709000881,
+        5.389966874998208,
+        5.494764666000265
+      ],
+      "warm_seconds_per_episode": 0.3401478606562023,
+      "mps_allocated_bytes": 4959747072,
+      "mps_driver_bytes": 10893475840
+    }
+  ],
+  "selected_micro_batch": 2,
+  "run_id": "ranker-v1-efficient-20260921",
+  "run_plan_sha256": "e5491476a01f3cd3d1b3f3778ac90f4e1dbeadca0e001a078003633266b7963f"
+}
