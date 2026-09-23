@@ -10,7 +10,7 @@ from pathlib import Path
 
 from data_tools.content import content_fingerprint
 from data_tools.teacher import TeacherClient, audit_source, canonical_bytes, verify_audit_identity
-from data_tools.v7 import PROTOCOL, prepare_author_batch, same_action, validate_labels
+from data_tools.v7 import PROTOCOL, compact_author_fixture, prepare_author_batch, same_action, validate_labels
 from evaluations.common import load_jsonl, require_plan_data_path, sha256, validate_formal_heldout_allocation
 from pastewhat_ranker.preprocess import Preprocessor
 
@@ -201,11 +201,16 @@ class BatchAuditor:
                 source_plans = {plan["id"]: plan for plan in request["plans"]}
                 if any(source_plans.get(identifier) != plan for identifier, plan in plans.items() if identifier in source_plans):
                     raise ValueError("Author request changed the registered source plan")
-                prepared, _ = prepare_author_batch(authored, spec["plans"], spec["profile"], self.preprocessor)
+                prepared, _ = prepare_author_batch(compact_author_fixture(authored, spec), spec["plans"], spec["profile"], self.preprocessor)
+                if spec.get("source_constraint_version") == "missing-intent-required-parameter-v2":
+                    from evaluations.produce_v7 import missing_intent_prelabel_gate
+                    prepared, _ = missing_intent_prelabel_gate(authored, spec, spec["plans"], prepared)
                 prepared_by_author[author_id] = {row["id"]: row for row in prepared}
                 plans_by_author[author_id] = source_plans
             if plans_by_author[author_id].get(episode["id"]) != plans[episode["id"]]:
                 raise ValueError("An accepted draft was not requested with its exact source plan")
+            if episode["id"] not in prepared_by_author[author_id]:
+                raise ValueError("An accepted author fixture fails replay or its registered pre-label gate")
             recreated = prepared_by_author[author_id][episode["id"]]
             if (recreated["context"] != episode["context"] or recreated["entries"] != episode["entries"] or
                     recreated["preprocessing"]["visible_sha256"] != provenance["visible_sha256"]):
