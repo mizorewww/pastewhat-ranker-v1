@@ -260,13 +260,35 @@ def registered_sources(plan, split, partition, auditor):
     expected = planned_batches(plan, partition, split, 10)
     if sampling.get("specs") != expected or sampling.get("max_situations") != 8:
         raise ValueError("Heldout sampling differs from its pre-score registration")
+    max_situations = 8
+    if split == "test":
+        extension_path = Path("configs/test_backfill_extension_v2.json")
+        extension = json.loads(extension_path.read_text())
+        allowed = {**plan.binding(), "split": "test", "base_sampling_sha256": sha256(sampling_path),
+                   "first_new_round": 8, "max_situations": 16,
+                   "source_constraint_version": "test-missing-intent-required-parameter-v2"}
+        prior_completion = directory / "production-completion-before-test-v2.json"
+        if extension != allowed or not prior_completion.is_file():
+            raise ValueError("The finite Test extension lacks its registered lineage")
+        prior = json.loads(prior_completion.read_text())
+        if (any(prior.get(key) != value for key, value in plan.binding().items())
+                or prior.get("status") != "finite_backfill_exhausted"
+                or prior.get("retained_unique") >= plan.target("test")):
+            raise ValueError("The finite Test extension lacks its original shortfall")
+        auditor.bound_files[str(extension_path)] = sha256(extension_path)
+        auditor.bound_files[str(prior_completion)] = sha256(prior_completion)
+        max_situations = extension["max_situations"]
     specifications = {}
     for path in [sampling_path, *sorted(directory.glob("replacement-round-*.json"))]:
         registration = json.loads(path.read_text())
         if any(registration.get(key) != value for key, value in plan.binding().items()):
             raise ValueError("Heldout replacement lineage belongs to another run")
-        if path != sampling_path and not 1 <= registration.get("round", 0) < 8:
-            raise ValueError("Heldout backfill exceeded eight source situations")
+        if path != sampling_path and not 1 <= registration.get("round", 0) < max_situations:
+            raise ValueError("Heldout backfill exceeded its registered source situations")
+        if path != sampling_path and registration.get("round", 0) >= 8 and any(
+                spec.get("source_constraint_version") != "test-missing-intent-required-parameter-v2"
+                for spec in registration["specs"]):
+            raise ValueError("Extended Test sources lack the required-parameter gate version")
         auditor.bound_files[str(path)] = sha256(path)
         for spec in registration["specs"]:
             if spec["batch_id"] in specifications:
