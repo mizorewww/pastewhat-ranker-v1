@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-plan", required=True)
     parser.add_argument("--split", choices=("train", "dev"), required=True)
+    parser.add_argument("--batch-id", help="Recover one registered source batch only")
     args = parser.parse_args()
     plan = load_run_plan(args.run_plan)
     base = ROOT / "local/v7" / plan.run_id
@@ -39,6 +40,8 @@ def main():
     registry = ContentRegistry(base / "content.sqlite3")
     started = time.monotonic()
     for record in records:
+        if args.batch_id and record["spec"]["batch_id"] != args.batch_id:
+            continue
         if record["status"] != "complete" or "cached_author_source" in record["spec"]:
             continue
         semantic = {row["id"] for row in record["rejected"] if "original_label" in row}
