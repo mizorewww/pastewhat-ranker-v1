@@ -6,21 +6,33 @@ from __future__ import annotations
 
 import argparse
 import copy
-from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
 import time
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from data_tools.content import ContentRegistry, content_fingerprint
-from data_tools.teacher import TeacherClient, TeacherError, atomic_json, audit_source, canonical_bytes, make_teacher_client, observed_responses, utc_now
+from data_tools.teacher import (
+    TeacherClient,
+    TeacherError,
+    atomic_json,
+    audit_source,
+    canonical_bytes,
+    make_teacher_client,
+    observed_responses,
+    utc_now,
+)
 from data_tools.v7 import produce_batch
 from evaluations.common import sha256, write_json
 from evaluations.generate_v7 import (
-    CONTRACT, PROFILE_SOURCE, RECIPE_SOURCE, planned_batches,
+    CONTRACT,
+    PROFILE_SOURCE,
+    RECIPE_SOURCE,
+    planned_batches,
 )
 from pastewhat_ranker.preprocess import Preprocessor
 from run_contract import load_run_plan
@@ -185,7 +197,7 @@ def progress(directory, plan, split):
     return rows, report
 
 
-def replacement_specs(originals, rows, round_number):
+def replacement_specs(originals, rows, round_number, split):
     filled = {row["synthetic_metadata"]["quota_slot_id"] for row in rows}
     sources = []
     for original in originals:
@@ -201,6 +213,19 @@ def replacement_specs(originals, rows, round_number):
         spec["plans"] = [{**item, "quota_slot_id": item["id"],
             "id": item["id"] + f"-replacement-{round_number:02d}",
             "seed": int(hashlib.sha256(f"{item['seed']}:replacement:{round_number}".encode()).hexdigest()[:12], 16)} for item in missing]
+        if split == "calibration" and round_number >= 3 and any(item["scenario_type"] in {"ambiguous", "insufficient_context"} for item in missing):
+            spec["source_constraint_version"] = "missing-intent-observable-alternatives-v1"
+            spec["mother_task"]["constraints"] += (
+                " For plans registered as ambiguous or insufficient_context, make at least one candidate"
+                " directly usable for this operation under a plausible goal, and ensure the visible"
+                " guidance does not establish which goal the user has. For ambiguous plans with two"
+                " or more candidates, give at least two distinct plausible goals with different"
+                " directly usable candidates; omit only the fact that distinguishes those goals."
+                " For insufficient_context plans, omit the decisive source fact or user preference"
+                " rather than making every candidate invalid. Keep all other registered plans in"
+                " this batch in their own action buckets. Do not reveal a label, rationale or"
+                " inferred intent in the fixture."
+            )
         # Review cohort and all quota factors stay fixed across replacements.
         sources.append(spec)
     return sources
@@ -355,13 +380,13 @@ def main():
         if registration.exists():
             sources = json.loads(registration.read_text())["specs"]
         else:
-            sources = replacement_specs(originals, rows, round_number)
+            sources = replacement_specs(originals, rows, round_number, args.split)
             atomic_json(registration, {**plan.binding(), "round": round_number, "created_at": utc_now(), "specs": sources})
         if not sources:
             break
         run_sources(sources)
     frozen = freeze_data(directory, plan, args.split, args.tokenizer)
-    rows, report = progress(directory, plan, args.split)
+    rows, _ = progress(directory, plan, args.split)
     atomic_json(directory / "production-completion.json", {**plan.binding(), "status": "data_frozen_and_audited" if frozen else "finite_backfill_exhausted", "retained_unique": len(rows), "target": plan.target(args.split), "finished_at": utc_now(), "student_inference_used": False})
 
 
